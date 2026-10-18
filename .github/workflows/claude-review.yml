@@ -1,0 +1,51 @@
+name: Claude review
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+
+concurrency:
+  group: claude-review-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+  id-token: write
+
+jobs:
+  review:
+    # Never run on forks: the job has a token and can write comments.
+    if: github.event.pull_request.head.repo.full_name == github.repository && !github.event.pull_request.draft
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: anthropics/claude-code-action@v1.0.252
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          track_progress: false
+          prompt: |
+            REPO: ${{ github.repository }}
+            PR NUMBER: ${{ github.event.pull_request.number }}
+
+            You are the code reviewer of Tehreer-ReactNative. Read AGENTS.md,
+            .claude/skills/react-native-wrapper/SKILL.md and
+            .claude/agents/rn-code-reviewer.md, then review this pull request exactly as
+            that agent describes (checklist, severities, output format). You are read-only:
+            do not edit files, push, approve or merge.
+
+            Publish the review on the pull request:
+            - one inline comment per finding on the offending line, starting with its ID
+              (R1, R2, ...) and severity (blocker, major, minor, nit);
+            - one final summary comment whose first line is exactly
+              `Verdict: APPROVE` (no blocker or major) or `Verdict: CHANGES REQUESTED`,
+              followed by what you checked and whether typecheck, lint and tests were run.
+            If the pull request was updated since your last review, say which earlier
+            findings are fixed, still open or no longer relevant.
+          claude_args: |
+            --allowedTools "Read,Grep,Glob,mcp__github_inline_comment__create_inline_comment,Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*),Bash(git diff:*),Bash(git log:*),Bash(git status:*),Bash(npm run typecheck),Bash(npm run lint),Bash(npm test)"
