@@ -6,14 +6,15 @@ import NativeTehreer from "./specs/NativeTehreer.js";
  * Installs the native bindings into the JS runtime. Call it once before using anything else of the
  * library; calling it again does nothing.
  *
- * @throws Error if the native module is missing or fails to install the bindings.
+ * @throws Error if the native module is not linked into the app or fails to install the bindings.
+ * Importing the library never throws.
  */
 export function initialize(): void {
   if (findNativeBindings() !== undefined) {
     return;
   }
 
-  if (!NativeTehreer.install() || findNativeBindings() === undefined) {
+  if (!NativeTehreer?.install() || findNativeBindings() === undefined) {
     throw new Error("Tehreer native bindings could not be installed.");
   }
 }

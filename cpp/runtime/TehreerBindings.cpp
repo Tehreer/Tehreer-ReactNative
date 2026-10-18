@@ -70,8 +70,19 @@ void InstallBindings(jsi::Runtime &runtime) {
         return;
     }
 
-    global.setProperty(runtime, kBindingsName,
+    // Read-only and non-configurable, so that app code cannot replace or delete the bindings that
+    // the library holds on to. Not enumerable, to keep `global` free of an internal name.
+    jsi::Object descriptor(runtime);
+    descriptor.setProperty(runtime, "value",
         jsi::Object::createFromHostObject(runtime, std::make_shared<Bindings>()));
+    descriptor.setProperty(runtime, "writable", false);
+    descriptor.setProperty(runtime, "configurable", false);
+    descriptor.setProperty(runtime, "enumerable", false);
+
+    jsi::Function defineProperty = runtime.global()
+        .getPropertyAsObject(runtime, "Object")
+        .getPropertyAsFunction(runtime, "defineProperty");
+    defineProperty.call(runtime, global, jsi::String::createFromAscii(runtime, kBindingsName), descriptor);
 }
 
 } // namespace tehreer

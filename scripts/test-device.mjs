@@ -6,12 +6,23 @@
 // example/ios for iOS, ANDROID_HOME for Android, a booted simulator or emulator.
 import { spawn, spawnSync } from "node:child_process";
 import console from "node:console";
+import { existsSync, readFileSync } from "node:fs";
+import { get } from "node:http";
 import process from "node:process";
 import { clearTimeout, setTimeout } from "node:timers";
 import { fileURLToPath, URL } from "node:url";
 
 const example = fileURLToPath(new URL("../example", import.meta.url));
-const expected = "TEHREER_RESULT version=1.0.0 smokeTest=true";
+const metroPort = 8081;
+
+// Core is the single source of the version; reading its header keeps the test from going stale.
+const header = readFileSync(
+  fileURLToPath(new URL("../Libraries/TehreerCore/Headers/Tehreer/TRVersion.h", import.meta.url)),
+  "utf8",
+);
+const version = /#define\s+TEHREER_VERSION_STRING\s+"([^"]+)"/.exec(header)?.[1];
+if (!version) throw new Error("TEHREER_VERSION_STRING not found in TRVersion.h");
+const expected = `TEHREER_RESULT version=${version} smokeTest=true`;
 const timeoutMs = 90_000;
 
 function run(command, args, options = {}) {
@@ -52,9 +63,54 @@ function waitForResult(loggerCommand, loggerArgs, launch) {
   });
 }
 
-function startMetro() {
-  const metro = spawn("npx", ["react-native", "start", "--port", "8081"], { cwd: example, stdio: "ignore" });
-  return () => metro.kill();
+function metroStatus() {
+  return new Promise((resolve) => {
+    const request = get({ host: "localhost", port: metroPort, path: "/status", timeout: 1000 }, (response) => {
+      let body = "";
+      response.on("data", (chunk) => (body += chunk));
+      response.on("end", () => resolve(body));
+    });
+    request.on("error", () => resolve(undefined));
+    request.on("timeout", () => request.destroy());
+  });
+}
+
+async function waitUntil(condition, message, limitMs) {
+  const end = Date.now() + limitMs;
+  while (Date.now() < end) {
+    if (await condition()) return;
+    await new Promise((resolve) => setTimeout(resolve, 500));
+  }
+  throw new Error(message);
+}
+
+/**
+ * Runs `body` while Metro serves the example app. Metro is started as node on the CLI directly (no
+ * npx or shell in between) in its own process group, which is killed afterwards, so that no stale
+ * Metro keeps port 8081 and serves an old bundle to the next run.
+ */
+async function withMetro(body) {
+  if ((await metroStatus()) !== undefined) {
+    throw new Error(`port ${metroPort} is already served; stop that Metro first`);
+  }
+
+  const cli = `${example}/node_modules/react-native/cli.js`;
+  const metro = spawn(process.execPath, [cli, "start", "--port", String(metroPort)], {
+    cwd: example,
+    stdio: "ignore",
+    detached: true,
+  });
+  try {
+    await waitUntil(async () => (await metroStatus()) === "packager-status:running", "Metro did not start", 60_000);
+    return await body();
+  } finally {
+    try {
+      process.kill(-metro.pid, "SIGTERM");
+    } catch {
+      // Already gone.
+    }
+    await waitUntil(async () => (await metroStatus()) === undefined, `Metro still serves port ${metroPort}`, 10_000);
+  }
 }
 
 async function ios() {
@@ -63,6 +119,9 @@ async function ios() {
   const booted = spawnSync("xcrun", ["simctl", "list", "devices", "booted", "-j"], { encoding: "utf8" });
   const devices = Object.values(JSON.parse(booted.stdout).devices).flat();
   if (devices.length === 0) throw new Error("no booted iOS simulator");
+  if (!existsSync(`${example}/ios/Pods`)) {
+    run("pod", ["install"], { cwd: `${example}/ios`, env: { ...process.env, LANG: "en_US.UTF-8" } });
+  }
   run("xcodebuild", [
     "-workspace", "TehreerExample.xcworkspace", "-scheme", "TehreerExample", "-configuration", "Debug",
     "-sdk", "iphonesimulator", "-destination", `id=${devices[0].udid}`, "ONLY_ACTIVE_ARCH=YES",
@@ -70,17 +129,14 @@ async function ios() {
   ], { cwd: `${example}/ios` });
   run("xcrun", ["simctl", "install", "booted", `${example}/ios/build/Build/Products/Debug-iphonesimulator/TehreerExample.app`]);
 
-  const stopMetro = startMetro();
-  try {
+  return withMetro(() => {
     spawnSync("xcrun", ["simctl", "terminate", "booted", bundleId]);
-    return await waitForResult(
+    return waitForResult(
       "xcrun",
       ["simctl", "spawn", "booted", "log", "stream", "--level", "debug", "--predicate", 'process == "TehreerExample"'],
       () => run("xcrun", ["simctl", "launch", "booted", bundleId]),
     );
-  } finally {
-    stopMetro();
-  }
+  });
 }
 
 async function android() {
@@ -88,20 +144,25 @@ async function android() {
   if (!sdk) throw new Error("ANDROID_HOME is not set");
   const adb = `${sdk}/platform-tools/adb`;
 
-  const abi = spawnSync(adb, ["shell", "getprop", "ro.product.cpu.abi"], { encoding: "utf8" }).stdout.trim();
-  if (!abi) throw new Error("no connected Android device");
-  run("./gradlew", [":app:assembleDebug", `-PreactNativeArchitectures=${abi}`], { cwd: `${example}/android` });
-  run(adb, ["reverse", "tcp:8081", "tcp:8081"]);
-  run(adb, ["install", "-r", `${example}/android/app/build/outputs/apk/debug/app-debug.apk`]);
-  run(adb, ["logcat", "-c"]);
-
-  const stopMetro = startMetro();
-  try {
-    return await waitForResult(adb, ["logcat", "-s", "ReactNativeJS:I"], () =>
-      run(adb, ["shell", "am", "start", "-n", "com.tehreerexample/.MainActivity"]));
-  } finally {
-    stopMetro();
+  // Every adb call names the device, so a second attached device cannot receive a different step.
+  const listed = spawnSync(adb, ["devices"], { encoding: "utf8" }).stdout
+    .split("\n").slice(1).map((line) => line.split("\t")).filter(([, state]) => state?.trim() === "device")
+    .map(([name]) => name);
+  const serial = process.env.ANDROID_SERIAL ?? (listed.length === 1 ? listed[0] : undefined);
+  if (!serial || !listed.includes(serial)) {
+    throw new Error(`expected one Android device or ANDROID_SERIAL; found: ${listed.join(", ") || "none"}`);
   }
+  const device = (...args) => ["-s", serial, ...args];
+
+  const abi = spawnSync(adb, device("shell", "getprop", "ro.product.cpu.abi"), { encoding: "utf8" }).stdout.trim();
+  run("./gradlew", [":app:assembleDebug", `-PreactNativeArchitectures=${abi}`], { cwd: `${example}/android` });
+  run(adb, device("reverse", `tcp:${metroPort}`, `tcp:${metroPort}`));
+  run(adb, device("install", "-r", `${example}/android/app/build/outputs/apk/debug/app-debug.apk`));
+  run(adb, device("logcat", "-c"));
+
+  return withMetro(() =>
+    waitForResult(adb, device("logcat", "-s", "ReactNativeJS:I"), () =>
+      run(adb, device("shell", "am", "start", "-n", "com.tehreerexample/.MainActivity"))));
 }
 
 const platform = process.argv[2];

@@ -5,8 +5,8 @@ project(tehreer_module CXX C)
 # file builds Core and the module as static libraries that end up in the app's libappmodules.so.
 set(TEHREER_ROOT "${CMAKE_CURRENT_LIST_DIR}/..")
 
-set(CMAKE_CXX_STANDARD 20)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
+# Core and its dependencies end up in a shared library, so they need position independent code.
+# The variable is directory scoped: it does not leak into the CMake project of the app.
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 # The NDK has no libbz2 and the app must not depend on optional system libraries, so the optional
@@ -29,6 +29,9 @@ add_library(tehreer_module STATIC
 )
 
 target_include_directories(tehreer_module PUBLIC "${TEHREER_ROOT}/cpp")
+
+# React Native compiles with C++20; the standard is requested on the target only, so Core stays C.
+target_compile_features(tehreer_module PUBLIC cxx_std_20)
 
 # The plain signature is required: the application CMake of React Native links this target with it,
 # and CMake does not allow both signatures on one target.

@@ -16,7 +16,7 @@ test("the module name agrees in the spec, in C++ and in the codegen config", () 
   const spec = read("src/specs/NativeTehreer.ts");
   const header = read("cpp/TehreerModule.h");
 
-  assert.match(spec, /getEnforcing<Spec>\("NativeTehreer"\)/);
+  assert.match(spec, /get<Spec>\("NativeTehreer"\)/);
   assert.match(header, /kModuleName = "NativeTehreer"/);
   assert.deepEqual(Object.keys(manifest.codegenConfig.ios.modules), ["NativeTehreer"]);
   assert.equal(manifest.codegenConfig.jsSrcsDir, "src/specs");

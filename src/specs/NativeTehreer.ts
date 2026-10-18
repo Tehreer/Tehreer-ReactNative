@@ -13,6 +13,7 @@ export interface Spec extends TurboModule {
   install(): boolean;
 }
 
-// Codegen only accepts a default export in a spec file.
+// Codegen only accepts a default export in a spec file. `get` (not `getEnforcing`) so that importing
+// the library never throws when the native module is missing; initialize() reports that instead.
 // eslint-disable-next-line no-restricted-exports
-export default TurboModuleRegistry.getEnforcing<Spec>("NativeTehreer");
+export default TurboModuleRegistry.get<Spec>("NativeTehreer");

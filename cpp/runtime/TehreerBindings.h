@@ -10,6 +10,7 @@ constexpr const char *kBindingsName = "__tehreer";
 /**
  * Installs the host object that holds all bindings on `global` of the runtime. Installing twice on
  * the same runtime replaces nothing: the first host object stays.
+ * The property is read-only and non-configurable.
  */
 void InstallBindings(facebook::jsi::Runtime &runtime);
 

@@ -41,7 +41,7 @@ npm run test:android
 ## Conventions
 
 - TypeScript strict, ES modules, imports end in `.js`, no default exports, one class per file named after the class.
-- C++ glue is C++17, `snake_case` is not used: types and functions PascalCase, members `camelCase`, private members `_camelCase`. Core stays C89; never edit Core from this repo (change it in `../Tehreer-Core`, test it there, then bump the submodule).
+- C++ glue is C++20 (React Native 0.88 compiles with `-std=c++20` on both platforms), `snake_case` is not used: types and functions PascalCase, members `camelCase`, private members `_camelCase`. Core stays C89; never edit Core from this repo (change it in `../Tehreer-Core`, test it there, then bump the submodule).
 - Match the nearest existing file for naming, comments and structure. Comments say why, not what. Public TypeScript API has TSDoc.
 - Names mirror Tehreer-Web, Android and Cocoa where they agree.
 - Do not weaken or delete a test to get green. Do not add a dependency, download a file, or change CI secrets without asking.
