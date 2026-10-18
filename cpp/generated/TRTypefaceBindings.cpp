@@ -351,9 +351,11 @@ jsi::Value BindTRTypefaceGetTableData(jsi::Runtime &rt, const jsi::Value &, cons
     TRUInteger a_offset = marshal::ToNumber<TRUInteger>(rt, marshal::ArgAt(args, count, 2), kFunction, "offset");
     TRUInteger a_capacity = marshal::ToNumber<TRUInteger>(rt, marshal::ArgAt(args, count, 4), kFunction, "capacity");
     TRTypefaceRef a_typeface = marshal::ToHandle<TRTypefaceRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "typeface", false);
-    marshal::MutableBuffer a_buffer = marshal::ToMutableBuffer(rt, marshal::ArgAt(args, count, 3), kFunction, "buffer", false);
+    marshal::MutableBuffer a_buffer = marshal::ToMutableBuffer(rt, marshal::ArgAt(args, count, 3), kFunction, "buffer", true);
 
-    marshal::RequireCapacity(rt, kFunction, "buffer", static_cast<size_t>(a_capacity), 1, a_buffer.byteLength);
+    if (a_buffer.data != nullptr) {
+        marshal::RequireCapacity(rt, kFunction, "buffer", static_cast<size_t>(a_capacity), 1, a_buffer.byteLength);
+    }
 
     auto result = TRTypefaceGetTableData(a_typeface, a_tag, a_offset, a_buffer.data, a_capacity);
     return marshal::FromNumber<TRUInteger>(rt, result);
@@ -364,9 +366,11 @@ jsi::Value BindTRTypefaceGetGlyphName(jsi::Runtime &rt, const jsi::Value &, cons
     TRGlyphID a_glyphID = marshal::ToNumber<TRGlyphID>(rt, marshal::ArgAt(args, count, 1), kFunction, "glyphID");
     TRUInteger a_capacity = marshal::ToNumber<TRUInteger>(rt, marshal::ArgAt(args, count, 3), kFunction, "capacity");
     TRTypefaceRef a_typeface = marshal::ToHandle<TRTypefaceRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "typeface", false);
-    marshal::MutableBuffer a_buffer = marshal::ToMutableBuffer(rt, marshal::ArgAt(args, count, 2), kFunction, "buffer", false);
+    marshal::MutableBuffer a_buffer = marshal::ToMutableBuffer(rt, marshal::ArgAt(args, count, 2), kFunction, "buffer", true);
 
-    marshal::RequireCapacity(rt, kFunction, "buffer", static_cast<size_t>(a_capacity), 1, a_buffer.byteLength);
+    if (a_buffer.data != nullptr) {
+        marshal::RequireCapacity(rt, kFunction, "buffer", static_cast<size_t>(a_capacity), 1, a_buffer.byteLength);
+    }
 
     auto result = TRTypefaceGetGlyphName(a_typeface, a_glyphID, static_cast<char *>(a_buffer.data), a_capacity);
     return marshal::FromNumber<TRUInteger>(rt, result);

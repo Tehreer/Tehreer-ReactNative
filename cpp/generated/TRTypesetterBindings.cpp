@@ -81,7 +81,7 @@ jsi::Value BindTRTypesetterCreateTruncationToken(jsi::Runtime &rt, const jsi::Va
     TRTypesetterRef a_typesetter = marshal::ToHandle<TRTypesetterRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "typesetter", false);
     marshal::ConstBuffer a_tokenString = marshal::ToConstBuffer(rt, marshal::ArgAt(args, count, 4), kFunction, "tokenString", true);
 
-    if (a_tokenString.data != nullptr) {
+    if (marshal::CodeUnitSize(a_tokenEncoding) != 0 && a_tokenString.data != nullptr) {
         marshal::RequireCapacity(rt, kFunction, "tokenString", static_cast<size_t>(a_tokenLength), marshal::CodeUnitSize(a_tokenEncoding), a_tokenString.byteLength);
     }
 

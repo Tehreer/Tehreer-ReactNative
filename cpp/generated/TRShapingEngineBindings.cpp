@@ -199,9 +199,11 @@ jsi::Value BindTRShapingEngineCreateShapingResult(jsi::Runtime &rt, const jsi::V
     TRUInteger a_length = marshal::ToNumber<TRUInteger>(rt, marshal::ArgAt(args, count, 2), kFunction, "length");
     TRStringEncoding a_encoding = marshal::ToNumber<TRStringEncoding>(rt, marshal::ArgAt(args, count, 3), kFunction, "encoding");
     TRShapingEngineRef a_engine = marshal::ToHandle<TRShapingEngineRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "engine", false);
-    marshal::ConstBuffer a_codeUnits = marshal::ToConstBuffer(rt, marshal::ArgAt(args, count, 1), kFunction, "codeUnits", false);
+    marshal::ConstBuffer a_codeUnits = marshal::ToConstBuffer(rt, marshal::ArgAt(args, count, 1), kFunction, "codeUnits", true);
 
-    marshal::RequireCapacity(rt, kFunction, "codeUnits", static_cast<size_t>(a_length), marshal::CodeUnitSize(a_encoding), a_codeUnits.byteLength);
+    if (marshal::CodeUnitSize(a_encoding) != 0 && a_codeUnits.data != nullptr) {
+        marshal::RequireCapacity(rt, kFunction, "codeUnits", static_cast<size_t>(a_length), marshal::CodeUnitSize(a_encoding), a_codeUnits.byteLength);
+    }
 
     auto result = TRShapingEngineCreateShapingResult(a_engine, a_codeUnits.data, a_length, a_encoding);
     return marshal::FromHandle<TRShapingResultRef>(rt, result, marshal::Ownership::Adopt);

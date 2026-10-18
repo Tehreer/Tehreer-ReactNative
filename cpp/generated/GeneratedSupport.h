@@ -79,8 +79,11 @@ enum class Ownership {
 /**
  * Describes an object reference type. Handles.h specialises it for every reference type of Core.
  * `kGroup` is the same for the types that share one object (`TRTextRef` and
- * `TRMutableTextRef`), so that a handle is accepted for any of them. `Release` is the only thing
- * a finalizer may call.
+ * `TRMutableTextRef`), so that a handle is accepted for either. `kMutable` is false for a
+ * `const` reference type. A handle remembers the `kMutable` of the type it was made from, and
+ * `ToHandle<Ref>` refuses a handle that was made from a `const` type when `Ref::kMutable`,
+ * since Core documents those objects as immutable; a mutable handle is accepted for either type.
+ * `Release` is the only thing a finalizer may call.
  */
 template <class Ref> struct HandleTraits;
 
@@ -156,7 +159,8 @@ MutableBuffer ToMutableBuffer(jsi::Runtime &rt, const jsi::Value &value, const c
 /**
  * Throws a `RangeError` unless `count` units of `unitSize` bytes fit in `byteLength`, so Core
  * never reads or writes past a buffer; the test must not overflow, as `count` can be
- * `TRInvalidIndex`. A `unitSize` of zero (an invalid encoding) throws too.
+ * `TRInvalidIndex`. The generated code does not call it when `unitSize` is zero, which is an
+ * invalid encoding: Core documents that it refuses the encoding without reading the buffer.
  */
 void RequireCapacity(jsi::Runtime &rt, const char *function, const char *parameter, size_t count, size_t unitSize, size_t byteLength);
 /** The same for an array that holds `available` elements. */

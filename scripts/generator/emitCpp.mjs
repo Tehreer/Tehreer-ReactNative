@@ -123,8 +123,11 @@ enum class Ownership {
 /**
  * Describes an object reference type. Handles.h specialises it for every reference type of Core.
  * \`kGroup\` is the same for the types that share one object (\`TRTextRef\` and
- * \`TRMutableTextRef\`), so that a handle is accepted for any of them. \`Release\` is the only thing
- * a finalizer may call.
+ * \`TRMutableTextRef\`), so that a handle is accepted for either. \`kMutable\` is false for a
+ * \`const\` reference type. A handle remembers the \`kMutable\` of the type it was made from, and
+ * \`ToHandle<Ref>\` refuses a handle that was made from a \`const\` type when \`Ref::kMutable\`,
+ * since Core documents those objects as immutable; a mutable handle is accepted for either type.
+ * \`Release\` is the only thing a finalizer may call.
  */
 template <class Ref> struct HandleTraits;
 
@@ -200,7 +203,8 @@ MutableBuffer ToMutableBuffer(jsi::Runtime &rt, const jsi::Value &value, const c
 /**
  * Throws a \`RangeError\` unless \`count\` units of \`unitSize\` bytes fit in \`byteLength\`, so Core
  * never reads or writes past a buffer; the test must not overflow, as \`count\` can be
- * \`TRInvalidIndex\`. A \`unitSize\` of zero (an invalid encoding) throws too.
+ * \`TRInvalidIndex\`. The generated code does not call it when \`unitSize\` is zero, which is an
+ * invalid encoding: Core documents that it refuses the encoding without reading the buffer.
  */
 void RequireCapacity(jsi::Runtime &rt, const char *function, const char *parameter, size_t count, size_t unitSize, size_t byteLength);
 /** The same for an array that holds \`available\` elements. */
@@ -258,6 +262,7 @@ struct Collector {
 function emitHandles(model) {
   const traits = model.refs.map((ref) => `template <> struct HandleTraits<${ref.name}> {
     static constexpr const char *kGroup = "${ref.group}";
+    static constexpr bool kMutable = ${ref.const ? "false" : "true"};
     static void Retain(${ref.name} ref) { ${ref.retain}(ref); }
     static void Release(${ref.name} ref) { ${ref.release}(ref); }
 };`).join("\n\n");
@@ -458,7 +463,12 @@ function emitBinding(binding) {
         // A buffer that must not be NULL is checked even when it is empty or has no data, so that a
         // non-zero count never reaches Core with a pointer that holds nothing.
         const capacity = `marshal::RequireCapacity(rt, kFunction, "${name}", static_cast<size_t>(${expand(p.count)}), ${expand(p.unit)}, ${v}.byteLength);`;
-        checks.push(p.nullable ? `    if (${v}.data != nullptr) {\n        ${capacity}\n    }` : `    ${capacity}`);
+        if (p.unit.includes("CodeUnitSize")) {
+          // An encoding that is not valid has no unit size; Core refuses it before it reads anything.
+          checks.push(`    if (${expand(p.unit)} != 0${p.nullable ? ` && ${v}.data != nullptr` : ""}) {\n        ${capacity}\n    }`);
+        } else {
+          checks.push(p.nullable ? `    if (${v}.data != nullptr) {\n        ${capacity}\n    }` : `    ${capacity}`);
+        }
         if (p.element === "void") callArguments.push(`${v}.data`);
         else callArguments.push(`static_cast<${isIn ? "const " : ""}${p.element} *>(${v}.data)`);
         break;

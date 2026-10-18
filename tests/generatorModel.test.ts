@@ -322,3 +322,46 @@ test("an unnamed function pointer parameter is reported as an unsupported callba
   const parsed = () => parseHeader("TR_PUBLIC void TRThingSetCallback(TRThingRef thing, void (*)(void *data));", { publicMacro: "TR_PUBLIC", prefix: "TR" });
   assert.throws(parsed, /TRThingSetCallback.*unsupported callback signature/);
 });
+
+test("a data pointer that the return text says Core accepts as NULL is nullable", () => {
+  const plan = binding(`
+    /**
+     * @param thing The thing.
+     * @param buffer Receives the data.
+     * @param codeUnitBuffer The code units.
+     * @param path The path.
+     * @param other Receives more.
+     * @return
+     *      The number copied, which is zero if the buffer is \`NULL\` or \`path\` is \`NULL\`.
+     */
+    TR_PUBLIC TRUInteger TRThingCopy(TRThingRef thing, void *buffer, TRUInteger capacity, const char *path, TRFloat *other, TRUInteger otherCount);
+  `, "TRThingCopy");
+  const nullable = Object.fromEntries(plan.params.map((p) => [p.name, p.nullable]));
+  assert.equal(nullable["buffer"], true);
+  assert.equal(nullable["path"], false, "a string that makes the function fail is not optional");
+  assert.equal(nullable["other"], false);
+  assert.equal(nullable["thing"], false);
+
+  const named = binding(`
+    /**
+     * @param codeUnitBuffer The code units.
+     * @return \`TRFalse\` if the buffer is \`NULL\`.
+     */
+    TR_PUBLIC TRBoolean TRThingAppend(TRTextRef thing, const void *codeUnitBuffer, TRUInteger codeUnitCount);
+  `, "TRThingAppend", {});
+  assert.equal(named.params[1]?.nullable, true);
+});
+
+test("a handle remembers whether its type is mutable", () => {
+  const model = build("TR_PUBLIC void TRTextBegin(TRMutableTextRef text);");
+  const flags = Object.fromEntries(model.refs.map((ref) => [ref.name, ref.const]));
+  assert.equal(flags["TRTextRef"], true);
+  assert.equal(flags["TRMutableTextRef"], false);
+});
+
+test("an enumeration cannot return a reference the caller owns", () => {
+  assert.match(failure(`
+    typedef void (*TRThingFunc)(void *userData, TRUInteger index, TRBoolean *stop);
+    TR_PUBLIC TRThingRef TRThingCreateEach(TRThingRef thing, TRThingFunc func, void *userData);
+  `), /TRThingCreateEach.*enumeration cannot also return a reference/);
+});

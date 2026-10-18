@@ -73,7 +73,7 @@ test("a text buffer is checked against its count and the size of a code unit", (
 
 test("a buffer that may be NULL is checked only when present, any other always", () => {
   // `string` is documented as accepting NULL.
-  assert.match(cpp("TRSampleBindings.cpp"), /if \(a_string\.data != nullptr\) \{\s*marshal::RequireCapacity\(rt, kFunction, "string"/);
+  assert.match(cpp("TRSampleBindings.cpp"), /a_string\.data != nullptr\) \{\s*marshal::RequireCapacity\(rt, kFunction, "string"/);
 
   const directory = mkdtempSync(join(tmpdir(), "tehreer-required-"));
   try {
@@ -112,6 +112,28 @@ test("handles are converted after structs and arrays and before the buffers", ()
   assert.ok(text.indexOf("a_sample =") < text.indexOf("a_string ="));
   const set = body.slice(body.indexOf("jsi::Value BindTRSampleSetOrigin"));
   assert.ok(set.indexOf("a_origin =") < set.indexOf("a_sample ="));
+});
+
+test("an invalid encoding is left to Core, and a mutable type is told from a constant one", () => {
+  assert.match(cpp("TRSampleBindings.cpp"), /if \(marshal::CodeUnitSize\(a_encoding\) != 0 && a_string\.data != nullptr\) \{\s*marshal::RequireCapacity/);
+
+  const directory = mkdtempSync(join(tmpdir(), "tehreer-mutable-"));
+  try {
+    writeFileSync(join(directory, "TRPair.h"), `
+      typedef const struct _TRPair *TRPairRef;
+      typedef struct _TRPair *TRMutablePairRef;
+      TR_PUBLIC TRPairRef TRPairRetain(TRPairRef pair);
+      TR_PUBLIC void TRPairRelease(TRPairRef pair);
+      TR_PUBLIC void TRPairClear(TRMutablePairRef pair);
+    `);
+    const files = generate(directory, { excluded: new Set(), manual: new Set(), bounds: {}, scalarOuts: {}, skipIncludes: [] }).cpp;
+    const handles = files.get("Handles.h") ?? "";
+    assert.match(handles, /HandleTraits<TRPairRef> \{[^}]*kGroup = "TRPair";\s*static constexpr bool kMutable = false;/);
+    assert.match(handles, /HandleTraits<TRMutablePairRef> \{[^}]*kGroup = "TRPair";\s*static constexpr bool kMutable = true;/);
+    assert.match(files.get("GeneratedSupport.h") ?? "", /refuses a handle that was made from a \\?`?const\\?`? type/);
+  } finally {
+    rmSync(directory, { recursive: true, force: true });
+  }
 });
 
 test("an error in a struct member names the path of the member", () => {

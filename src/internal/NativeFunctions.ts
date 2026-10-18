@@ -507,7 +507,7 @@ export interface NativeFunctions {
   /** `TRUInteger TRShapingEngineGetOpenTypeFeatureCount(TRShapingEngineRef engine)` */
   TRShapingEngineGetOpenTypeFeatureCount(engine: Handle<"TRShapingEngine">): number;
   /** `TRShapingResultRef TRShapingEngineCreateShapingResult(TRShapingEngineRef engine, const void *codeUnits, TRUInteger length, TRStringEncoding encoding)` (the handle owns the reference) */
-  TRShapingEngineCreateShapingResult(engine: Handle<"TRShapingEngine">, codeUnits: ArrayBuffer | ArrayBufferView, length: number, encoding: number): Handle<"TRShapingResult"> | undefined;
+  TRShapingEngineCreateShapingResult(engine: Handle<"TRShapingEngine">, codeUnits: ArrayBuffer | ArrayBufferView | undefined, length: number, encoding: number): Handle<"TRShapingResult"> | undefined;
   /** `TRShapingEngineRef TRShapingEngineRetain(TRShapingEngineRef engine)` (the handle owns the reference) */
   TRShapingEngineRetain(engine: Handle<"TRShapingEngine">): Handle<"TRShapingEngine"> | undefined;
   /** `TRUInteger TRShapingResultGetCodeUnitCount(TRShapingResultRef result)` */
@@ -531,7 +531,7 @@ export interface NativeFunctions {
   /** `TRShapingResultRef TRShapingResultRetain(TRShapingResultRef result)` (the handle owns the reference) */
   TRShapingResultRetain(result: Handle<"TRShapingResult">): Handle<"TRShapingResult"> | undefined;
   /** `TRTextRef TRTextCreate(const void *string, TRUInteger length, TRStringEncoding encoding)` (the handle owns the reference) */
-  TRTextCreate(string: ArrayBuffer | ArrayBufferView, length: number, encoding: number): Handle<"TRText"> | undefined;
+  TRTextCreate(string: ArrayBuffer | ArrayBufferView | undefined, length: number, encoding: number): Handle<"TRText"> | undefined;
   /** `TRTextRef TRTextCreateCopy(TRTextRef text)` (the handle owns the reference) */
   TRTextCreateCopy(text: Handle<"TRText">): Handle<"TRText"> | undefined;
   /** `TRMutableTextRef TRTextCreateMutableCopy(TRTextRef text)` (the handle owns the reference) */
@@ -541,7 +541,7 @@ export interface NativeFunctions {
   /** `TRUInteger TRTextGetLength(TRTextRef text)` */
   TRTextGetLength(text: Handle<"TRText">): number;
   /** `TRBoolean TRTextGetCodeUnits(TRTextRef text, TRUInteger index, TRUInteger length, void *buffer)` */
-  TRTextGetCodeUnits(text: Handle<"TRText">, index: number, length: number, buffer: ArrayBuffer | ArrayBufferView): boolean;
+  TRTextGetCodeUnits(text: Handle<"TRText">, index: number, length: number, buffer: ArrayBuffer | ArrayBufferView | undefined): boolean;
   /** `TRAttributeListRef TRTextCopyAttributes(TRTextRef text, TRUInteger index, TRUInteger *outLength)` (the handle owns the reference) */
   TRTextCopyAttributes(text: Handle<"TRText">, index: number): { result: Handle<"TRAttributeList"> | undefined; outLength: number };
   /** `TRTextRef TRTextRetain(TRTextRef text)` (the handle owns the reference) */
@@ -553,13 +553,13 @@ export interface NativeFunctions {
   /** `void TRTextEndEditing(TRMutableTextRef text)` */
   TRTextEndEditing(text: Handle<"TRText">): void;
   /** `TRBoolean TRTextAppendCodeUnits(TRMutableTextRef text, const void *codeUnitBuffer, TRUInteger codeUnitCount)` */
-  TRTextAppendCodeUnits(text: Handle<"TRText">, codeUnitBuffer: ArrayBuffer | ArrayBufferView, codeUnitCount: number): boolean;
+  TRTextAppendCodeUnits(text: Handle<"TRText">, codeUnitBuffer: ArrayBuffer | ArrayBufferView | undefined, codeUnitCount: number): boolean;
   /** `TRBoolean TRTextInsertCodeUnits(TRMutableTextRef text, TRUInteger index, const void *codeUnitBuffer, TRUInteger codeUnitCount)` */
-  TRTextInsertCodeUnits(text: Handle<"TRText">, index: number, codeUnitBuffer: ArrayBuffer | ArrayBufferView, codeUnitCount: number): boolean;
+  TRTextInsertCodeUnits(text: Handle<"TRText">, index: number, codeUnitBuffer: ArrayBuffer | ArrayBufferView | undefined, codeUnitCount: number): boolean;
   /** `TRBoolean TRTextDeleteCodeUnits(TRMutableTextRef text, TRUInteger index, TRUInteger length)` */
   TRTextDeleteCodeUnits(text: Handle<"TRText">, index: number, length: number): boolean;
   /** `TRBoolean TRTextSetCodeUnits(TRMutableTextRef text, const void *codeUnitBuffer, TRUInteger codeUnitCount)` */
-  TRTextSetCodeUnits(text: Handle<"TRText">, codeUnitBuffer: ArrayBuffer | ArrayBufferView, codeUnitCount: number): boolean;
+  TRTextSetCodeUnits(text: Handle<"TRText">, codeUnitBuffer: ArrayBuffer | ArrayBufferView | undefined, codeUnitCount: number): boolean;
   /** `TRBoolean TRTextReplaceCodeUnits(TRMutableTextRef text, TRUInteger index, TRUInteger length, const void *codeUnitBuffer, TRUInteger codeUnitCount)` */
   TRTextReplaceCodeUnits(text: Handle<"TRText">, index: number, length: number, codeUnitBuffer: ArrayBuffer | ArrayBufferView | undefined, codeUnitCount: number): boolean;
   /** `TRBoolean TRTextRemoveAttribute(TRMutableTextRef text, TRUInteger index, TRUInteger length, TRAttributeType attributeType)` */
@@ -639,9 +639,9 @@ export interface NativeFunctions {
   /** `TRUInteger TRTypefaceGetTableSize(TRTypefaceRef typeface, TRTag tag)` */
   TRTypefaceGetTableSize(typeface: Handle<"TRTypeface">, tag: number): number;
   /** `TRUInteger TRTypefaceGetTableData(TRTypefaceRef typeface, TRTag tag, TRUInteger offset, void *buffer, TRUInteger capacity)` */
-  TRTypefaceGetTableData(typeface: Handle<"TRTypeface">, tag: number, offset: number, buffer: ArrayBuffer | ArrayBufferView, capacity: number): number;
+  TRTypefaceGetTableData(typeface: Handle<"TRTypeface">, tag: number, offset: number, buffer: ArrayBuffer | ArrayBufferView | undefined, capacity: number): number;
   /** `TRUInteger TRTypefaceGetGlyphName(TRTypefaceRef typeface, TRGlyphID glyphID, char *buffer, TRUInteger capacity)` */
-  TRTypefaceGetGlyphName(typeface: Handle<"TRTypeface">, glyphID: number, buffer: ArrayBuffer | ArrayBufferView, capacity: number): number;
+  TRTypefaceGetGlyphName(typeface: Handle<"TRTypeface">, glyphID: number, buffer: ArrayBuffer | ArrayBufferView | undefined, capacity: number): number;
   /** `TRTypefaceRef TRTypefaceRetain(TRTypefaceRef typeface)` (the handle owns the reference) */
   TRTypefaceRetain(typeface: Handle<"TRTypeface">): Handle<"TRTypeface"> | undefined;
   /** `TRBoolean TRTypefaceManagerRegisterTypeface(TRTypefaceRef typeface, TRUInteger tag, TRUInteger familyID)` */

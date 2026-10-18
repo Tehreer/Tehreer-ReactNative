@@ -211,12 +211,21 @@ export function buildModel(headers, config) {
     };
     const docOf = (name) => fn.doc.params[name] ?? "";
     // "MUST NOT be NULL" mentions NULL too, but forbids it; "unless" makes it a conditional rule that
-    // the caller can satisfy with NULL, so the parameter stays nullable.
-    const isNullable = (name) => {
+    // the caller can satisfy with NULL, so the parameter stays nullable. A parameter whose own text
+    // says nothing may still be accepted as NULL by Core, as the @return text then says
+    // ("... or the buffer is `NULL`"), so that text is read as well.
+    const forbids = (text) => /\b(?:must|may|can|should)\s+not\s+be\s+`?NULL|\bcannot\s+be\s+`?NULL|\bnever\s+`?NULL/i.test(text);
+    // Only for data pointers: a string or an object that makes the function return NULL is a
+    // mistake to report, not an optional argument.
+    const isNullable = (name, type) => {
       const text = docOf(name);
-      if (!/\bNULL\b/.test(text)) return false;
-      const forbidden = /\b(?:must|may|can|should)\s+not\s+be\s+`?NULL|\bcannot\s+be\s+`?NULL|\bnever\s+`?NULL/i.test(text);
-      return !forbidden || /\bunless\b/.test(text);
+      if (forbids(text)) return /\bunless\b/.test(text);
+      if (/\bNULL\b/.test(text)) return true;
+      if (type.pointer !== 1 || type.base === "TRStringView" || (type.base === "char" && type.const)) return false;
+      // The subject may be a part of the name: "the buffer is NULL" for `codeUnitBuffer`.
+      const subjects = [...fn.doc.returns.matchAll(/`?(\w+)`?\s+(?:is|are)\s+`?NULL/g)].map((m) => (m[1] ?? "").toLowerCase());
+      const lower = name.toLowerCase();
+      return subjects.some((subject) => lower.includes(subject) || subject.includes(lower));
     };
     const bounds = config.bounds[fn.name] ?? {};
 
@@ -233,7 +242,7 @@ export function buildModel(headers, config) {
     const plans = [];
     descriptors.forEach((descriptor, index) => {
       const p = params[index];
-      const base = { name: p.name, index, js: true, nullable: isNullable(p.name) };
+      const base = { name: p.name, index, js: true, nullable: isNullable(p.name, p.type) };
       const where = `parameter "${p.name}" of type "${typeText(p.type)}"`;
 
       switch (descriptor.k) {
@@ -294,6 +303,12 @@ export function buildModel(headers, config) {
       result = { mode: "success", flag: true };
     } else {
       result = { mode: "object" };
+    }
+
+    // A collector's error is rethrown after the call, which would leak a reference that the call
+    // created and nothing owns yet.
+    if (callback && returns.k === "ref" && returns.ownership === "owned") {
+      fail("the result", "an enumeration cannot also return a reference that the caller owns");
     }
 
     return {

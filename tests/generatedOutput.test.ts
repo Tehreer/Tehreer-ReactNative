@@ -79,6 +79,34 @@ test("the references that Core functions return are adopted or retained as revie
   ]);
 });
 
+test("the nullable parameters are exactly the reviewed ones", { skip: noCore }, () => {
+  const { model } = generate(headers);
+  const nullable = model.bindings.flatMap((b) => b.params.filter((p) => p.js && p.nullable).map((p) => `${b.name}.${p.name}`));
+  assert.deepEqual(nullable, [
+    "TRComposedFrameDraw.renderer", "TRComposedLineDraw.renderer", "TRFontFeaturesCreate.features",
+    "TRFrameResolverSetTypesetter.typesetter", "TRGlyphRunComputeInkBox.renderer", "TRGlyphRunDraw.renderer",
+    "TRPathEnumerate.transform", "TRRendererSetGlyphCache.cache", "TRRendererSetTypeface.typeface",
+    "TRShapingEngineSetTypeface.typeface", "TRShapingEngineSetOpenTypeFeatures.features",
+    "TRShapingEngineCreateShapingResult.codeUnits", "TRShapingResultGetCaretEdges.caretStops", "TRTextCreate.string",
+    "TRTextGetCodeUnits.buffer", "TRTextAppendCodeUnits.codeUnitBuffer", "TRTextInsertCodeUnits.codeUnitBuffer",
+    "TRTextSetCodeUnits.codeUnitBuffer", "TRTextReplaceCodeUnits.codeUnitBuffer", "TRTypefaceCreateWithVariation.coordinates",
+    "TRTypefaceCreateWithColors.colors", "TRTypefaceGetTableData.buffer", "TRTypefaceGetGlyphName.buffer",
+    "TRTypesetterCreateTruncationToken.tokenString",
+  ]);
+});
+
+test("only the text has a mutable and a constant reference type that share an object", { skip: noCore }, () => {
+  const { model } = generate(headers);
+  const groups = new Map<string, Set<boolean>>();
+  for (const ref of model.refs) groups.set(ref.group, (groups.get(ref.group) ?? new Set()).add(ref.const));
+  const mixed = [...groups].filter(([, flags]) => flags.size > 1).map(([group]) => group);
+  assert.deepEqual(mixed, ["TRText"]);
+
+  const handles = readFileSync(join(root, "cpp/generated/Handles.h"), "utf8");
+  assert.match(handles, /HandleTraits<TRTextRef> \{[^}]*kMutable = false;/);
+  assert.match(handles, /HandleTraits<TRMutableTextRef> \{[^}]*kMutable = true;/);
+});
+
 test("the renderer of an ink box or a draw call is required or optional as Core documents it", { skip: noCore }, () => {
   const { model } = generate(headers);
   const nullable = (name: string, param: string): boolean | undefined =>

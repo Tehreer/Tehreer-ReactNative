@@ -58,6 +58,10 @@ A function that returns `TRBoolean` and fills in values gives `undefined` for `T
 
 **Callbacks never run JavaScript the caller wrote.** The generated trampolines turn each call into an item and append it to a `marshal::Collector`; if making an item throws, the first error is kept, `stop` is set, and the error is rethrown when the Core function returns.
 
+A collecting callback is given the address of a `marshal::Collector` on the stack as its `userData`. That is an exception to the rule of the skill (section 4) that `userData` is a key into a handler table, and it is safe because the enumeration is synchronous and Core keeps no callback after the call returns. Callbacks that Core keeps and calls later (such as `TRReplacementCreate`, which is bound by hand) use the handler table.
+
+**Handles remember mutability.** A handle made from a `const` reference type (`TRTextRef`) is refused where a non-const type (`TRMutableTextRef`) is expected, so an object Core documents as immutable is never mutated; a mutable handle is accepted for both.
+
 **Buffers cannot overrun.** The count of every buffer is read from the signature (`count`, `size`, `capacity`, `length` next to the pointer), or from `BOUNDS`, and the binding checks `count * unit <= byteLength` before calling Core. The unit of a `void *` is bytes (`size`, `capacity`), the code unit of the `encoding` parameter, or the code unit of the text in the first parameter. If none applies the generator stops.
 
 ## What is not generated
