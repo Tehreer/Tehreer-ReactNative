@@ -16,7 +16,7 @@ fail() {
 }
 
 case "${1:-}" in
-  -h|--help) sed -n '2,7p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+  -h|--help) awk 'NR == 1 { next } /^#/ { sub(/^# ?/, ""); print; next } { exit }' "$0"; exit 0 ;;
   "") fail "missing <sha|ref>. Usage: scripts/sync-core <sha|ref> [<source>]" ;;
   -*) fail "unknown option '$1'" ;;
 esac
@@ -25,6 +25,10 @@ esac
 TARGET=$1
 SOURCE=${2:-origin}
 [ -n "$SOURCE" ] || fail "empty <source>"
+# git runs the fetch inside the submodule, so a relative path would resolve against the wrong directory.
+if [ -d "$SOURCE" ]; then
+  SOURCE=$(cd "$SOURCE" && pwd)
+fi
 
 CORE="$ROOT/$SUBMODULE"
 if [ ! -e "$CORE/.git" ]; then
@@ -32,7 +36,7 @@ if [ ! -e "$CORE/.git" ]; then
 fi
 
 [ -z "$(git -C "$CORE" status --porcelain)" ] \
-  || fail "$SUBMODULE has local changes; commit or discard them first"
+  || fail "$SUBMODULE has local changes or untracked files; commit or discard them first"
 
 OLD=$(git -C "$CORE" rev-parse HEAD)
 
@@ -43,8 +47,10 @@ if git -C "$CORE" fetch -q "$SOURCE" "$TARGET" 2>/dev/null; then
 else
   git -C "$CORE" fetch -q "$SOURCE" '+refs/heads/*:refs/remotes/sync-core/*' '+refs/tags/*:refs/tags/*' \
     || fail "could not fetch from '$SOURCE'"
-  NEW=$(git -C "$CORE" rev-parse --verify "$TARGET^{commit}" 2>/dev/null) \
-    || NEW=$(git -C "$CORE" rev-parse --verify "refs/remotes/sync-core/$TARGET^{commit}" 2>/dev/null) \
+  # The freshly fetched refs win over same-named local ones, which may be stale.
+  NEW=$(git -C "$CORE" rev-parse --verify "refs/remotes/sync-core/$TARGET^{commit}" 2>/dev/null) \
+    || NEW=$(git -C "$CORE" rev-parse --verify "refs/tags/$TARGET^{commit}" 2>/dev/null) \
+    || NEW=$(git -C "$CORE" rev-parse --verify "$TARGET^{commit}" 2>/dev/null) \
     || fail "'$TARGET' is not a commit known in '$SOURCE'"
 fi
 
