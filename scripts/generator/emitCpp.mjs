@@ -175,6 +175,12 @@ jsi::Value FromStringView(jsi::Runtime &rt, const TRStringView *view);
 /**
  * Memory of an \`ArrayBuffer\` or of a typed array, read by Core during the call only.
  * \`data\` is null for a null or undefined value when \`nullable\`.
+ *
+ * The pointer stays valid only while no JavaScript runs: a getter, a Proxy or a callback could
+ * detach or resize the buffer. The generated code therefore converts every other argument first
+ * and takes the buffers last, and runs no JavaScript between that and the Core call. The runtime
+ * must not run any in these functions either, and must not hand out a pointer of a buffer that is
+ * detached or resizable and could change.
  */
 struct ConstBuffer {
     const void *data;
@@ -286,8 +292,8 @@ ${toMembers}
     return jsi::Value(std::move(object));
 }
 
-inline ${struct.name} ${struct.name}FromJs(jsi::Runtime &rt, const jsi::Value &value, const char *function, const char *parameter) {
-    jsi::Object object = marshal::ToObject(rt, value, function, parameter);
+inline ${struct.name} ${struct.name}FromJs(jsi::Runtime &rt, const jsi::Value &value, const char *function, const std::string &parameter) {
+    jsi::Object object = marshal::ToObject(rt, value, function, parameter.c_str());
     ${struct.name} result = {};
 ${fromMembers}
     return result;
@@ -314,9 +320,10 @@ ${codecs}
 function fromJsMember(descriptor, name) {
   const value = `object.getProperty(rt, "${name}")`;
   switch (descriptor.k) {
-    case "number": return `marshal::ToNumber<${descriptor.c}>(rt, ${value}, function, parameter)`;
-    case "bool": return `(marshal::ToBoolean(rt, ${value}, function, parameter) ? TRTrue : TRFalse)`;
-    case "struct": return `${descriptor.c}FromJs(rt, ${value}, function, parameter)`;
+    // The path of the member, such as "rect.origin.x", is what an error names.
+    case "number": return `marshal::ToNumber<${descriptor.c}>(rt, ${value}, function, (parameter + ".${name}").c_str())`;
+    case "bool": return `(marshal::ToBoolean(rt, ${value}, function, (parameter + ".${name}").c_str()) ? TRTrue : TRFalse)`;
+    case "struct": return `${descriptor.c}FromJs(rt, ${value}, function, parameter + ".${name}")`;
     default: throw new Error(`member ${name}: ${descriptor.k}`);
   }
 }
@@ -350,13 +357,12 @@ function emitCallback(binding, callback) {
   }
 
   const stop = callback.stop ? `\n        *${callback.stop} = TRTrue;` : "";
-  const stopEarly = callback.stop ? `\n        *${callback.stop} = TRTrue;` : "";
 
   return {
     name,
     code: `void ${name}(${params}) {
     auto *collector = static_cast<marshal::Collector *>(${callback.userData});
-    if (collector->HasFailed()) {${stopEarly}
+    if (collector->HasFailed()) {${stop}
         return;
     }
 
@@ -381,6 +387,9 @@ function emitBinding(binding) {
   }
 
   const lines = [];
+  // The memory of a buffer is only valid while no JavaScript runs, as a getter or a Proxy could
+  // detach it. So the buffers are taken last, after every argument that may run JavaScript.
+  const bufferLines = [];
   const checks = [];
   const callArguments = [];
   let jsIndex = 0;
@@ -438,7 +447,7 @@ function emitBinding(binding) {
       case "outBuffer": {
         const isIn = p.kind === "inBuffer";
         const type = isIn ? "ConstBuffer" : "MutableBuffer";
-        lines.push(`    marshal::${type} ${v} = marshal::To${type}(rt, ${argument()}, kFunction, "${name}", ${nullable});`);
+        bufferLines.push(`    marshal::${type} ${v} = marshal::To${type}(rt, ${argument()}, kFunction, "${name}", ${nullable});`);
         // A buffer that must not be NULL is checked even when it is empty or has no data, so that a
         // non-zero count never reaches Core with a pointer that holds nothing.
         const capacity = `marshal::RequireCapacity(rt, kFunction, "${name}", static_cast<size_t>(${expand(p.count)}), ${expand(p.unit)}, ${v}.byteLength);`;
@@ -493,7 +502,7 @@ function emitBinding(binding) {
   const hasCollector = Boolean(callbackPlan);
 
   const body = [];
-  body.push(...lines);
+  body.push(...lines, ...bufferLines);
   if (checks.length > 0) body.push("", ...checks);
   body.push("");
   body.push(returnsValue ? `    auto result = ${call};` : `    ${call};`);

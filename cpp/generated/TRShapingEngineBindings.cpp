@@ -197,9 +197,9 @@ jsi::Value BindTRShapingEngineGetOpenTypeFeatureCount(jsi::Runtime &rt, const js
 jsi::Value BindTRShapingEngineCreateShapingResult(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRShapingEngineCreateShapingResult";
     TRShapingEngineRef a_engine = marshal::ToHandle<TRShapingEngineRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "engine", false);
-    marshal::ConstBuffer a_codeUnits = marshal::ToConstBuffer(rt, marshal::ArgAt(args, count, 1), kFunction, "codeUnits", false);
     TRUInteger a_length = marshal::ToNumber<TRUInteger>(rt, marshal::ArgAt(args, count, 2), kFunction, "length");
     TRStringEncoding a_encoding = marshal::ToNumber<TRStringEncoding>(rt, marshal::ArgAt(args, count, 3), kFunction, "encoding");
+    marshal::ConstBuffer a_codeUnits = marshal::ToConstBuffer(rt, marshal::ArgAt(args, count, 1), kFunction, "codeUnits", false);
 
     marshal::RequireCapacity(rt, kFunction, "codeUnits", static_cast<size_t>(a_length), marshal::CodeUnitSize(a_encoding), a_codeUnits.byteLength);
 

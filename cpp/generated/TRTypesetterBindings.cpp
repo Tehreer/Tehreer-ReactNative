@@ -77,9 +77,9 @@ jsi::Value BindTRTypesetterCreateTruncationToken(jsi::Runtime &rt, const jsi::Va
     TRUInteger a_index = marshal::ToNumber<TRUInteger>(rt, marshal::ArgAt(args, count, 1), kFunction, "index");
     TRUInteger a_length = marshal::ToNumber<TRUInteger>(rt, marshal::ArgAt(args, count, 2), kFunction, "length");
     TRTruncationPlace a_truncationPlace = marshal::ToNumber<TRTruncationPlace>(rt, marshal::ArgAt(args, count, 3), kFunction, "truncationPlace");
-    marshal::ConstBuffer a_tokenString = marshal::ToConstBuffer(rt, marshal::ArgAt(args, count, 4), kFunction, "tokenString", true);
     TRUInteger a_tokenLength = marshal::ToNumber<TRUInteger>(rt, marshal::ArgAt(args, count, 5), kFunction, "tokenLength");
     TRStringEncoding a_tokenEncoding = marshal::ToNumber<TRStringEncoding>(rt, marshal::ArgAt(args, count, 6), kFunction, "tokenEncoding");
+    marshal::ConstBuffer a_tokenString = marshal::ToConstBuffer(rt, marshal::ArgAt(args, count, 4), kFunction, "tokenString", true);
 
     if (a_tokenString.data != nullptr) {
         marshal::RequireCapacity(rt, kFunction, "tokenString", static_cast<size_t>(a_tokenLength), marshal::CodeUnitSize(a_tokenEncoding), a_tokenString.byteLength);

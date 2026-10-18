@@ -95,6 +95,26 @@ test("a buffer that may be NULL is checked only when present, any other always",
   }
 });
 
+test("buffers are taken after every other argument, so no JavaScript runs while a pointer is held", () => {
+  const text = cpp("TRSampleBindings.cpp");
+  const body = text.slice(text.indexOf("jsi::Value BindTRSampleSetText"));
+  // `string` comes before `length` and `encoding` in the header but is converted after them.
+  assert.ok(body.indexOf("a_encoding =") < body.indexOf("a_string ="));
+  assert.ok(body.indexOf("a_length =") < body.indexOf("a_string ="));
+  assert.match(cpp("GeneratedSupport.h"), /only while no JavaScript runs/);
+});
+
+test("an error in a struct member names the path of the member", () => {
+  const structs = cpp("Structs.h");
+  assert.match(structs, /const std::string &parameter/);
+  assert.match(structs, /\(parameter \+ "\.x"\)\.c_str\(\)/);
+});
+
+test("a callback stops the enumeration once, in both places", () => {
+  const text = cpp("TRSampleBindings.cpp");
+  assert.equal(text.match(/\*stop = TRTrue;/g)?.length, 2);
+});
+
 test("a callback collects into an array, stops on error and rethrows after the call", () => {
   const text = cpp("TRSampleBindings.cpp");
   assert.match(text, /void CollectTRSampleEnumerate_func\(void \*userData, TRUInteger index, TRPoint origin, TRBoolean \*stop\)/);

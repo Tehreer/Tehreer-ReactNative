@@ -33,11 +33,11 @@ inline jsi::Value TRPointToJs(jsi::Runtime &rt, const TRPoint &value) {
     return jsi::Value(std::move(object));
 }
 
-inline TRPoint TRPointFromJs(jsi::Runtime &rt, const jsi::Value &value, const char *function, const char *parameter) {
-    jsi::Object object = marshal::ToObject(rt, value, function, parameter);
+inline TRPoint TRPointFromJs(jsi::Runtime &rt, const jsi::Value &value, const char *function, const std::string &parameter) {
+    jsi::Object object = marshal::ToObject(rt, value, function, parameter.c_str());
     TRPoint result = {};
-    result.x = marshal::ToNumber<TRFloat>(rt, object.getProperty(rt, "x"), function, parameter);
-    result.y = marshal::ToNumber<TRFloat>(rt, object.getProperty(rt, "y"), function, parameter);
+    result.x = marshal::ToNumber<TRFloat>(rt, object.getProperty(rt, "x"), function, (parameter + ".x").c_str());
+    result.y = marshal::ToNumber<TRFloat>(rt, object.getProperty(rt, "y"), function, (parameter + ".y").c_str());
     return result;
 }
 
@@ -48,11 +48,11 @@ inline jsi::Value TRSizeToJs(jsi::Runtime &rt, const TRSize &value) {
     return jsi::Value(std::move(object));
 }
 
-inline TRSize TRSizeFromJs(jsi::Runtime &rt, const jsi::Value &value, const char *function, const char *parameter) {
-    jsi::Object object = marshal::ToObject(rt, value, function, parameter);
+inline TRSize TRSizeFromJs(jsi::Runtime &rt, const jsi::Value &value, const char *function, const std::string &parameter) {
+    jsi::Object object = marshal::ToObject(rt, value, function, parameter.c_str());
     TRSize result = {};
-    result.width = marshal::ToNumber<TRFloat>(rt, object.getProperty(rt, "width"), function, parameter);
-    result.height = marshal::ToNumber<TRFloat>(rt, object.getProperty(rt, "height"), function, parameter);
+    result.width = marshal::ToNumber<TRFloat>(rt, object.getProperty(rt, "width"), function, (parameter + ".width").c_str());
+    result.height = marshal::ToNumber<TRFloat>(rt, object.getProperty(rt, "height"), function, (parameter + ".height").c_str());
     return result;
 }
 
@@ -63,11 +63,11 @@ inline jsi::Value TRRectToJs(jsi::Runtime &rt, const TRRect &value) {
     return jsi::Value(std::move(object));
 }
 
-inline TRRect TRRectFromJs(jsi::Runtime &rt, const jsi::Value &value, const char *function, const char *parameter) {
-    jsi::Object object = marshal::ToObject(rt, value, function, parameter);
+inline TRRect TRRectFromJs(jsi::Runtime &rt, const jsi::Value &value, const char *function, const std::string &parameter) {
+    jsi::Object object = marshal::ToObject(rt, value, function, parameter.c_str());
     TRRect result = {};
-    result.origin = TRPointFromJs(rt, object.getProperty(rt, "origin"), function, parameter);
-    result.size = TRSizeFromJs(rt, object.getProperty(rt, "size"), function, parameter);
+    result.origin = TRPointFromJs(rt, object.getProperty(rt, "origin"), function, parameter + ".origin");
+    result.size = TRSizeFromJs(rt, object.getProperty(rt, "size"), function, parameter + ".size");
     return result;
 }
 
@@ -78,11 +78,11 @@ inline jsi::Value TROpenTypeFeatureToJs(jsi::Runtime &rt, const TROpenTypeFeatur
     return jsi::Value(std::move(object));
 }
 
-inline TROpenTypeFeature TROpenTypeFeatureFromJs(jsi::Runtime &rt, const jsi::Value &value, const char *function, const char *parameter) {
-    jsi::Object object = marshal::ToObject(rt, value, function, parameter);
+inline TROpenTypeFeature TROpenTypeFeatureFromJs(jsi::Runtime &rt, const jsi::Value &value, const char *function, const std::string &parameter) {
+    jsi::Object object = marshal::ToObject(rt, value, function, parameter.c_str());
     TROpenTypeFeature result = {};
-    result.tag = marshal::ToNumber<TRTag>(rt, object.getProperty(rt, "tag"), function, parameter);
-    result.value = marshal::ToNumber<TRUInt32>(rt, object.getProperty(rt, "value"), function, parameter);
+    result.tag = marshal::ToNumber<TRTag>(rt, object.getProperty(rt, "tag"), function, (parameter + ".tag").c_str());
+    result.value = marshal::ToNumber<TRUInt32>(rt, object.getProperty(rt, "value"), function, (parameter + ".value").c_str());
     return result;
 }
 
@@ -97,15 +97,15 @@ inline jsi::Value TRAffineTransformToJs(jsi::Runtime &rt, const TRAffineTransfor
     return jsi::Value(std::move(object));
 }
 
-inline TRAffineTransform TRAffineTransformFromJs(jsi::Runtime &rt, const jsi::Value &value, const char *function, const char *parameter) {
-    jsi::Object object = marshal::ToObject(rt, value, function, parameter);
+inline TRAffineTransform TRAffineTransformFromJs(jsi::Runtime &rt, const jsi::Value &value, const char *function, const std::string &parameter) {
+    jsi::Object object = marshal::ToObject(rt, value, function, parameter.c_str());
     TRAffineTransform result = {};
-    result.a = marshal::ToNumber<TRFloat>(rt, object.getProperty(rt, "a"), function, parameter);
-    result.b = marshal::ToNumber<TRFloat>(rt, object.getProperty(rt, "b"), function, parameter);
-    result.c = marshal::ToNumber<TRFloat>(rt, object.getProperty(rt, "c"), function, parameter);
-    result.d = marshal::ToNumber<TRFloat>(rt, object.getProperty(rt, "d"), function, parameter);
-    result.tx = marshal::ToNumber<TRFloat>(rt, object.getProperty(rt, "tx"), function, parameter);
-    result.ty = marshal::ToNumber<TRFloat>(rt, object.getProperty(rt, "ty"), function, parameter);
+    result.a = marshal::ToNumber<TRFloat>(rt, object.getProperty(rt, "a"), function, (parameter + ".a").c_str());
+    result.b = marshal::ToNumber<TRFloat>(rt, object.getProperty(rt, "b"), function, (parameter + ".b").c_str());
+    result.c = marshal::ToNumber<TRFloat>(rt, object.getProperty(rt, "c"), function, (parameter + ".c").c_str());
+    result.d = marshal::ToNumber<TRFloat>(rt, object.getProperty(rt, "d"), function, (parameter + ".d").c_str());
+    result.tx = marshal::ToNumber<TRFloat>(rt, object.getProperty(rt, "tx"), function, (parameter + ".tx").c_str());
+    result.ty = marshal::ToNumber<TRFloat>(rt, object.getProperty(rt, "ty"), function, (parameter + ".ty").c_str());
     return result;
 }
 
@@ -117,12 +117,12 @@ inline jsi::Value TRReplacementRoomToJs(jsi::Runtime &rt, const TRReplacementRoo
     return jsi::Value(std::move(object));
 }
 
-inline TRReplacementRoom TRReplacementRoomFromJs(jsi::Runtime &rt, const jsi::Value &value, const char *function, const char *parameter) {
-    jsi::Object object = marshal::ToObject(rt, value, function, parameter);
+inline TRReplacementRoom TRReplacementRoomFromJs(jsi::Runtime &rt, const jsi::Value &value, const char *function, const std::string &parameter) {
+    jsi::Object object = marshal::ToObject(rt, value, function, parameter.c_str());
     TRReplacementRoom result = {};
-    result.ascent = marshal::ToNumber<TRFloat>(rt, object.getProperty(rt, "ascent"), function, parameter);
-    result.descent = marshal::ToNumber<TRFloat>(rt, object.getProperty(rt, "descent"), function, parameter);
-    result.extent = marshal::ToNumber<TRFloat>(rt, object.getProperty(rt, "extent"), function, parameter);
+    result.ascent = marshal::ToNumber<TRFloat>(rt, object.getProperty(rt, "ascent"), function, (parameter + ".ascent").c_str());
+    result.descent = marshal::ToNumber<TRFloat>(rt, object.getProperty(rt, "descent"), function, (parameter + ".descent").c_str());
+    result.extent = marshal::ToNumber<TRFloat>(rt, object.getProperty(rt, "extent"), function, (parameter + ".extent").c_str());
     return result;
 }
 

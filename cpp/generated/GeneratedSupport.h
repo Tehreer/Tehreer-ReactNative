@@ -131,6 +131,12 @@ jsi::Value FromStringView(jsi::Runtime &rt, const TRStringView *view);
 /**
  * Memory of an `ArrayBuffer` or of a typed array, read by Core during the call only.
  * `data` is null for a null or undefined value when `nullable`.
+ *
+ * The pointer stays valid only while no JavaScript runs: a getter, a Proxy or a callback could
+ * detach or resize the buffer. The generated code therefore converts every other argument first
+ * and takes the buffers last, and runs no JavaScript between that and the Core call. The runtime
+ * must not run any in these functions either, and must not hand out a pointer of a buffer that is
+ * detached or resizable and could change.
  */
 struct ConstBuffer {
     const void *data;
