@@ -553,15 +553,9 @@ jsi::Value BindTRRendererComputeRunInkBox(jsi::Runtime &rt, const jsi::Value &, 
     marshal::ConstBuffer a_advances = marshal::ToConstBuffer(rt, marshal::ArgAt(args, count, 3), kFunction, "advances", false);
     TRUInteger a_count = marshal::ToNumber<TRUInteger>(rt, marshal::ArgAt(args, count, 4), kFunction, "count");
 
-    if (a_glyphIDs.data != nullptr) {
-        marshal::RequireCapacity(rt, kFunction, "glyphIDs", static_cast<size_t>(a_count), sizeof(TRGlyphID), a_glyphIDs.byteLength);
-    }
-    if (a_offsets != nullptr) {
-        marshal::RequireElements(rt, kFunction, "offsets", static_cast<size_t>(a_count), n_offsets);
-    }
-    if (a_advances.data != nullptr) {
-        marshal::RequireCapacity(rt, kFunction, "advances", static_cast<size_t>(a_count), sizeof(TRFloat), a_advances.byteLength);
-    }
+    marshal::RequireCapacity(rt, kFunction, "glyphIDs", static_cast<size_t>(a_count), sizeof(TRGlyphID), a_glyphIDs.byteLength);
+    marshal::RequireElements(rt, kFunction, "offsets", static_cast<size_t>(a_count), n_offsets);
+    marshal::RequireCapacity(rt, kFunction, "advances", static_cast<size_t>(a_count), sizeof(TRFloat), a_advances.byteLength);
 
     auto result = TRRendererComputeRunInkBox(a_renderer, static_cast<const TRGlyphID *>(a_glyphIDs.data), a_offsets, static_cast<const TRFloat *>(a_advances.data), a_count);
     return TRRectToJs(rt, result);
@@ -588,15 +582,9 @@ jsi::Value BindTRRendererEnumerateGlyphPlacements(jsi::Runtime &rt, const jsi::V
     TRUInteger a_count = marshal::ToNumber<TRUInteger>(rt, marshal::ArgAt(args, count, 5), kFunction, "count");
     marshal::Collector collector(rt);
 
-    if (a_glyphIDs.data != nullptr) {
-        marshal::RequireCapacity(rt, kFunction, "glyphIDs", static_cast<size_t>(a_count), sizeof(TRGlyphID), a_glyphIDs.byteLength);
-    }
-    if (a_offsets != nullptr) {
-        marshal::RequireElements(rt, kFunction, "offsets", static_cast<size_t>(a_count), n_offsets);
-    }
-    if (a_advances.data != nullptr) {
-        marshal::RequireCapacity(rt, kFunction, "advances", static_cast<size_t>(a_count), sizeof(TRFloat), a_advances.byteLength);
-    }
+    marshal::RequireCapacity(rt, kFunction, "glyphIDs", static_cast<size_t>(a_count), sizeof(TRGlyphID), a_glyphIDs.byteLength);
+    marshal::RequireElements(rt, kFunction, "offsets", static_cast<size_t>(a_count), n_offsets);
+    marshal::RequireCapacity(rt, kFunction, "advances", static_cast<size_t>(a_count), sizeof(TRFloat), a_advances.byteLength);
 
     TRRendererEnumerateGlyphPlacements(a_renderer, a_kind, static_cast<const TRGlyphID *>(a_glyphIDs.data), a_offsets, static_cast<const TRFloat *>(a_advances.data), a_count, CollectTRRendererEnumerateGlyphPlacements_func, &collector);
     jsi::Value items = collector.Finish();
@@ -629,15 +617,9 @@ jsi::Value BindTRRendererEnumerateGlyphPaths(jsi::Runtime &rt, const jsi::Value 
     callbacks.cubicTo = CollectTRRendererEnumerateGlyphPaths_cubicTo;
     callbacks.close = CollectTRRendererEnumerateGlyphPaths_close;
 
-    if (a_glyphIDs.data != nullptr) {
-        marshal::RequireCapacity(rt, kFunction, "glyphIDs", static_cast<size_t>(a_count), sizeof(TRGlyphID), a_glyphIDs.byteLength);
-    }
-    if (a_offsets != nullptr) {
-        marshal::RequireElements(rt, kFunction, "offsets", static_cast<size_t>(a_count), n_offsets);
-    }
-    if (a_advances.data != nullptr) {
-        marshal::RequireCapacity(rt, kFunction, "advances", static_cast<size_t>(a_count), sizeof(TRFloat), a_advances.byteLength);
-    }
+    marshal::RequireCapacity(rt, kFunction, "glyphIDs", static_cast<size_t>(a_count), sizeof(TRGlyphID), a_glyphIDs.byteLength);
+    marshal::RequireElements(rt, kFunction, "offsets", static_cast<size_t>(a_count), n_offsets);
+    marshal::RequireCapacity(rt, kFunction, "advances", static_cast<size_t>(a_count), sizeof(TRFloat), a_advances.byteLength);
 
     TRRendererEnumerateGlyphPaths(a_renderer, static_cast<const TRGlyphID *>(a_glyphIDs.data), a_offsets, static_cast<const TRFloat *>(a_advances.data), a_count, &callbacks, &collector);
     jsi::Value items = collector.Finish();

@@ -101,9 +101,7 @@ jsi::Value BindTRShapingResultGetCaretEdges(jsi::Runtime &rt, const jsi::Value &
     if (a_caretStops.data != nullptr) {
         marshal::RequireCapacity(rt, kFunction, "caretStops", static_cast<size_t>(TRShapingResultGetCodeUnitCount(a_result)), sizeof(TRBoolean), a_caretStops.byteLength);
     }
-    if (a_caretEdges.data != nullptr) {
-        marshal::RequireCapacity(rt, kFunction, "caretEdges", static_cast<size_t>(TRShapingResultGetCodeUnitCount(a_result) + 1), sizeof(TRFloat), a_caretEdges.byteLength);
-    }
+    marshal::RequireCapacity(rt, kFunction, "caretEdges", static_cast<size_t>(TRShapingResultGetCodeUnitCount(a_result) + 1), sizeof(TRFloat), a_caretEdges.byteLength);
 
     TRShapingResultGetCaretEdges(a_result, static_cast<const TRBoolean *>(a_caretStops.data), static_cast<TRFloat *>(a_caretEdges.data));
     return jsi::Value::undefined();

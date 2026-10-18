@@ -201,9 +201,7 @@ jsi::Value BindTRShapingEngineCreateShapingResult(jsi::Runtime &rt, const jsi::V
     TRUInteger a_length = marshal::ToNumber<TRUInteger>(rt, marshal::ArgAt(args, count, 2), kFunction, "length");
     TRStringEncoding a_encoding = marshal::ToNumber<TRStringEncoding>(rt, marshal::ArgAt(args, count, 3), kFunction, "encoding");
 
-    if (a_codeUnits.data != nullptr) {
-        marshal::RequireCapacity(rt, kFunction, "codeUnits", static_cast<size_t>(a_length), marshal::CodeUnitSize(a_encoding), a_codeUnits.byteLength);
-    }
+    marshal::RequireCapacity(rt, kFunction, "codeUnits", static_cast<size_t>(a_length), marshal::CodeUnitSize(a_encoding), a_codeUnits.byteLength);
 
     auto result = TRShapingEngineCreateShapingResult(a_engine, a_codeUnits.data, a_length, a_encoding);
     return marshal::FromHandle<TRShapingResultRef>(rt, result, marshal::Ownership::Adopt);

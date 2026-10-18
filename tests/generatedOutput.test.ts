@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { cpSync, existsSync, mkdirSync, mkdtempSync, readdirSync, rmSync, writeFileSync } from "node:fs";
+import { cpSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
@@ -9,6 +9,7 @@ import { checkSyntax, findCompiler, NO_COMPILER } from "./CompileSupport.mjs";
 import { BOUNDS, EXCLUDED, MANUAL } from "../scripts/generator/config.mjs";
 import { checkFiles, outputFiles, writeFiles } from "../scripts/generator/files.mjs";
 import { generate } from "../scripts/generator/generate.mjs";
+import { parseHeader } from "../scripts/generator/parser.mjs";
 
 const root = new URL("../", import.meta.url).pathname;
 const headers = join(root, "Libraries/TehreerCore/Headers/Tehreer");
@@ -28,7 +29,11 @@ test("every public function is bound, excluded, manual or a release", { skip: no
     assert.ok(!bound.has(name), `${name} is bound although it is excluded, manual or a release`);
   }
   assert.deepEqual([...EXCLUDED].sort(), ["TRTextGetSheenBidiText", "TRVersionGetString"]);
-  assert.equal(model.bindings.length + EXCLUDED.size + MANUAL.size + model.releases.length, 318);
+  const declaredCount = readdirSync(headers)
+    .filter((name) => /^TR.*\.h$/.test(name))
+    .reduce((total, name) => total + parseHeader(readFileSync(join(headers, name), "utf8"), { publicMacro: "TR_PUBLIC", prefix: "TR" }).functions.length, 0);
+  assert.ok(declaredCount > 0);
+  assert.equal(model.bindings.length + EXCLUDED.size + MANUAL.size + model.releases.length, declaredCount);
   for (const name of ["TRRendererGetDrawCallbacks", "TRTextSetAttribute"]) assert.ok(MANUAL.has(name), name);
   assert.ok(Object.keys(BOUNDS).length > 0);
 });
@@ -46,6 +51,43 @@ test("the bindings cover the objects, structs, out parameters and callbacks of C
   assert.equal(byName.get("TRGlyphRunGetGlyphIDsPtr")?.returns.k, "pointerView");
   assert.ok(!byName.has("TRTypefaceRelease"));
   assert.ok(byName.has("TRTypefaceRetain"));
+});
+
+// Ownership comes from the name, so a new or renamed function must be looked at, not guessed.
+test("the references that Core functions return are adopted or retained as reviewed", { skip: noCore }, () => {
+  const { model } = generate(headers);
+  const returned = (ownership: string): string[] =>
+    model.bindings.filter((b) => b.returns.k === "ref" && b.returns["ownership"] === ownership).map((b) => b.name);
+
+  assert.deepEqual(returned("borrowed"), [
+    "TRComposedFrameGetLine", "TRComposedLineGetGlyphRun", "TRFontFileGetTypeface", "TRFrameResolverGetTypesetter",
+    "TRGlyphCacheGetDefault", "TRGlyphRunGetTypeface", "TRGlyphRunGetReplacement", "TRRendererGetGlyphCache",
+    "TRRendererGetTypeface", "TRShapingEngineGetTypeface", "TRTypefaceManagerGetTypeface",
+    "TRTypefaceManagerGetMatchingTypefaceByFamilyID", "TRTypefaceManagerGetMatchingTypefaceByFamilyName",
+  ]);
+  assert.deepEqual(returned("owned"), [
+    "TRAttributeListRetain", "TRComposedFrameRetain", "TRComposedLineRetain", "TRFontFeaturesCreate", "TRFontFeaturesRetain",
+    "TRFontFileCreateFromPath", "TRFontFileCreateFromMemory", "TRFontFileRetain", "TRFrameResolverCreate",
+    "TRFrameResolverCreateFrame", "TRFrameResolverRetain", "TRGlyphCacheCreate", "TRGlyphCacheRetain", "TRGlyphImageRetain",
+    "TRGlyphRunRetain", "TRLineLocatorCreate", "TRLineLocatorRetain", "TRPathRetain", "TRRendererCreate",
+    "TRRendererCreateGlyphImage", "TRRendererCreateStrokeImage", "TRRendererCreateGlyphPath", "TRRendererRetain",
+    "TRReplacementRetain", "TRShapingEngineCreate", "TRShapingEngineCreateShapingResult", "TRShapingEngineRetain",
+    "TRShapingResultRetain", "TRTextCreate", "TRTextCreateCopy", "TRTextCreateMutableCopy", "TRTextCopyAttributes",
+    "TRTextRetain", "TRTextCreateMutable", "TRTypefaceCreateWithVariation", "TRTypefaceCreateWithColors",
+    "TRTypefaceCreateGlyphPath", "TRTypefaceRetain", "TRTypesetterCreateSimpleLine", "TRTypesetterCreateTruncationToken",
+    "TRTypesetterCreateTruncatedLine", "TRTypesetterCreateJustifiedLine", "TRTypesetterRetain",
+  ]);
+});
+
+test("the renderer of an ink box or a draw call is required or optional as Core documents it", { skip: noCore }, () => {
+  const { model } = generate(headers);
+  const nullable = (name: string, param: string): boolean | undefined =>
+    model.bindings.find((b) => b.name === name)?.params.find((p) => p.name === param)?.nullable;
+
+  assert.equal(nullable("TRComposedLineComputeInkBox", "renderer"), false);
+  assert.equal(nullable("TRLineLocatorCreate", "renderer"), false);
+  assert.equal(nullable("TRComposedLineDraw", "renderer"), true);
+  assert.equal(nullable("TRGlyphRunComputeInkBox", "renderer"), true);
 });
 
 test("stale generated files are reported, and only files that carry the marker are removed", () => {

@@ -439,7 +439,10 @@ function emitBinding(binding) {
         const isIn = p.kind === "inBuffer";
         const type = isIn ? "ConstBuffer" : "MutableBuffer";
         lines.push(`    marshal::${type} ${v} = marshal::To${type}(rt, ${argument()}, kFunction, "${name}", ${nullable});`);
-        checks.push(`    if (${v}.data != nullptr) {\n        marshal::RequireCapacity(rt, kFunction, "${name}", static_cast<size_t>(${expand(p.count)}), ${expand(p.unit)}, ${v}.byteLength);\n    }`);
+        // A buffer that must not be NULL is checked even when it is empty or has no data, so that a
+        // non-zero count never reaches Core with a pointer that holds nothing.
+        const capacity = `marshal::RequireCapacity(rt, kFunction, "${name}", static_cast<size_t>(${expand(p.count)}), ${expand(p.unit)}, ${v}.byteLength);`;
+        checks.push(p.nullable ? `    if (${v}.data != nullptr) {\n        ${capacity}\n    }` : `    ${capacity}`);
         if (p.element === "void") callArguments.push(`${v}.data`);
         else callArguments.push(`static_cast<${isIn ? "const " : ""}${p.element} *>(${v}.data)`);
         break;
@@ -458,7 +461,8 @@ function emitBinding(binding) {
         lines.push("        }");
         lines.push(`        ${v} = v_${name}.data();`);
         lines.push("    }");
-        checks.push(`    if (${v} != nullptr) {\n        marshal::RequireElements(rt, kFunction, "${name}", static_cast<size_t>(${expand(p.count)}), n_${name});\n    }`);
+        const elements = `marshal::RequireElements(rt, kFunction, "${name}", static_cast<size_t>(${expand(p.count)}), n_${name});`;
+        checks.push(p.nullable ? `    if (${v} != nullptr) {\n        ${elements}\n    }` : `    ${elements}`);
         callArguments.push(v);
         break;
       }

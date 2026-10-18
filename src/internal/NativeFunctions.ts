@@ -163,7 +163,7 @@ export interface NativeFunctions {
   /** `TRFloat TRComposedLineGetPenOffset(TRComposedLineRef line, TRFloat flushFactor, TRFloat flushExtent)` */
   TRComposedLineGetPenOffset(line: Handle<"TRComposedLine">, flushFactor: number, flushExtent: number): number;
   /** `TRRect TRComposedLineComputeInkBox(TRComposedLineRef line, TRRendererRef renderer)` */
-  TRComposedLineComputeInkBox(line: Handle<"TRComposedLine">, renderer: Handle<"TRRenderer"> | undefined): TRRect;
+  TRComposedLineComputeInkBox(line: Handle<"TRComposedLine">, renderer: Handle<"TRRenderer">): TRRect;
   /** `void TRComposedLineDraw(TRComposedLineRef line, TRRendererRef renderer, TRPoint origin)` */
   TRComposedLineDraw(line: Handle<"TRComposedLine">, renderer: Handle<"TRRenderer"> | undefined, origin: TRPoint): void;
   /** `TRComposedLineRef TRComposedLineRetain(TRComposedLineRef line)` (the handle owns the reference) */
@@ -673,7 +673,7 @@ export interface NativeFunctions {
   /** `TRComposedLineRef TRTypesetterCreateTruncationToken(TRTypesetterRef typesetter, TRUInteger index, TRUInteger length, TRTruncationPlace truncationPlace, const void *tokenString, TRUInteger tokenLength, TRStringEncoding tokenEncoding)` (the handle owns the reference) */
   TRTypesetterCreateTruncationToken(typesetter: Handle<"TRTypesetter">, index: number, length: number, truncationPlace: number, tokenString: ArrayBuffer | ArrayBufferView | undefined, tokenLength: number, tokenEncoding: number): Handle<"TRComposedLine"> | undefined;
   /** `TRComposedLineRef TRTypesetterCreateTruncatedLine(TRTypesetterRef typesetter, TRUInteger index, TRUInteger length, TRFloat extent, TRBreakMode breakMode, TRTruncationPlace truncationPlace, TRComposedLineRef tokenLine)` (the handle owns the reference) */
-  TRTypesetterCreateTruncatedLine(typesetter: Handle<"TRTypesetter">, index: number, length: number, extent: number, breakMode: number, truncationPlace: number, tokenLine: Handle<"TRComposedLine"> | undefined): Handle<"TRComposedLine"> | undefined;
+  TRTypesetterCreateTruncatedLine(typesetter: Handle<"TRTypesetter">, index: number, length: number, extent: number, breakMode: number, truncationPlace: number, tokenLine: Handle<"TRComposedLine">): Handle<"TRComposedLine"> | undefined;
   /** `TRComposedLineRef TRTypesetterCreateJustifiedLine(TRTypesetterRef typesetter, TRUInteger index, TRUInteger length, TRFloat justificationFactor, TRFloat justificationExtent)` (the handle owns the reference) */
   TRTypesetterCreateJustifiedLine(typesetter: Handle<"TRTypesetter">, index: number, length: number, justificationFactor: number, justificationExtent: number): Handle<"TRComposedLine"> | undefined;
   /** `TRTypesetterRef TRTypesetterRetain(TRTypesetterRef typesetter)` (the handle owns the reference) */

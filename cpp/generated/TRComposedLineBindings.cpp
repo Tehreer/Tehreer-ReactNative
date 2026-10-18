@@ -211,7 +211,7 @@ jsi::Value BindTRComposedLineGetPenOffset(jsi::Runtime &rt, const jsi::Value &, 
 jsi::Value BindTRComposedLineComputeInkBox(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRComposedLineComputeInkBox";
     TRComposedLineRef a_line = marshal::ToHandle<TRComposedLineRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "line", false);
-    TRRendererRef a_renderer = marshal::ToHandle<TRRendererRef>(rt, marshal::ArgAt(args, count, 1), kFunction, "renderer", true);
+    TRRendererRef a_renderer = marshal::ToHandle<TRRendererRef>(rt, marshal::ArgAt(args, count, 1), kFunction, "renderer", false);
 
     auto result = TRComposedLineComputeInkBox(a_line, a_renderer);
     return TRRectToJs(rt, result);

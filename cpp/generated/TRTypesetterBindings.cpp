@@ -97,7 +97,7 @@ jsi::Value BindTRTypesetterCreateTruncatedLine(jsi::Runtime &rt, const jsi::Valu
     TRFloat a_extent = marshal::ToNumber<TRFloat>(rt, marshal::ArgAt(args, count, 3), kFunction, "extent");
     TRBreakMode a_breakMode = marshal::ToNumber<TRBreakMode>(rt, marshal::ArgAt(args, count, 4), kFunction, "breakMode");
     TRTruncationPlace a_truncationPlace = marshal::ToNumber<TRTruncationPlace>(rt, marshal::ArgAt(args, count, 5), kFunction, "truncationPlace");
-    TRComposedLineRef a_tokenLine = marshal::ToHandle<TRComposedLineRef>(rt, marshal::ArgAt(args, count, 6), kFunction, "tokenLine", true);
+    TRComposedLineRef a_tokenLine = marshal::ToHandle<TRComposedLineRef>(rt, marshal::ArgAt(args, count, 6), kFunction, "tokenLine", false);
 
     auto result = TRTypesetterCreateTruncatedLine(a_typesetter, a_index, a_length, a_extent, a_breakMode, a_truncationPlace, a_tokenLine);
     return marshal::FromHandle<TRComposedLineRef>(rt, result, marshal::Ownership::Adopt);

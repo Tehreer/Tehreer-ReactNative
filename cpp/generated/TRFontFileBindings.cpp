@@ -41,9 +41,7 @@ jsi::Value BindTRFontFileCreateFromMemory(jsi::Runtime &rt, const jsi::Value &, 
     marshal::ConstBuffer a_memory = marshal::ToConstBuffer(rt, marshal::ArgAt(args, count, 0), kFunction, "memory", false);
     TRUInteger a_size = marshal::ToNumber<TRUInteger>(rt, marshal::ArgAt(args, count, 1), kFunction, "size");
 
-    if (a_memory.data != nullptr) {
-        marshal::RequireCapacity(rt, kFunction, "memory", static_cast<size_t>(a_size), 1, a_memory.byteLength);
-    }
+    marshal::RequireCapacity(rt, kFunction, "memory", static_cast<size_t>(a_size), 1, a_memory.byteLength);
 
     auto result = TRFontFileCreateFromMemory(a_memory.data, a_size);
     return marshal::FromHandle<TRFontFileRef>(rt, result, marshal::Ownership::Adopt);

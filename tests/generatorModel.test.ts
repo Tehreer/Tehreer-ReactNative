@@ -276,3 +276,25 @@ test("the parser and the plan take the macro, prefix and boolean type of another
   assert.throws(() => buildModel([{ file: "SBParagraph.h", parsed: sequence }], config),
     /SBParagraphCreate.*"sequence".*const SBCodepointSequence \*.*stringBuffer.*const void \*/);
 });
+
+test("MUST NOT be NULL makes a parameter required, and a conditional rule keeps it optional", () => {
+  const plan = binding(`
+    /**
+     * @param thing The thing.
+     * @param renderer The renderer. It MUST NOT be \`NULL\`, as every run needs it.
+     * @param clip The clip. It must not be \`NULL\`, unless the thing is empty.
+     * @param other The other one, which can be \`NULL\`.
+     */
+    TR_PUBLIC void TRThingUse(TRThingRef thing, TRThingRef renderer, TRThingRef clip, TRThingRef other);
+  `, "TRThingUse");
+  assert.deepEqual(plan.params.map((p) => p.nullable), [false, false, true, true]);
+});
+
+test("the ownership words are matched as whole words of the name", () => {
+  const source = `
+    TR_PUBLIC TRThingRef TRThingGetTarget(TRThingRef thing);
+      `;
+  assert.equal(binding(source, "TRThingGetTarget").returns["ownership"], "borrowed");
+  assert.match(failure("TR_PUBLIC TRThingRef TRThingForgetIt(TRThingRef thing);"), /TRThingForgetIt.*ownership is unknown/);
+  assert.match(failure("TR_PUBLIC TRThingRef TRThingRecreate(TRThingRef thing);"), /TRThingRecreate.*ownership is unknown/);
+});

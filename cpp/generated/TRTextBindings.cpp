@@ -34,9 +34,7 @@ jsi::Value BindTRTextCreate(jsi::Runtime &rt, const jsi::Value &, const jsi::Val
     TRUInteger a_length = marshal::ToNumber<TRUInteger>(rt, marshal::ArgAt(args, count, 1), kFunction, "length");
     TRStringEncoding a_encoding = marshal::ToNumber<TRStringEncoding>(rt, marshal::ArgAt(args, count, 2), kFunction, "encoding");
 
-    if (a_string.data != nullptr) {
-        marshal::RequireCapacity(rt, kFunction, "string", static_cast<size_t>(a_length), marshal::CodeUnitSize(a_encoding), a_string.byteLength);
-    }
+    marshal::RequireCapacity(rt, kFunction, "string", static_cast<size_t>(a_length), marshal::CodeUnitSize(a_encoding), a_string.byteLength);
 
     auto result = TRTextCreate(a_string.data, a_length, a_encoding);
     return marshal::FromHandle<TRTextRef>(rt, result, marshal::Ownership::Adopt);
@@ -81,9 +79,7 @@ jsi::Value BindTRTextGetCodeUnits(jsi::Runtime &rt, const jsi::Value &, const js
     TRUInteger a_length = marshal::ToNumber<TRUInteger>(rt, marshal::ArgAt(args, count, 2), kFunction, "length");
     marshal::MutableBuffer a_buffer = marshal::ToMutableBuffer(rt, marshal::ArgAt(args, count, 3), kFunction, "buffer", false);
 
-    if (a_buffer.data != nullptr) {
-        marshal::RequireCapacity(rt, kFunction, "buffer", static_cast<size_t>(a_length), marshal::CodeUnitSize(TRTextGetEncoding(a_text)), a_buffer.byteLength);
-    }
+    marshal::RequireCapacity(rt, kFunction, "buffer", static_cast<size_t>(a_length), marshal::CodeUnitSize(TRTextGetEncoding(a_text)), a_buffer.byteLength);
 
     auto result = TRTextGetCodeUnits(a_text, a_index, a_length, a_buffer.data);
     return marshal::FromBoolean(result != 0);
@@ -140,9 +136,7 @@ jsi::Value BindTRTextAppendCodeUnits(jsi::Runtime &rt, const jsi::Value &, const
     marshal::ConstBuffer a_codeUnitBuffer = marshal::ToConstBuffer(rt, marshal::ArgAt(args, count, 1), kFunction, "codeUnitBuffer", false);
     TRUInteger a_codeUnitCount = marshal::ToNumber<TRUInteger>(rt, marshal::ArgAt(args, count, 2), kFunction, "codeUnitCount");
 
-    if (a_codeUnitBuffer.data != nullptr) {
-        marshal::RequireCapacity(rt, kFunction, "codeUnitBuffer", static_cast<size_t>(a_codeUnitCount), marshal::CodeUnitSize(TRTextGetEncoding(a_text)), a_codeUnitBuffer.byteLength);
-    }
+    marshal::RequireCapacity(rt, kFunction, "codeUnitBuffer", static_cast<size_t>(a_codeUnitCount), marshal::CodeUnitSize(TRTextGetEncoding(a_text)), a_codeUnitBuffer.byteLength);
 
     auto result = TRTextAppendCodeUnits(a_text, a_codeUnitBuffer.data, a_codeUnitCount);
     return marshal::FromBoolean(result != 0);
@@ -155,9 +149,7 @@ jsi::Value BindTRTextInsertCodeUnits(jsi::Runtime &rt, const jsi::Value &, const
     marshal::ConstBuffer a_codeUnitBuffer = marshal::ToConstBuffer(rt, marshal::ArgAt(args, count, 2), kFunction, "codeUnitBuffer", false);
     TRUInteger a_codeUnitCount = marshal::ToNumber<TRUInteger>(rt, marshal::ArgAt(args, count, 3), kFunction, "codeUnitCount");
 
-    if (a_codeUnitBuffer.data != nullptr) {
-        marshal::RequireCapacity(rt, kFunction, "codeUnitBuffer", static_cast<size_t>(a_codeUnitCount), marshal::CodeUnitSize(TRTextGetEncoding(a_text)), a_codeUnitBuffer.byteLength);
-    }
+    marshal::RequireCapacity(rt, kFunction, "codeUnitBuffer", static_cast<size_t>(a_codeUnitCount), marshal::CodeUnitSize(TRTextGetEncoding(a_text)), a_codeUnitBuffer.byteLength);
 
     auto result = TRTextInsertCodeUnits(a_text, a_index, a_codeUnitBuffer.data, a_codeUnitCount);
     return marshal::FromBoolean(result != 0);
@@ -179,9 +171,7 @@ jsi::Value BindTRTextSetCodeUnits(jsi::Runtime &rt, const jsi::Value &, const js
     marshal::ConstBuffer a_codeUnitBuffer = marshal::ToConstBuffer(rt, marshal::ArgAt(args, count, 1), kFunction, "codeUnitBuffer", false);
     TRUInteger a_codeUnitCount = marshal::ToNumber<TRUInteger>(rt, marshal::ArgAt(args, count, 2), kFunction, "codeUnitCount");
 
-    if (a_codeUnitBuffer.data != nullptr) {
-        marshal::RequireCapacity(rt, kFunction, "codeUnitBuffer", static_cast<size_t>(a_codeUnitCount), marshal::CodeUnitSize(TRTextGetEncoding(a_text)), a_codeUnitBuffer.byteLength);
-    }
+    marshal::RequireCapacity(rt, kFunction, "codeUnitBuffer", static_cast<size_t>(a_codeUnitCount), marshal::CodeUnitSize(TRTextGetEncoding(a_text)), a_codeUnitBuffer.byteLength);
 
     auto result = TRTextSetCodeUnits(a_text, a_codeUnitBuffer.data, a_codeUnitCount);
     return marshal::FromBoolean(result != 0);

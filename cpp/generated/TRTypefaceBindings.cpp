@@ -353,9 +353,7 @@ jsi::Value BindTRTypefaceGetTableData(jsi::Runtime &rt, const jsi::Value &, cons
     marshal::MutableBuffer a_buffer = marshal::ToMutableBuffer(rt, marshal::ArgAt(args, count, 3), kFunction, "buffer", false);
     TRUInteger a_capacity = marshal::ToNumber<TRUInteger>(rt, marshal::ArgAt(args, count, 4), kFunction, "capacity");
 
-    if (a_buffer.data != nullptr) {
-        marshal::RequireCapacity(rt, kFunction, "buffer", static_cast<size_t>(a_capacity), 1, a_buffer.byteLength);
-    }
+    marshal::RequireCapacity(rt, kFunction, "buffer", static_cast<size_t>(a_capacity), 1, a_buffer.byteLength);
 
     auto result = TRTypefaceGetTableData(a_typeface, a_tag, a_offset, a_buffer.data, a_capacity);
     return marshal::FromNumber<TRUInteger>(rt, result);
@@ -368,9 +366,7 @@ jsi::Value BindTRTypefaceGetGlyphName(jsi::Runtime &rt, const jsi::Value &, cons
     marshal::MutableBuffer a_buffer = marshal::ToMutableBuffer(rt, marshal::ArgAt(args, count, 2), kFunction, "buffer", false);
     TRUInteger a_capacity = marshal::ToNumber<TRUInteger>(rt, marshal::ArgAt(args, count, 3), kFunction, "capacity");
 
-    if (a_buffer.data != nullptr) {
-        marshal::RequireCapacity(rt, kFunction, "buffer", static_cast<size_t>(a_capacity), sizeof(char), a_buffer.byteLength);
-    }
+    marshal::RequireCapacity(rt, kFunction, "buffer", static_cast<size_t>(a_capacity), 1, a_buffer.byteLength);
 
     auto result = TRTypefaceGetGlyphName(a_typeface, a_glyphID, static_cast<char *>(a_buffer.data), a_capacity);
     return marshal::FromNumber<TRUInteger>(rt, result);

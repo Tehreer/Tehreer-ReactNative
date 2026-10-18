@@ -76,6 +76,9 @@ class Registry {
   }
 }
 
+/** The size in bytes of one element: a `void *` and a `char *` count bytes. */
+const unitOfElement = (element) => (element === "void" || element === "char" ? "1" : `sizeof(${element})`);
+
 const stripRef = (name) => name.replace(/Ref$/, "");
 
 /**
@@ -196,7 +199,14 @@ export function buildModel(headers, config) {
       throw new GeneratorError(`${fn.name}: cannot express ${what}: ${why}`);
     };
     const docOf = (name) => fn.doc.params[name] ?? "";
-    const isNullable = (name) => /\bNULL\b/.test(docOf(name));
+    // "MUST NOT be NULL" mentions NULL too, but forbids it; "unless" makes it a conditional rule that
+    // the caller can satisfy with NULL, so the parameter stays nullable.
+    const isNullable = (name) => {
+      const text = docOf(name);
+      if (!/\bNULL\b/.test(text)) return false;
+      const forbidden = /\b(?:must|may|can|should)\s+not\s+be\s+`?NULL|\bcannot\s+be\s+`?NULL|\bnever\s+`?NULL/i.test(text);
+      return !forbidden || /\bunless\b/.test(text);
+    };
     const bounds = config.bounds[fn.name] ?? {};
 
     // 1. The return type.
@@ -313,10 +323,13 @@ export function buildModel(headers, config) {
     return { k: "pointerView", element: pointee.c, pointee };
   }
 
-  /** `Create` and `Copy` give a reference that the caller owns, as does `Retain`; `Get` does not. */
+  /**
+   * `Create` and `Copy` give a reference that the caller owns, as does `Retain`; `Get` does not.
+   * They are matched as whole camel-case words, so `TRFooTargetBar` is not a `Get`.
+   */
   function ownershipOf(fn, fail, where) {
-    if (/(Create|Copy)/.test(fn.name) || /Retain$/.test(fn.name)) return "owned";
-    if (/Get/.test(fn.name)) return "borrowed";
+    if (/[a-z0-9](?:Create|Copy)(?=[A-Z0-9]|$)/.test(fn.name) || /[a-z0-9]Retain$/.test(fn.name)) return "owned";
+    if (/[a-z0-9]Get(?=[A-Z0-9]|$)/.test(fn.name)) return "borrowed";
     return fail(where, "its ownership is unknown, as the name has none of Create, Copy, Retain or Get");
   }
 
@@ -361,7 +374,7 @@ export function buildModel(headers, config) {
 
   /** The size in bytes of one counted unit of a `void *` buffer. */
   function unitOf(params, descriptors, counter, fail, where) {
-    if (BYTE_COUNT.test(counter)) return "1";
+    if (BYTE_COUNT.test(counter)) return unitOfElement("void");
 
     const encoding = params.find((p, j) => descriptors[j].k === "number" && p.type.base === "TRStringEncoding");
     if (encoding) return `marshal::CodeUnitSize({${encoding.name}})`;
@@ -379,7 +392,7 @@ export function buildModel(headers, config) {
     if (!override && !counter) fail(where, "the size of the buffer is unknown: no count, size or capacity parameter");
 
     const count = override ? override.count : `{${counter}}`;
-    const unit = override ? "1" : unitOf(params, descriptors, counter, fail, where);
+    const unit = override ? unitOfElement("void") : unitOf(params, descriptors, counter, fail, where);
     return {
       ...base,
       kind: descriptor.const ? "inBuffer" : "outBuffer",
@@ -395,7 +408,7 @@ export function buildModel(headers, config) {
     if (element.k === "char" && !descriptor.const) {
       const counter = counterOf(params, descriptors, index, TYPED_COUNT, false);
       if (!counter) fail(where, "the size of the buffer is unknown: no capacity parameter");
-      return { ...base, kind: "outBuffer", element: "char", count: `{${counter}}`, unit: "sizeof(char)", counter };
+      return { ...base, kind: "outBuffer", element: "char", count: `{${counter}}`, unit: unitOfElement("char"), counter };
     }
     if (element.k === "char") fail(where, "a pointer to characters is only supported as a constant string");
 
@@ -414,7 +427,7 @@ export function buildModel(headers, config) {
         return { ...base, kind: "structPointer", c: element.c };
       }
       const count = override ? override.count : `{${counter}}`;
-      if (scalar) return { ...base, kind: "inBuffer", element: element.c, count, unit: `sizeof(${element.c})`, counter };
+      if (scalar) return { ...base, kind: "inBuffer", element: element.c, count, unit: unitOfElement(element.c), counter };
       return { ...base, kind: "inStructArray", c: element.c, count, counter };
     }
 
@@ -425,7 +438,7 @@ export function buildModel(headers, config) {
         kind: "outBuffer",
         element: element.c,
         count: override ? override.count : `{${counter}}`,
-        unit: `sizeof(${element.c})`,
+        unit: unitOfElement(element.c),
         counter,
       };
     }

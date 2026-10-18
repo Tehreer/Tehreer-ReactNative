@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
@@ -68,6 +68,31 @@ test("an out parameter is returned, and undefined stands for a false flag", () =
 test("a text buffer is checked against its count and the size of a code unit", () => {
   assert.match(cpp("TRSampleBindings.cpp"),
     /RequireCapacity\(rt, kFunction, "string", static_cast<size_t>\(a_length\), marshal::CodeUnitSize\(a_encoding\), a_string\.byteLength\)/);
+});
+
+test("a buffer that may be NULL is checked only when present, any other always", () => {
+  // `string` is documented as accepting NULL.
+  assert.match(cpp("TRSampleBindings.cpp"), /if \(a_string\.data != nullptr\) \{\s*marshal::RequireCapacity\(rt, kFunction, "string"/);
+
+  const directory = mkdtempSync(join(tmpdir(), "tehreer-required-"));
+  try {
+    const header = readFileSync(url("./fixtures/sample/Tehreer/TRSample.h"), "utf8").replace(
+      "TR_EXTERN_C_END\n\n#endif",
+      `TR_PUBLIC void TRSampleFill(TRSampleRef sample, const TRFloat *advances, const TRPoint *offsets, TRUInteger count);
+       TR_EXTERN_C_END
+       #endif`,
+    );
+    writeFileSync(join(directory, "TRSample.h"), header);
+    const text = generate(directory, { excluded: new Set(), manual: new Set(), bounds: {}, skipIncludes: [] }).cpp.get("TRSampleBindings.cpp") ?? "";
+
+    // Without a guard, so an empty array or buffer with a count above zero is rejected.
+    assert.match(text, /\n {4}marshal::RequireCapacity\(rt, kFunction, "advances"/);
+    assert.match(text, /\n {4}marshal::RequireElements\(rt, kFunction, "offsets"/);
+    assert.doesNotMatch(text, /if \(a_advances\.data != nullptr\)/);
+    assert.doesNotMatch(text, /if \(a_offsets != nullptr\)/);
+  } finally {
+    rmSync(directory, { recursive: true, force: true });
+  }
 });
 
 test("a callback collects into an array, stops on error and rethrows after the call", () => {
