@@ -83,3 +83,10 @@ The parser and the plan take the public macro, the name prefix and the boolean t
 1. `scripts/sync-core` to bump the submodule.
 2. `npm run generate`. A header the generator cannot express stops it with the function and the type; extend the generator, or add the function to `MANUAL` with a reason.
 3. Review the diff of `cpp/generated` and `NativeFunctions.ts`, fix the runtime and the TypeScript that use them, commit everything together.
+
+## Known limitations
+
+- The parser drops preprocessor lines without evaluating them, so a `TR_PUBLIC`
+  declaration inside `#if 0` (or any conditional) is still bound. No Core header
+  does this today; if one starts to, the parser must learn to reject it.
+- SheenBidi bindings are not generated yet (see the PR description).
