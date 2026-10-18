@@ -7,7 +7,7 @@ description: Rules, conventions and workflow for wrapping Tehreer Core in Tehree
 
 The repo is `/Users/mta/Learning/Tehreer-ReactNative` (GitHub `Tehreer/Tehreer-ReactNative`, npm package `tehreer-react-native`, TypeScript, strict). It exposes every public header of Core to React Native through one **C++ JSI layer shared by iOS and Android** and a TypeScript API shaped like Tehreer-Web, Tehreer-Android and Tehreer-Cocoa. Text is drawn by thin native views (Android `Canvas`, iOS `CGContext`); there is no Skia and no WebAssembly. Core is a git submodule at `Libraries/TehreerCore` and is built as the unity build (`Source/Tehreer.c`).
 
-Several mechanisms below depend on build details that the first spike (issues for the Cxx TurboModule on both platforms) must confirm. Where this skill says **(spike)**, the statement is the intended design, not a verified fact; update the skill when the spike settles it.
+The first spike (issue #3) verified the TurboModule registration, the Core build on both platforms and the version call on the iOS simulator and an Android emulator; those statements below are stated as facts. Where this skill still says **(spike)**, the statement is the intended design, not a verified fact; update the skill when the issue that builds it settles it.
 
 ## 1. Principles
 
@@ -28,16 +28,19 @@ cpp/
   generated/             JSI glue generated from Core headers (git-ignored or checked in: decided by the generator issue)
   runtime/               HostObject handles, Struct marshalling, Callbacks, ArrayBuffer helpers
   TehreerModule.*        the Cxx TurboModule that installs the bindings
-ios/                     podspec, CGContext painter, Fabric view (Objective-C++)
-android/                 CMakeLists.txt, build.gradle, Canvas painter via JNI, Fabric view
+tehreer-react-native.podspec   at the package root (see section 3)
+react-native.config.cjs  autolinking entries of the C++ module for Android
+ios/                     TehreerModuleProvider (Objective-C++), CGContext painter, Fabric view
+android/                 CMakeLists.txt, build.gradle, TehreerPackage.kt, Canvas painter via JNI, Fabric view
 scripts/                 generate-bindings.mjs, fetch-deps, sync-core, generate-unicode-enums.mjs
 src/
   index.ts               the public surface
   initialize.ts          initialize(), getVersion()
+  specs/                 NativeTehreer.ts, the codegen spec (install() only)
   Color.ts, geometry.ts
   collections/  graphics/  layout/  sfnt/  unicode/  drawing/   (same folders and class names as Tehreer-Web)
   views/                 TLabel, TTextView
-  internal/              NativeFunctions.ts (generated), NativeObject, Struct, Callbacks
+  internal/              NativeBindings.ts, NativeFunctions.ts (generated), NativeObject, Struct, Callbacks
 example/                 test-runner app used by tests and QA
 tests/                   node tests (generator); device tests live in example/
 ```
@@ -47,7 +50,14 @@ One class per file, file named after the class (PascalCase). Everything under `i
 ## 3. Bindings
 
 - **Generated.** `scripts/generate-bindings.mjs` (adapted from Tehreer-Web) parses `Libraries/TehreerCore/Headers/Tehreer/*.h` and, for each public function, writes a C++ JSI binding and a typed declaration in `NativeFunctions.ts` with the C signature in a comment. It also reads the classic SheenBidi headers for the `unicode` package. Declared-but-undefined functions go in an `EXCLUDED` set (`TRVersionGetString`, `TRTextGetSheenBidiText`, as in Web). The generator has node tests; a header change that the generator cannot express fails loudly instead of being skipped.
-- **Installation (spike).** One C++ TurboModule installs a single host object holding all bindings on `global`, once, from `initialize()`. Calls are synchronous JSI calls; nothing is serialized and nothing crosses the old bridge.
+- **Installation (verified).** One C++ TurboModule (`NativeTehreer`, class `facebook::react::TehreerModule`, `cpp/TehreerModule.*`) installs a single host object, `global.__tehreer`, holding all bindings, once, from `initialize()`. The module has one codegen method, `install(): boolean`, which receives the `jsi::Runtime&`; everything else is called on the host object. Calls are synchronous JSI calls; nothing is serialized and nothing crosses the old bridge. `cpp/runtime/TehreerBindings.cpp` is the host object (a hand-written `getVersion` and `smokeTest` for now; the generator will fill it).
+- **How a library registers a C++ TurboModule (verified on RN 0.88.0).**
+  - `package.json` `codegenConfig`: `name` (here `TehreerSpec`, which names the generated `TehreerSpecJSI.h`), `type: "modules"`, `jsSrcsDir: "src/specs"`, `android.javaPackageName`, and `ios.modules.<ModuleName>.className`. There is no `cxxModule*` key in `codegenConfig`: the Android keys live in `react-native.config.cjs`. The spec file must be named `Native*.ts` and must `export default TurboModuleRegistry.getEnforcing<Spec>("Name")` (the one allowed default export; the lint rule is disabled on that line). Codegen produces `Native<Name>CxxSpec<T>`; the module derives from it with CRTP.
+  - **iOS:** `ios.modules` maps the module name to an Objective-C++ class (`TehreerModuleProvider`) that conforms to `RCTModuleProvider` and returns `std::make_shared<TehreerModule>(params.jsInvoker)` from `getTurboModule:`. Codegen writes it into `RCTModuleProviders.mm` in the app's `ReactAppDependencyProvider`; no AppDelegate change.
+  - **Android:** `react-native.config.cjs` (CommonJS, because `package.json` is `"type": "module"`) sets `dependency.platforms.android.cxxModuleCMakeListsPath` (relative to `android/`), `cxxModuleCMakeListsModuleName` (the CMake target) and `cxxModuleHeaderName` (the header **and** class name: the generated `autolinking.cpp` does `#include <TehreerModule.h>` and `std::make_shared<TehreerModule>(jsInvoker)` inside `facebook::react`, so the class must live in that namespace and have a static `kModuleName`). The app's CMake project adds `android/CMakeLists.txt` as a subdirectory and links the target into `libappmodules.so` with the plain `target_link_libraries` signature (mixing in the keyword signature fails). The CLI drops an Android library that has an `android/` folder with `build.gradle` or a manifest but no `ReactPackage` class, so `android/` has a `TehreerPackage` (it registers no module) and a `build.gradle` that applies `com.facebook.react` for the codegen; without those files the library would be a "pure C++ dependency" instead.
+- **Core in each platform (verified).** Android: `android/CMakeLists.txt` does `add_subdirectory(Libraries/TehreerCore)` with `TR_DEPS_DIR=Libraries/Dependencies` (so nothing is fetched by Gradle) and `TR_CONFIG_UNITY=ON`, after switching off FreeType's optional zlib, bzip2, png and harfbuzz lookups. iOS: `tehreer-react-native.podspec` compiles `Tehreer.c` plus FreeType, libunibreak, SheenBidi (unity) and `harfbuzz.cc` from `Libraries/Dependencies` directly into the pod, with the file lists of tehreerCocoa's `Package.swift`; see section 12 for the pitfalls. The podspec lives at the package root because CLI autolinking only globs `*.podspec` there and CocoaPods rejects `source_files` outside the pod root. `scripts/fetch-deps` must run before `pod install` and before the Gradle build (the podspec fails with a message if it did not).
+- **Example app resolution.** `example/` depends on `file:..` and Metro runs the library from `src/`: `example/metro.config.js` watches the root, blocks the root `node_modules` (a second React Native breaks the app), maps `tehreer-react-native` to `src/index.ts` and maps the `.js` suffix of relative imports in `src/` to `.ts` (Metro does not do that itself).
+- **Off-device JSI tests (verified, not wired up).** The host object runs on the Mac without a device: the `hermesvm.framework` macOS slice that `pod install` puts at `example/ios/Pods/hermes-engine/destroot/Library/Frameworks/macosx` and the headers in `destroot/include` are enough to link `cpp/runtime/TehreerBindings.cpp`, Core and its dependencies into a command-line program that creates a Hermes runtime and evaluates `__tehreer.getVersion()`; it printed `1.0.0 true`. It needs the pods (a network download) and Xcode, so it is not part of `npm test` yet; the node tests only pin names that C++, TypeScript and the configs share (`tests/native-module.test.ts`).
 - **Hermes.** Use only JSI APIs that Hermes supports. No `eval`, no reliance on a WebAssembly runtime.
 - **ABI.** The binding calls Core's C functions natively, so structs by value and returned structs follow the platform C ABI (no WASM `ret` pointer tricks). Floats are `float`; JS numbers are doubles; convert at the binding.
 
@@ -111,7 +121,7 @@ Core draws; the wrapper provides primitives.
 
 ## 11. Testing
 
-Exact commands are fixed by the CI and example-app issues; the intended set is:
+`typecheck`, `lint`, `test`, `test:ios` and `test:android` exist (the last two run `scripts/test-device.mjs`, which builds the example app on the booted simulator or emulator, starts Metro, launches the app and checks the `TEHREER_RESULT` line that `example/App.tsx` logs; the full suites come with the example-app issue). The intended set is:
 
 ```bash
 npm run typecheck          # tsc for library and tests
@@ -134,5 +144,7 @@ npm run test:android       # same on the Android emulator
 - `TRVersionGetString` is declared but never implemented; use the `TEHREER_VERSION_STRING` macro.
 - SFNT tags may contain a space (`URD `).
 - Core objects freed from a finalizer may run on a non-JS thread: finalizers only call `TR*Release` (thread safe) and never touch JS.
+- iOS pod: Core and SheenBidi both have a `Source/Core/` with headers of the same names, so each needs its own Source folder as a per-subspec `-I` flag, never in the shared `HEADER_SEARCH_PATHS`. Core ships `Headers/Tehreer/module.modulemap`; with clang modules on, SheenBidi's names become ambiguous, so the pod sets `CLANG_ENABLE_MODULES = NO`. C files need a per-subspec `-std` (Core `c89`, dependencies `gnu99`), and `harfbuzz.cc` must be in a subspec with no `-std` flag (clang rejects it for C++). `pod install` needs `LANG=en_US.UTF-8`.
+- Android: the NDK has no libbz2, so FreeType's optional libraries are disabled; `ndkVersion` in `example/android/build.gradle` must name an installed NDK (the template's 27.1 is not).
 - Android: C++ standard library and `-fvisibility` settings must match Core's unity build; iOS: Core is compiled as C89 inside an Objective-C++ target, so compile the C files with the C language setting, not as C++.
 - Do not change the typeface of a renderer, the settings of a shaping engine, or a mutable text while something is drawing or shaping with it.
