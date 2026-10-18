@@ -1,9 +1,11 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { test } from "node:test";
 
 const manifest = JSON.parse(
-  readFileSync(new URL("../package.json", import.meta.url), "utf8")
+  // A path, not a URL: the React Native types (pulled in by src/specs) redeclare the global URL.
+  readFileSync(join(import.meta.dirname, "..", "package.json"), "utf8")
 ) as Record<string, unknown>;
 
 test("the package has no runtime dependencies", () => {

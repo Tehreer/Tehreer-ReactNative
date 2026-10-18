@@ -15,6 +15,13 @@
   },
   "files": [
     "dist",
+    "src/specs",
+    "cpp",
+    "ios",
+    "android",
+    "Libraries/TehreerCore",
+    "tehreer-react-native.podspec",
+    "react-native.config.cjs",
     "LICENSE",
     "NOTICE"
   ],
@@ -23,7 +30,9 @@
     "typecheck": "tsc -p tsconfig.json",
     "lint": "eslint .",
     "test": "node --test \"tests/*.test.ts\"",
-    "setup": "scripts/fetch-deps"
+    "setup": "scripts/fetch-deps",
+    "test:ios": "node scripts/test-device.mjs ios",
+    "test:android": "node scripts/test-device.mjs android"
   },
   "peerDependencies": {
     "react": "*",
@@ -35,8 +44,26 @@
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@types/node": "^26.6.5",
+    "@types/react": "19.3.0",
     "eslint": "^10.13.0",
+    "react": "19.3.1",
+    "react-native": "0.88.0",
     "typescript": "^6.0.3",
     "typescript-eslint": "^8.71.2"
+  },
+  "codegenConfig": {
+    "name": "TehreerSpec",
+    "type": "modules",
+    "jsSrcsDir": "src/specs",
+    "android": {
+      "javaPackageName": "com.tehreer.reactnative"
+    },
+    "ios": {
+      "modules": {
+        "NativeTehreer": {
+          "className": "TehreerModuleProvider"
+        }
+      }
+    }
   }
 }

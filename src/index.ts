@@ -1,1 +1,1 @@
-export {};
+export { initialize, getVersion } from "./initialize.js";

@@ -1,0 +1,19 @@
+// The library module of the autolinking. It carries the Kotlin sources and runs the codegen of the
+// React Native Gradle plugin; the C++ TurboModule itself is built from CMakeLists.txt, which the
+// app's CMake project adds through `cxxModuleCMakeListsPath` in react-native.config.cjs.
+apply plugin: "com.android.library"
+apply plugin: "org.jetbrains.kotlin.android"
+apply plugin: "com.facebook.react"
+
+android {
+    namespace "com.tehreer.reactnative"
+    compileSdk rootProject.ext.compileSdkVersion
+
+    defaultConfig {
+        minSdk rootProject.ext.minSdkVersion
+    }
+}
+
+dependencies {
+    implementation "com.facebook.react:react-android"
+}
