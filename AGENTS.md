@@ -45,19 +45,21 @@ npm run test:android
 
 ## Work is done through GitHub issues
 
-Each issue is one unit of work with acceptance criteria, `blocked by` links, and labels `area:*`, `type:*`, `size:*`, milestone `M0`..`M3`. One issue = one branch `task/<number>-<slug>` = one pull request that says `Closes #<number>`. Nothing is merged automatically; the owner merges.
+Each issue is one unit of work with acceptance criteria, `blocked by` links, and labels `area:*`, `type:*`, `size:*`, milestone `M0`..`M3`. One issue = one branch `task/<number>-<slug>` = one pull request that says `Closes #<number>`. The main session merges after the merge gate in `deliver-task` passes; the owner has authorized this, and anything outside the gate comes back to the owner.
 
 ## The agent loop
 
-Three project agents (`.claude/agents/`): `rn-developer` (implements), `rn-code-reviewer` (read-only review), `rn-qa` (builds, runs on device, probes, reports defects; writes scratch files only). The skill `deliver-task` (`/deliver-task <issue#>`) runs them in a loop:
+Three project agents (`.claude/agents/`): `rn-developer` (implements and fixes), `rn-code-reviewer` (read-only review), `rn-qa` (builds, runs on device, probes, reports defects; writes scratch files only). The skill `deliver-task` (`/deliver-task <issue#>`) runs them:
 
-1. developer implements and runs the gates (typecheck, lint, tests);
-2. reviewer reviews; developer fixes blockers and majors; reviewer re-checks;
-3. QA builds and runs on the iOS simulator and the Android emulator and probes; developer fixes; reviewer re-checks; QA re-checks;
-4. done when reviewer and QA both report no blocker or major; after 3 rounds without that, stop and ask the owner;
-5. open the PR with the issue linked and the reviewer and QA summaries in the body.
+1. developer implements and runs the gates (typecheck, lint, tests); the PR is opened;
+2. the reviewer reviews the PR and its findings are posted on GitHub as review comments; the developer fixes and replies on each thread; repeat until `APPROVE`;
+3. QA builds and runs on the iOS simulator and the Android emulator and probes; its report is posted on the PR; the developer fixes defects, and the reviewer and QA re-check;
+4. done when the latest review says `APPROVE` and QA reports no blocker or major; after 3 rounds without that, stop and ask the owner;
+5. the main session checks the merge gate in `deliver-task` and squash-merges the PR.
 
-Subagents cannot start subagents, so the session that runs `/deliver-task` is the orchestrator.
+Subagents cannot start subagents, so the session that runs `/deliver-task` is the orchestrator of a task.
+
+**Review comments identity.** Until the owner sets up a review bot (a Claude GitHub App or a bot token), comments are posted from the owner's GitHub account and start with `🤖 Claude reviewer:` or `🤖 Claude QA:`. A review by the PR's own author cannot be an approving review, so the verdict is written in the review text.
 
 ### Parallelism
 
@@ -65,4 +67,4 @@ Subagents cannot start subagents, so the session that runs `/deliver-task` is th
 
 ## Boundaries
 
-Never: commit secrets, push to `main`, merge a PR, force-push, delete branches you did not create, edit files in sibling repos (they are references), or run anything that needs a password.
+Never: commit secrets, push to `main`, force-push, delete branches you did not create, edit files in sibling repos (they are references), add a dependency or download that the owner has not approved in chat, or run anything that needs a password. Only the main session merges, and only through the merge gate in `deliver-task`.
