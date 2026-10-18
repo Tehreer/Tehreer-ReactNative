@@ -26,6 +26,23 @@ npm run build       # emit dist/ (JavaScript and declarations) from src/
 
 `.npmrc` sets `legacy-peer-deps` so that npm does not install `react` and `react-native` for this skeleton; revisit it when the example app lands.
 
+## Core and its dependencies
+
+Tehreer Core is the git submodule `Libraries/TehreerCore`, pinned to a SHA. After `git clone --recurse-submodules` (or on a clone without submodules), one command gets Core and the sources of FreeType, HarfBuzz, SheenBidi and libunibreak:
+
+```bash
+scripts/fetch-deps   # or: npm run setup
+```
+
+The dependency versions are read from Core's `CMakeLists.txt` at run time, so they always match what Core pins. Sources land in the git-ignored `Libraries/Dependencies`, laid out for Core's `TR_DEPS_DIR`. Re-running is a no-op unless a pin changed.
+
+To move Core to another commit (this fetches, checks out and stages the pointer):
+
+```bash
+scripts/sync-core <sha|ref>
+scripts/sync-core main /Users/mta/Learning/Tehreer-Core   # fetch from a local Core instead of origin
+```
+
 Device tests (`npm run test:ios`, `npm run test:android`) are added together with the example app.
 
 ## Repository layout

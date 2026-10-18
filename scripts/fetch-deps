@@ -1,0 +1,103 @@
+#!/bin/sh
+# Fetches the third-party sources Core builds from (FreeType, HarfBuzz, libunibreak, SheenBidi).
+#
+# The repository and tag of each dependency are read from the FetchContent_Declare blocks of the
+# Core submodule's CMakeLists.txt at run time, so they cannot drift from what Core pins. The output
+# directory uses the names Core expects for TR_DEPS_DIR, so it can be passed to CMake as is.
+#
+# Usage: scripts/fetch-deps [--dir <output>] [--cmake <CMakeLists.txt>] [--print-pins]
+set -eu
+
+ROOT=$(cd "$(dirname "$0")/.." && pwd)
+OUTPUT="$ROOT/Libraries/Dependencies"
+CMAKE_FILE=""
+PRINT_ONLY=0
+
+fail() {
+  echo "fetch-deps: $*" >&2
+  exit 1
+}
+
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --dir) [ $# -ge 2 ] || fail "--dir needs a value"; OUTPUT=$2; shift 2 ;;
+    --cmake) [ $# -ge 2 ] || fail "--cmake needs a value"; CMAKE_FILE=$2; shift 2 ;;
+    --print-pins) PRINT_ONLY=1; shift ;;
+    -h|--help) sed -n '2,9p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+    *) fail "unknown argument '$1'" ;;
+  esac
+done
+
+if [ -z "$CMAKE_FILE" ]; then
+  CMAKE_FILE="$ROOT/Libraries/TehreerCore/CMakeLists.txt"
+  if [ ! -f "$CMAKE_FILE" ]; then
+    echo "fetch-deps: initializing the Core submodule" >&2
+    git -C "$ROOT" submodule update --init Libraries/TehreerCore \
+      || fail "could not initialize Libraries/TehreerCore"
+  fi
+fi
+[ -f "$CMAKE_FILE" ] || fail "$CMAKE_FILE not found"
+
+# Prints "name<TAB>repository<TAB>tag" for each FetchContent_Declare block.
+PINS=$(awk '
+  {
+    sub(/#.*/, "")
+    gsub(/[()]/, " ")
+    for (i = 1; i <= NF; i++) {
+      if ($i == "FetchContent_Declare") { inside = 1; want = "name"; name = repo = tag = ""; continue }
+      if (!inside) continue
+      if (want == "name") { name = $i; want = ""; continue }
+      if (want == "repo") { repo = $i; want = ""; continue }
+      if (want == "tag") { tag = $i; want = ""; continue }
+      if ($i == "GIT_REPOSITORY") want = "repo"
+      else if ($i == "GIT_TAG") want = "tag"
+      else if ($i == "FetchContent_MakeAvailable") { inside = 0 }
+      if (name != "" && repo != "" && tag != "") {
+        printf "%s\t%s\t%s\n", name, repo, tag
+        inside = 0
+      }
+    }
+  }
+' "$CMAKE_FILE")
+
+# Core names the directories freetype, harfbuzz, libunibreak and SheenBidi; the declared names match.
+EXPECTED="SheenBidi freetype harfbuzz libunibreak"
+FOUND=$(printf '%s\n' "$PINS" | cut -f1 | sort | tr '\n' ' ' | sed 's/ $//')
+[ "$FOUND" = "$EXPECTED" ] \
+  || fail "expected dependencies '$EXPECTED' in $CMAKE_FILE but found '$FOUND'"
+printf '%s\n' "$PINS" | awk -F'\t' 'NF != 3 || $2 == "" || $3 == "" { exit 1 }' \
+  || fail "incomplete repository or tag in $CMAKE_FILE"
+
+if [ "$PRINT_ONLY" -eq 1 ]; then
+  printf '%s\n' "$PINS" | sort
+  exit 0
+fi
+
+mkdir -p "$OUTPUT"
+
+printf '%s\n' "$PINS" | sort | while IFS="$(printf '\t')" read -r name repo tag; do
+  dir="$OUTPUT/$name"
+  marker="$repo $tag"
+
+  # A full SHA is verifiable offline; for a tag the marker records what was fetched.
+  if [ -d "$dir/.git" ] && [ -f "$dir/.git/tehreer-pin" ] \
+      && [ "$(cat "$dir/.git/tehreer-pin")" = "$marker" ] \
+      && head=$(git -C "$dir" rev-parse --verify HEAD 2>/dev/null); then
+    case "$tag" in
+      *[!0-9a-f]*|"") echo "$name: up to date ($tag)"; continue ;;
+      *) if [ "$head" = "$tag" ]; then echo "$name: up to date ($tag)"; continue; fi ;;
+    esac
+  fi
+
+  echo "$name: fetching $tag from $repo"
+  [ -d "$dir/.git" ] || git init -q "$dir"
+  if git -C "$dir" remote get-url origin >/dev/null 2>&1; then
+    git -C "$dir" remote set-url origin "$repo"
+  else
+    git -C "$dir" remote add origin "$repo"
+  fi
+  git -C "$dir" fetch -q --depth 1 origin "$tag" || fail "$name: could not fetch '$tag' from $repo"
+  git -C "$dir" checkout -q -f --detach FETCH_HEAD
+  printf '%s' "$marker" > "$dir/.git/tehreer-pin"
+  echo "$name: at $(git -C "$dir" rev-parse HEAD)"
+done

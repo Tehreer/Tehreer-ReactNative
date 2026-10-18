@@ -1,0 +1,60 @@
+#!/bin/sh
+# Moves the Libraries/TehreerCore submodule to another Core commit and stages the new pointer.
+#
+# Usage: scripts/sync-core <sha|ref> [<source>]
+#   <source> is an alternate path or URL to fetch from instead of origin, for example a local
+#   Core with unpushed commits: scripts/sync-core main /Users/mta/Learning/Tehreer-Core
+# Do not commit a pointer to a SHA that is not pushed to the Core remote.
+set -eu
+
+ROOT=$(cd "$(dirname "$0")/.." && pwd)
+SUBMODULE=Libraries/TehreerCore
+
+fail() {
+  echo "sync-core: $*" >&2
+  exit 1
+}
+
+case "${1:-}" in
+  -h|--help) sed -n '2,7p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+  "") fail "missing <sha|ref>. Usage: scripts/sync-core <sha|ref> [<source>]" ;;
+  -*) fail "unknown option '$1'" ;;
+esac
+[ $# -le 2 ] || fail "too many arguments. Usage: scripts/sync-core <sha|ref> [<source>]"
+
+TARGET=$1
+SOURCE=${2:-origin}
+[ -n "$SOURCE" ] || fail "empty <source>"
+
+CORE="$ROOT/$SUBMODULE"
+if [ ! -e "$CORE/.git" ]; then
+  git -C "$ROOT" submodule update --init "$SUBMODULE" || fail "could not initialize $SUBMODULE"
+fi
+
+[ -z "$(git -C "$CORE" status --porcelain)" ] \
+  || fail "$SUBMODULE has local changes; commit or discard them first"
+
+OLD=$(git -C "$CORE" rev-parse HEAD)
+
+# Servers may refuse to serve a SHA that is not a branch tip, so fall back to fetching every branch
+# and tag of the source and resolving the target locally.
+if git -C "$CORE" fetch -q "$SOURCE" "$TARGET" 2>/dev/null; then
+  NEW=$(git -C "$CORE" rev-parse --verify "FETCH_HEAD^{commit}")
+else
+  git -C "$CORE" fetch -q "$SOURCE" '+refs/heads/*:refs/remotes/sync-core/*' '+refs/tags/*:refs/tags/*' \
+    || fail "could not fetch from '$SOURCE'"
+  NEW=$(git -C "$CORE" rev-parse --verify "$TARGET^{commit}" 2>/dev/null) \
+    || NEW=$(git -C "$CORE" rev-parse --verify "refs/remotes/sync-core/$TARGET^{commit}" 2>/dev/null) \
+    || fail "'$TARGET' is not a commit known in '$SOURCE'"
+fi
+
+git -C "$CORE" checkout -q --detach "$NEW"
+git -C "$ROOT" add "$SUBMODULE"
+
+if [ "$OLD" = "$NEW" ]; then
+  echo "sync-core: already at $NEW; pointer staged"
+else
+  echo "sync-core: $OLD -> $NEW (staged)"
+  echo "Review the API changes with:"
+  echo "  git -C $SUBMODULE diff $OLD..$NEW -- Headers/Tehreer"
+fi
