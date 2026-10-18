@@ -1,0 +1,11 @@
+node_modules
+build
+dist
+.DS_Store
+*.xcuserstate
+Pods
+lib
+.gradle
+.cxx
+local.properties
+.env*

@@ -1,0 +1,12 @@
+# Applied by hand with `gh label create --force`; GitHub does not read this file.
+- {name: "area:foundation", color: "5319e7", description: "Repo, build, runtime, generator, CI"}
+- {name: "area:api", color: "0e8a16", description: "TypeScript API and JSI bindings of Core objects"}
+- {name: "area:views", color: "1d76db", description: "Native painters and Fabric views"}
+- {name: "area:release", color: "fbca04", description: "Demo, docs, packaging, benchmarks"}
+- {name: "type:feature", color: "a2eeef", description: "New capability"}
+- {name: "type:infra", color: "c5def5", description: "Build, CI, tooling"}
+- {name: "type:spike", color: "d4c5f9", description: "Time-boxed investigation that settles a design question"}
+- {name: "type:docs", color: "0075ca", description: "Documentation"}
+- {name: "size:S", color: "e6e6e6", description: "Under half a day"}
+- {name: "size:M", color: "cccccc", description: "About a day"}
+- {name: "size:L", color: "999999", description: "Several days"}
