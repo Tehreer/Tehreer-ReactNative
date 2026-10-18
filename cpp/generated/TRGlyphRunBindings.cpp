@@ -126,8 +126,8 @@ jsi::Value BindTRGlyphRunGetReplacement(jsi::Runtime &rt, const jsi::Value &, co
 
 jsi::Value BindTRGlyphRunGetForegroundColor(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRGlyphRunGetForegroundColor";
-    TRGlyphRunRef a_run = marshal::ToHandle<TRGlyphRunRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "run", false);
     TRColor o_foregroundColor = 0;
+    TRGlyphRunRef a_run = marshal::ToHandle<TRGlyphRunRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "run", false);
 
     auto result = TRGlyphRunGetForegroundColor(a_run, &o_foregroundColor);
     if (result == TRFalse) {
@@ -138,8 +138,8 @@ jsi::Value BindTRGlyphRunGetForegroundColor(jsi::Runtime &rt, const jsi::Value &
 
 jsi::Value BindTRGlyphRunGetBackgroundColor(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRGlyphRunGetBackgroundColor";
-    TRGlyphRunRef a_run = marshal::ToHandle<TRGlyphRunRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "run", false);
     TRColor o_backgroundColor = 0;
+    TRGlyphRunRef a_run = marshal::ToHandle<TRGlyphRunRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "run", false);
 
     auto result = TRGlyphRunGetBackgroundColor(a_run, &o_backgroundColor);
     if (result == TRFalse) {
@@ -166,8 +166,8 @@ jsi::Value BindTRGlyphRunHasStrikethrough(jsi::Runtime &rt, const jsi::Value &, 
 
 jsi::Value BindTRGlyphRunGetDecorationColor(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRGlyphRunGetDecorationColor";
-    TRGlyphRunRef a_run = marshal::ToHandle<TRGlyphRunRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "run", false);
     TRColor o_decorationColor = 0;
+    TRGlyphRunRef a_run = marshal::ToHandle<TRGlyphRunRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "run", false);
 
     auto result = TRGlyphRunGetDecorationColor(a_run, &o_decorationColor);
     if (result == TRFalse) {
@@ -282,8 +282,8 @@ jsi::Value BindTRGlyphRunGetClusterMapCount(jsi::Runtime &rt, const jsi::Value &
 
 jsi::Value BindTRGlyphRunGetClusterStart(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRGlyphRunGetClusterStart";
-    TRGlyphRunRef a_run = marshal::ToHandle<TRGlyphRunRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "run", false);
     TRUInteger a_codeUnitIndex = marshal::ToNumber<TRUInteger>(rt, marshal::ArgAt(args, count, 1), kFunction, "codeUnitIndex");
+    TRGlyphRunRef a_run = marshal::ToHandle<TRGlyphRunRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "run", false);
 
     auto result = TRGlyphRunGetClusterStart(a_run, a_codeUnitIndex);
     return marshal::FromNumber<TRUInteger>(rt, result);
@@ -291,8 +291,8 @@ jsi::Value BindTRGlyphRunGetClusterStart(jsi::Runtime &rt, const jsi::Value &, c
 
 jsi::Value BindTRGlyphRunGetClusterEnd(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRGlyphRunGetClusterEnd";
-    TRGlyphRunRef a_run = marshal::ToHandle<TRGlyphRunRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "run", false);
     TRUInteger a_codeUnitIndex = marshal::ToNumber<TRUInteger>(rt, marshal::ArgAt(args, count, 1), kFunction, "codeUnitIndex");
+    TRGlyphRunRef a_run = marshal::ToHandle<TRGlyphRunRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "run", false);
 
     auto result = TRGlyphRunGetClusterEnd(a_run, a_codeUnitIndex);
     return marshal::FromNumber<TRUInteger>(rt, result);
@@ -300,9 +300,9 @@ jsi::Value BindTRGlyphRunGetClusterEnd(jsi::Runtime &rt, const jsi::Value &, con
 
 jsi::Value BindTRGlyphRunGetCodeUnitDistance(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRGlyphRunGetCodeUnitDistance";
-    TRGlyphRunRef a_run = marshal::ToHandle<TRGlyphRunRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "run", false);
     TRUInteger a_codeUnitIndex = marshal::ToNumber<TRUInteger>(rt, marshal::ArgAt(args, count, 1), kFunction, "codeUnitIndex");
     TRFloat o_distance = 0;
+    TRGlyphRunRef a_run = marshal::ToHandle<TRGlyphRunRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "run", false);
 
     auto result = TRGlyphRunGetCodeUnitDistance(a_run, a_codeUnitIndex, &o_distance);
     if (result == TRFalse) {
@@ -313,8 +313,8 @@ jsi::Value BindTRGlyphRunGetCodeUnitDistance(jsi::Runtime &rt, const jsi::Value 
 
 jsi::Value BindTRGlyphRunGetCodeUnitIndexAtDistance(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRGlyphRunGetCodeUnitIndexAtDistance";
-    TRGlyphRunRef a_run = marshal::ToHandle<TRGlyphRunRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "run", false);
     TRFloat a_distance = marshal::ToNumber<TRFloat>(rt, marshal::ArgAt(args, count, 1), kFunction, "distance");
+    TRGlyphRunRef a_run = marshal::ToHandle<TRGlyphRunRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "run", false);
 
     auto result = TRGlyphRunGetCodeUnitIndexAtDistance(a_run, a_distance);
     return marshal::FromNumber<TRUInteger>(rt, result);
@@ -331,9 +331,9 @@ jsi::Value BindTRGlyphRunComputeInkBox(jsi::Runtime &rt, const jsi::Value &, con
 
 jsi::Value BindTRGlyphRunDraw(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRGlyphRunDraw";
+    TRPoint a_origin = TRPointFromJs(rt, marshal::ArgAt(args, count, 2), kFunction, "origin");
     TRGlyphRunRef a_run = marshal::ToHandle<TRGlyphRunRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "run", false);
     TRRendererRef a_renderer = marshal::ToHandle<TRRendererRef>(rt, marshal::ArgAt(args, count, 1), kFunction, "renderer", true);
-    TRPoint a_origin = TRPointFromJs(rt, marshal::ArgAt(args, count, 2), kFunction, "origin");
 
     TRGlyphRunDraw(a_run, a_renderer, a_origin);
     return jsi::Value::undefined();

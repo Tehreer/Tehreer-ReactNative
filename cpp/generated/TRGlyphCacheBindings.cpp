@@ -53,8 +53,8 @@ jsi::Value BindTRGlyphCacheGetCapacity(jsi::Runtime &rt, const jsi::Value &, con
 
 jsi::Value BindTRGlyphCacheSetCapacity(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRGlyphCacheSetCapacity";
-    TRGlyphCacheRef a_cache = marshal::ToHandle<TRGlyphCacheRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "cache", false);
     TRUInteger a_capacity = marshal::ToNumber<TRUInteger>(rt, marshal::ArgAt(args, count, 1), kFunction, "capacity");
+    TRGlyphCacheRef a_cache = marshal::ToHandle<TRGlyphCacheRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "cache", false);
 
     TRGlyphCacheSetCapacity(a_cache, a_capacity);
     return jsi::Value::undefined();

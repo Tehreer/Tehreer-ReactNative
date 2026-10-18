@@ -28,7 +28,7 @@ const PRELUDE = `
 `;
 
 function config(overrides: Partial<ModelConfig> = {}): ModelConfig {
-  return { excluded: new Set(), manual: new Set(), bounds: {}, ...overrides };
+  return { excluded: new Set(), manual: new Set(), bounds: {}, scalarOuts: {}, ...overrides };
 }
 
 function build(declarations: string, overrides: Partial<ModelConfig> = {}): Model {
@@ -94,16 +94,16 @@ test("a mutable and a constant reference to one struct share a group", () => {
 });
 
 test("an out parameter becomes part of the result, and a boolean makes it optional", () => {
-  const flagged = binding("TR_PUBLIC TRBoolean TRThingGetDistance(TRThingRef thing, TRUInteger index, TRFloat *distance);", "TRThingGetDistance");
+  const flagged = binding("TR_PUBLIC TRBoolean TRThingGetDistance(TRThingRef thing, TRUInteger index, TRFloat *distance);", "TRThingGetDistance", { scalarOuts: { TRThingGetDistance: ["distance"] } });
   assert.deepEqual(kinds(flagged), ["ref", "number", "out"]);
   assert.equal(flagged.result.mode, "success");
   assert.deepEqual(flagged.params.filter((p) => p.js).map((p) => p.name), ["thing", "index"]);
 
-  const box = binding("TR_PUBLIC void TRThingGetBox(TRThingRef thing, TRRect *box);", "TRThingGetBox");
+  const box = binding("TR_PUBLIC void TRThingGetBox(TRThingRef thing, TRRect *box);", "TRThingGetBox", { scalarOuts: { TRThingGetBox: ["box"] } });
   assert.equal(box.result.mode, "outputs");
   assert.equal(box.params[1]?.descriptor?.k, "struct");
 
-  const mixed = binding("TR_PUBLIC TRThingRef TRThingCopyPart(TRThingRef thing, TRUInteger index, TRUInteger *outLength);", "TRThingCopyPart");
+  const mixed = binding("TR_PUBLIC TRThingRef TRThingCopyPart(TRThingRef thing, TRUInteger index, TRUInteger *outLength);", "TRThingCopyPart", { scalarOuts: { TRThingCopyPart: ["outLength"] } });
   assert.equal(mixed.result.mode, "object");
   assert.deepEqual(mixed.outputs.map((o) => o.key), ["outLength"]);
 });
@@ -262,7 +262,7 @@ test("the parser and the plan take the macro, prefix and boolean type of another
     SB_PUBLIC SBParagraphRef SBParagraphRetain(SBParagraphRef paragraph);
     SB_PUBLIC void SBParagraphRelease(SBParagraphRef paragraph);
   `;
-  const config = { ...{ excluded: new Set<string>(), manual: new Set<string>(), bounds: {} }, booleanTypes: new Set(["SBBoolean"]) };
+  const config = { ...{ excluded: new Set<string>(), manual: new Set<string>(), bounds: {}, scalarOuts: {} }, booleanTypes: new Set(["SBBoolean"]) };
 
   const simple = parseHeader(`${prelude} SB_PUBLIC SBBoolean SBParagraphIsRTL(SBParagraphRef paragraph);`, options);
   const model = buildModel([{ file: "SBParagraph.h", parsed: simple }], config);
@@ -297,4 +297,28 @@ test("the ownership words are matched as whole words of the name", () => {
   assert.equal(binding(source, "TRThingGetTarget").returns["ownership"], "borrowed");
   assert.match(failure("TR_PUBLIC TRThingRef TRThingForgetIt(TRThingRef thing);"), /TRThingForgetIt.*ownership is unknown/);
   assert.match(failure("TR_PUBLIC TRThingRef TRThingRecreate(TRThingRef thing);"), /TRThingRecreate.*ownership is unknown/);
+});
+
+test("a mutable pointer without a count is a single value only if it is listed", () => {
+  const source = "TR_PUBLIC void TRThingGetWidths(TRThingRef thing, TRFloat *widths);";
+  const message = failure(source);
+  assert.match(message, /TRThingGetWidths/);
+  assert.match(message, /"widths" of type "TRFloat \*"/);
+  assert.match(message, /SCALAR_OUTS/);
+
+  assert.equal(binding(source, "TRThingGetWidths", { scalarOuts: { TRThingGetWidths: ["widths"] } }).params[1]?.kind, "out");
+  // A count makes it a buffer, so it needs no entry.
+  assert.equal(binding("TR_PUBLIC void TRThingGetWidths(TRThingRef thing, TRFloat *widths, TRUInteger count);", "TRThingGetWidths").params[1]?.kind, "outBuffer");
+});
+
+test("the scalar outputs that are listed must exist and be outputs", () => {
+  const source = "TR_PUBLIC void TRThingGetOne(TRThingRef thing, TRFloat *one, TRUInteger count);";
+  assert.match(failure(source, { scalarOuts: { TRGone: ["a"] } }), /TRGone.*scalar outputs/);
+  assert.match(failure(source, { scalarOuts: { TRThingGetOne: ["nothing"] } }), /TRThingGetOne.*"nothing"/);
+  assert.match(failure(source, { scalarOuts: { TRThingGetOne: ["one"] } }), /TRThingGetOne.*"one".*not one/);
+});
+
+test("an unnamed function pointer parameter is reported as an unsupported callback signature", () => {
+  const parsed = () => parseHeader("TR_PUBLIC void TRThingSetCallback(TRThingRef thing, void (*)(void *data));", { publicMacro: "TR_PUBLIC", prefix: "TR" });
+  assert.throws(parsed, /TRThingSetCallback.*unsupported callback signature/);
 });

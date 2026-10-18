@@ -38,9 +38,9 @@ jsi::Value BindTRReplacementGetKind(jsi::Runtime &rt, const jsi::Value &, const 
 
 jsi::Value BindTRReplacementComputeRoom(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRReplacementComputeRoom";
-    TRReplacementRef a_replacement = marshal::ToHandle<TRReplacementRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "replacement", false);
     TRFloat a_layoutWidth = marshal::ToNumber<TRFloat>(rt, marshal::ArgAt(args, count, 1), kFunction, "layoutWidth");
     TRReplacementRoom o_room = {};
+    TRReplacementRef a_replacement = marshal::ToHandle<TRReplacementRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "replacement", false);
 
     TRReplacementComputeRoom(a_replacement, a_layoutWidth, &o_room);
     return TRReplacementRoomToJs(rt, o_room);

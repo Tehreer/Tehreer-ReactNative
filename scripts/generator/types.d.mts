@@ -87,6 +87,7 @@ export interface ModelConfig {
   excluded: Set<string>;
   manual: Set<string>;
   bounds: Record<string, Record<string, { count: string }>>;
+  scalarOuts: Record<string, string[]>;
   booleanTypes?: Set<string>;
 }
 

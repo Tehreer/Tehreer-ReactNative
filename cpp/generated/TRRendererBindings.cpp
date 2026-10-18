@@ -211,8 +211,8 @@ jsi::Value BindTRRendererGetTypeSize(jsi::Runtime &rt, const jsi::Value &, const
 
 jsi::Value BindTRRendererSetTypeSize(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRRendererSetTypeSize";
-    TRRendererRef a_renderer = marshal::ToHandle<TRRendererRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "renderer", false);
     TRFloat a_typeSize = marshal::ToNumber<TRFloat>(rt, marshal::ArgAt(args, count, 1), kFunction, "typeSize");
+    TRRendererRef a_renderer = marshal::ToHandle<TRRendererRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "renderer", false);
 
     TRRendererSetTypeSize(a_renderer, a_typeSize);
     return jsi::Value::undefined();
@@ -228,8 +228,8 @@ jsi::Value BindTRRendererGetScaleX(jsi::Runtime &rt, const jsi::Value &, const j
 
 jsi::Value BindTRRendererSetScaleX(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRRendererSetScaleX";
-    TRRendererRef a_renderer = marshal::ToHandle<TRRendererRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "renderer", false);
     TRFloat a_scaleX = marshal::ToNumber<TRFloat>(rt, marshal::ArgAt(args, count, 1), kFunction, "scaleX");
+    TRRendererRef a_renderer = marshal::ToHandle<TRRendererRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "renderer", false);
 
     TRRendererSetScaleX(a_renderer, a_scaleX);
     return jsi::Value::undefined();
@@ -245,8 +245,8 @@ jsi::Value BindTRRendererGetScaleY(jsi::Runtime &rt, const jsi::Value &, const j
 
 jsi::Value BindTRRendererSetScaleY(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRRendererSetScaleY";
-    TRRendererRef a_renderer = marshal::ToHandle<TRRendererRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "renderer", false);
     TRFloat a_scaleY = marshal::ToNumber<TRFloat>(rt, marshal::ArgAt(args, count, 1), kFunction, "scaleY");
+    TRRendererRef a_renderer = marshal::ToHandle<TRRendererRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "renderer", false);
 
     TRRendererSetScaleY(a_renderer, a_scaleY);
     return jsi::Value::undefined();
@@ -262,8 +262,8 @@ jsi::Value BindTRRendererGetSkewX(jsi::Runtime &rt, const jsi::Value &, const js
 
 jsi::Value BindTRRendererSetSkewX(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRRendererSetSkewX";
-    TRRendererRef a_renderer = marshal::ToHandle<TRRendererRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "renderer", false);
     TRFloat a_skewX = marshal::ToNumber<TRFloat>(rt, marshal::ArgAt(args, count, 1), kFunction, "skewX");
+    TRRendererRef a_renderer = marshal::ToHandle<TRRendererRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "renderer", false);
 
     TRRendererSetSkewX(a_renderer, a_skewX);
     return jsi::Value::undefined();
@@ -279,8 +279,8 @@ jsi::Value BindTRRendererGetRenderScale(jsi::Runtime &rt, const jsi::Value &, co
 
 jsi::Value BindTRRendererSetRenderScale(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRRendererSetRenderScale";
-    TRRendererRef a_renderer = marshal::ToHandle<TRRendererRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "renderer", false);
     TRFloat a_renderScale = marshal::ToNumber<TRFloat>(rt, marshal::ArgAt(args, count, 1), kFunction, "renderScale");
+    TRRendererRef a_renderer = marshal::ToHandle<TRRendererRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "renderer", false);
 
     TRRendererSetRenderScale(a_renderer, a_renderScale);
     return jsi::Value::undefined();
@@ -296,8 +296,8 @@ jsi::Value BindTRRendererGetWritingDirection(jsi::Runtime &rt, const jsi::Value 
 
 jsi::Value BindTRRendererSetWritingDirection(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRRendererSetWritingDirection";
-    TRRendererRef a_renderer = marshal::ToHandle<TRRendererRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "renderer", false);
     TRWritingDirection a_writingDirection = marshal::ToNumber<TRWritingDirection>(rt, marshal::ArgAt(args, count, 1), kFunction, "writingDirection");
+    TRRendererRef a_renderer = marshal::ToHandle<TRRendererRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "renderer", false);
 
     TRRendererSetWritingDirection(a_renderer, a_writingDirection);
     return jsi::Value::undefined();
@@ -313,8 +313,8 @@ jsi::Value BindTRRendererGetForegroundColor(jsi::Runtime &rt, const jsi::Value &
 
 jsi::Value BindTRRendererSetForegroundColor(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRRendererSetForegroundColor";
-    TRRendererRef a_renderer = marshal::ToHandle<TRRendererRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "renderer", false);
     TRColor a_foregroundColor = marshal::ToNumber<TRColor>(rt, marshal::ArgAt(args, count, 1), kFunction, "foregroundColor");
+    TRRendererRef a_renderer = marshal::ToHandle<TRRendererRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "renderer", false);
 
     TRRendererSetForegroundColor(a_renderer, a_foregroundColor);
     return jsi::Value::undefined();
@@ -330,8 +330,8 @@ jsi::Value BindTRRendererGetStrokeRadius(jsi::Runtime &rt, const jsi::Value &, c
 
 jsi::Value BindTRRendererSetStrokeRadius(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRRendererSetStrokeRadius";
-    TRRendererRef a_renderer = marshal::ToHandle<TRRendererRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "renderer", false);
     TRFloat a_strokeRadius = marshal::ToNumber<TRFloat>(rt, marshal::ArgAt(args, count, 1), kFunction, "strokeRadius");
+    TRRendererRef a_renderer = marshal::ToHandle<TRRendererRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "renderer", false);
 
     TRRendererSetStrokeRadius(a_renderer, a_strokeRadius);
     return jsi::Value::undefined();
@@ -347,8 +347,8 @@ jsi::Value BindTRRendererGetStrokeCap(jsi::Runtime &rt, const jsi::Value &, cons
 
 jsi::Value BindTRRendererSetStrokeCap(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRRendererSetStrokeCap";
-    TRRendererRef a_renderer = marshal::ToHandle<TRRendererRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "renderer", false);
     TRStrokeCap a_strokeCap = marshal::ToNumber<TRStrokeCap>(rt, marshal::ArgAt(args, count, 1), kFunction, "strokeCap");
+    TRRendererRef a_renderer = marshal::ToHandle<TRRendererRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "renderer", false);
 
     TRRendererSetStrokeCap(a_renderer, a_strokeCap);
     return jsi::Value::undefined();
@@ -364,8 +364,8 @@ jsi::Value BindTRRendererGetStrokeJoin(jsi::Runtime &rt, const jsi::Value &, con
 
 jsi::Value BindTRRendererSetStrokeJoin(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRRendererSetStrokeJoin";
-    TRRendererRef a_renderer = marshal::ToHandle<TRRendererRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "renderer", false);
     TRStrokeJoin a_strokeJoin = marshal::ToNumber<TRStrokeJoin>(rt, marshal::ArgAt(args, count, 1), kFunction, "strokeJoin");
+    TRRendererRef a_renderer = marshal::ToHandle<TRRendererRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "renderer", false);
 
     TRRendererSetStrokeJoin(a_renderer, a_strokeJoin);
     return jsi::Value::undefined();
@@ -381,8 +381,8 @@ jsi::Value BindTRRendererGetStrokeMiter(jsi::Runtime &rt, const jsi::Value &, co
 
 jsi::Value BindTRRendererSetStrokeMiter(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRRendererSetStrokeMiter";
-    TRRendererRef a_renderer = marshal::ToHandle<TRRendererRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "renderer", false);
     TRFloat a_strokeMiter = marshal::ToNumber<TRFloat>(rt, marshal::ArgAt(args, count, 1), kFunction, "strokeMiter");
+    TRRendererRef a_renderer = marshal::ToHandle<TRRendererRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "renderer", false);
 
     TRRendererSetStrokeMiter(a_renderer, a_strokeMiter);
     return jsi::Value::undefined();
@@ -398,8 +398,8 @@ jsi::Value BindTRRendererGetStrokeColor(jsi::Runtime &rt, const jsi::Value &, co
 
 jsi::Value BindTRRendererSetStrokeColor(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRRendererSetStrokeColor";
-    TRRendererRef a_renderer = marshal::ToHandle<TRRendererRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "renderer", false);
     TRColor a_strokeColor = marshal::ToNumber<TRColor>(rt, marshal::ArgAt(args, count, 1), kFunction, "strokeColor");
+    TRRendererRef a_renderer = marshal::ToHandle<TRRendererRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "renderer", false);
 
     TRRendererSetStrokeColor(a_renderer, a_strokeColor);
     return jsi::Value::undefined();
@@ -415,8 +415,8 @@ jsi::Value BindTRRendererGetShadowRadius(jsi::Runtime &rt, const jsi::Value &, c
 
 jsi::Value BindTRRendererSetShadowRadius(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRRendererSetShadowRadius";
-    TRRendererRef a_renderer = marshal::ToHandle<TRRendererRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "renderer", false);
     TRFloat a_shadowRadius = marshal::ToNumber<TRFloat>(rt, marshal::ArgAt(args, count, 1), kFunction, "shadowRadius");
+    TRRendererRef a_renderer = marshal::ToHandle<TRRendererRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "renderer", false);
 
     TRRendererSetShadowRadius(a_renderer, a_shadowRadius);
     return jsi::Value::undefined();
@@ -432,8 +432,8 @@ jsi::Value BindTRRendererGetShadowDx(jsi::Runtime &rt, const jsi::Value &, const
 
 jsi::Value BindTRRendererSetShadowDx(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRRendererSetShadowDx";
-    TRRendererRef a_renderer = marshal::ToHandle<TRRendererRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "renderer", false);
     TRFloat a_shadowDx = marshal::ToNumber<TRFloat>(rt, marshal::ArgAt(args, count, 1), kFunction, "shadowDx");
+    TRRendererRef a_renderer = marshal::ToHandle<TRRendererRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "renderer", false);
 
     TRRendererSetShadowDx(a_renderer, a_shadowDx);
     return jsi::Value::undefined();
@@ -449,8 +449,8 @@ jsi::Value BindTRRendererGetShadowDy(jsi::Runtime &rt, const jsi::Value &, const
 
 jsi::Value BindTRRendererSetShadowDy(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRRendererSetShadowDy";
-    TRRendererRef a_renderer = marshal::ToHandle<TRRendererRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "renderer", false);
     TRFloat a_shadowDy = marshal::ToNumber<TRFloat>(rt, marshal::ArgAt(args, count, 1), kFunction, "shadowDy");
+    TRRendererRef a_renderer = marshal::ToHandle<TRRendererRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "renderer", false);
 
     TRRendererSetShadowDy(a_renderer, a_shadowDy);
     return jsi::Value::undefined();
@@ -466,8 +466,8 @@ jsi::Value BindTRRendererGetShadowColor(jsi::Runtime &rt, const jsi::Value &, co
 
 jsi::Value BindTRRendererSetShadowColor(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRRendererSetShadowColor";
-    TRRendererRef a_renderer = marshal::ToHandle<TRRendererRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "renderer", false);
     TRColor a_shadowColor = marshal::ToNumber<TRColor>(rt, marshal::ArgAt(args, count, 1), kFunction, "shadowColor");
+    TRRendererRef a_renderer = marshal::ToHandle<TRRendererRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "renderer", false);
 
     TRRendererSetShadowColor(a_renderer, a_shadowColor);
     return jsi::Value::undefined();
@@ -483,8 +483,8 @@ jsi::Value BindTRRendererGetDrawStyle(jsi::Runtime &rt, const jsi::Value &, cons
 
 jsi::Value BindTRRendererSetDrawStyle(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRRendererSetDrawStyle";
-    TRRendererRef a_renderer = marshal::ToHandle<TRRendererRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "renderer", false);
     TRDrawStyle a_drawStyle = marshal::ToNumber<TRDrawStyle>(rt, marshal::ArgAt(args, count, 1), kFunction, "drawStyle");
+    TRRendererRef a_renderer = marshal::ToHandle<TRRendererRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "renderer", false);
 
     TRRendererSetDrawStyle(a_renderer, a_drawStyle);
     return jsi::Value::undefined();
@@ -500,8 +500,8 @@ jsi::Value BindTRRendererIsRenderable(jsi::Runtime &rt, const jsi::Value &, cons
 
 jsi::Value BindTRRendererCreateGlyphImage(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRRendererCreateGlyphImage";
-    TRRendererRef a_renderer = marshal::ToHandle<TRRendererRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "renderer", false);
     TRGlyphID a_glyphID = marshal::ToNumber<TRGlyphID>(rt, marshal::ArgAt(args, count, 1), kFunction, "glyphID");
+    TRRendererRef a_renderer = marshal::ToHandle<TRRendererRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "renderer", false);
 
     auto result = TRRendererCreateGlyphImage(a_renderer, a_glyphID);
     return marshal::FromHandle<TRGlyphImageRef>(rt, result, marshal::Ownership::Adopt);
@@ -509,8 +509,8 @@ jsi::Value BindTRRendererCreateGlyphImage(jsi::Runtime &rt, const jsi::Value &, 
 
 jsi::Value BindTRRendererCreateStrokeImage(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRRendererCreateStrokeImage";
-    TRRendererRef a_renderer = marshal::ToHandle<TRRendererRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "renderer", false);
     TRGlyphID a_glyphID = marshal::ToNumber<TRGlyphID>(rt, marshal::ArgAt(args, count, 1), kFunction, "glyphID");
+    TRRendererRef a_renderer = marshal::ToHandle<TRRendererRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "renderer", false);
 
     auto result = TRRendererCreateStrokeImage(a_renderer, a_glyphID);
     return marshal::FromHandle<TRGlyphImageRef>(rt, result, marshal::Ownership::Adopt);
@@ -518,8 +518,8 @@ jsi::Value BindTRRendererCreateStrokeImage(jsi::Runtime &rt, const jsi::Value &,
 
 jsi::Value BindTRRendererCreateGlyphPath(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRRendererCreateGlyphPath";
-    TRRendererRef a_renderer = marshal::ToHandle<TRRendererRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "renderer", false);
     TRGlyphID a_glyphID = marshal::ToNumber<TRGlyphID>(rt, marshal::ArgAt(args, count, 1), kFunction, "glyphID");
+    TRRendererRef a_renderer = marshal::ToHandle<TRRendererRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "renderer", false);
 
     auto result = TRRendererCreateGlyphPath(a_renderer, a_glyphID);
     return marshal::FromHandle<TRPathRef>(rt, result, marshal::Ownership::Adopt);
@@ -527,8 +527,8 @@ jsi::Value BindTRRendererCreateGlyphPath(jsi::Runtime &rt, const jsi::Value &, c
 
 jsi::Value BindTRRendererComputeGlyphInkBox(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRRendererComputeGlyphInkBox";
-    TRRendererRef a_renderer = marshal::ToHandle<TRRendererRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "renderer", false);
     TRGlyphID a_glyphID = marshal::ToNumber<TRGlyphID>(rt, marshal::ArgAt(args, count, 1), kFunction, "glyphID");
+    TRRendererRef a_renderer = marshal::ToHandle<TRRendererRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "renderer", false);
 
     auto result = TRRendererComputeGlyphInkBox(a_renderer, a_glyphID);
     return TRRectToJs(rt, result);
@@ -536,7 +536,6 @@ jsi::Value BindTRRendererComputeGlyphInkBox(jsi::Runtime &rt, const jsi::Value &
 
 jsi::Value BindTRRendererComputeRunInkBox(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRRendererComputeRunInkBox";
-    TRRendererRef a_renderer = marshal::ToHandle<TRRendererRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "renderer", false);
     std::vector<TRPoint> v_offsets;
     size_t n_offsets = 0;
     const TRPoint *a_offsets = nullptr;
@@ -550,6 +549,7 @@ jsi::Value BindTRRendererComputeRunInkBox(jsi::Runtime &rt, const jsi::Value &, 
         a_offsets = v_offsets.data();
     }
     TRUInteger a_count = marshal::ToNumber<TRUInteger>(rt, marshal::ArgAt(args, count, 4), kFunction, "count");
+    TRRendererRef a_renderer = marshal::ToHandle<TRRendererRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "renderer", false);
     marshal::ConstBuffer a_glyphIDs = marshal::ToConstBuffer(rt, marshal::ArgAt(args, count, 1), kFunction, "glyphIDs", false);
     marshal::ConstBuffer a_advances = marshal::ToConstBuffer(rt, marshal::ArgAt(args, count, 3), kFunction, "advances", false);
 
@@ -563,7 +563,6 @@ jsi::Value BindTRRendererComputeRunInkBox(jsi::Runtime &rt, const jsi::Value &, 
 
 jsi::Value BindTRRendererEnumerateGlyphPlacements(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRRendererEnumerateGlyphPlacements";
-    TRRendererRef a_renderer = marshal::ToHandle<TRRendererRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "renderer", false);
     TRGlyphImageKind a_kind = marshal::ToNumber<TRGlyphImageKind>(rt, marshal::ArgAt(args, count, 1), kFunction, "kind");
     std::vector<TRPoint> v_offsets;
     size_t n_offsets = 0;
@@ -579,6 +578,7 @@ jsi::Value BindTRRendererEnumerateGlyphPlacements(jsi::Runtime &rt, const jsi::V
     }
     TRUInteger a_count = marshal::ToNumber<TRUInteger>(rt, marshal::ArgAt(args, count, 5), kFunction, "count");
     marshal::Collector collector(rt);
+    TRRendererRef a_renderer = marshal::ToHandle<TRRendererRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "renderer", false);
     marshal::ConstBuffer a_glyphIDs = marshal::ToConstBuffer(rt, marshal::ArgAt(args, count, 2), kFunction, "glyphIDs", false);
     marshal::ConstBuffer a_advances = marshal::ToConstBuffer(rt, marshal::ArgAt(args, count, 4), kFunction, "advances", false);
 
@@ -593,7 +593,6 @@ jsi::Value BindTRRendererEnumerateGlyphPlacements(jsi::Runtime &rt, const jsi::V
 
 jsi::Value BindTRRendererEnumerateGlyphPaths(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRRendererEnumerateGlyphPaths";
-    TRRendererRef a_renderer = marshal::ToHandle<TRRendererRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "renderer", false);
     std::vector<TRPoint> v_offsets;
     size_t n_offsets = 0;
     const TRPoint *a_offsets = nullptr;
@@ -614,6 +613,7 @@ jsi::Value BindTRRendererEnumerateGlyphPaths(jsi::Runtime &rt, const jsi::Value 
     callbacks.quadTo = CollectTRRendererEnumerateGlyphPaths_quadTo;
     callbacks.cubicTo = CollectTRRendererEnumerateGlyphPaths_cubicTo;
     callbacks.close = CollectTRRendererEnumerateGlyphPaths_close;
+    TRRendererRef a_renderer = marshal::ToHandle<TRRendererRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "renderer", false);
     marshal::ConstBuffer a_glyphIDs = marshal::ToConstBuffer(rt, marshal::ArgAt(args, count, 1), kFunction, "glyphIDs", false);
     marshal::ConstBuffer a_advances = marshal::ToConstBuffer(rt, marshal::ArgAt(args, count, 3), kFunction, "advances", false);
 

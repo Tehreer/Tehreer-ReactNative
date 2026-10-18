@@ -13,6 +13,7 @@ const sample = generate(url("./fixtures/sample/Tehreer"), {
   excluded: new Set(),
   manual: new Set(),
   bounds: {},
+  scalarOuts: { TRSampleGetDistance: ["distance"] },
   skipIncludes: [],
 });
 
@@ -83,7 +84,7 @@ test("a buffer that may be NULL is checked only when present, any other always",
        #endif`,
     );
     writeFileSync(join(directory, "TRSample.h"), header);
-    const text = generate(directory, { excluded: new Set(), manual: new Set(), bounds: {}, skipIncludes: [] }).cpp.get("TRSampleBindings.cpp") ?? "";
+    const text = generate(directory, { excluded: new Set(), manual: new Set(), bounds: {}, scalarOuts: { TRSampleGetDistance: ["distance"] }, skipIncludes: [] }).cpp.get("TRSampleBindings.cpp") ?? "";
 
     // Without a guard, so an empty array or buffer with a count above zero is rejected.
     assert.match(text, /\n {4}marshal::RequireCapacity\(rt, kFunction, "advances"/);
@@ -102,6 +103,15 @@ test("buffers are taken after every other argument, so no JavaScript runs while 
   assert.ok(body.indexOf("a_encoding =") < body.indexOf("a_string ="));
   assert.ok(body.indexOf("a_length =") < body.indexOf("a_string ="));
   assert.match(cpp("GeneratedSupport.h"), /only while no JavaScript runs/);
+});
+
+test("handles are converted after structs and arrays and before the buffers", () => {
+  const body = cpp("TRSampleBindings.cpp");
+  const text = body.slice(body.indexOf("jsi::Value BindTRSampleSetText"));
+  assert.ok(text.indexOf("a_length =") < text.indexOf("a_sample ="));
+  assert.ok(text.indexOf("a_sample =") < text.indexOf("a_string ="));
+  const set = body.slice(body.indexOf("jsi::Value BindTRSampleSetOrigin"));
+  assert.ok(set.indexOf("a_origin =") < set.indexOf("a_sample ="));
 });
 
 test("an error in a struct member names the path of the member", () => {
@@ -140,7 +150,7 @@ test("the typed declarations say what each function takes and gives", () => {
 });
 
 test("the output is the same on every run", () => {
-  const again = generate(url("./fixtures/sample/Tehreer"), { excluded: new Set(), manual: new Set(), bounds: {}, skipIncludes: [] });
+  const again = generate(url("./fixtures/sample/Tehreer"), { excluded: new Set(), manual: new Set(), bounds: {}, scalarOuts: { TRSampleGetDistance: ["distance"] }, skipIncludes: [] });
   assert.deepEqual([...again.cpp], [...sample.cpp]);
   assert.equal(again.ts, sample.ts);
 });

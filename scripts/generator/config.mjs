@@ -48,3 +48,19 @@ export const BOUNDS = {
 
 /** Headers that need another library's headers just to be included. */
 export const SKIP_INCLUDES = ["TRSheenBidi.h"];
+
+/**
+ * The pointers that Core fills in with exactly one value. A mutable `T *` is only taken for a
+ * single value when it is listed here, because Core could as well write an array through it and
+ * the signature does not tell; an unlisted one stops the generator. `{ function: [parameters] }`.
+ */
+export const SCALAR_OUTS = {
+  TRComposedLineGetCodeUnitDistance: ["distance"],
+  TRGlyphRunGetCodeUnitDistance: ["distance"],
+  TRGlyphRunGetForegroundColor: ["foregroundColor"],
+  TRGlyphRunGetBackgroundColor: ["backgroundColor"],
+  TRGlyphRunGetDecorationColor: ["decorationColor"],
+  TRLineLocatorGetLineBox: ["box"],
+  TRReplacementComputeRoom: ["room"],
+  TRTextCopyAttributes: ["outLength"],
+};

@@ -153,6 +153,9 @@ function parseDeclaration(text, isParameter) {
       type: { function: { returns: parseType(pointer[1]), params: parseParameters(pointer[3]) } },
     };
   }
+  if (/\(\s*\*\s*\)/.test(text)) {
+    throw new ParseError(`unsupported callback signature: the function pointer "${text}" has no name`);
+  }
   const { type, name } = parseTypeAndName(text, true);
   if (name === null) {
     if (isParameter) throw new ParseError(`Unnamed parameter "${text}"`);

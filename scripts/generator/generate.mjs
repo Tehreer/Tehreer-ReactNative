@@ -15,7 +15,7 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { BOUNDS, EXCLUDED, MANUAL, SKIP_INCLUDES } from "./config.mjs";
+import { BOUNDS, EXCLUDED, MANUAL, SCALAR_OUTS, SKIP_INCLUDES } from "./config.mjs";
 import { emitCpp } from "./emitCpp.mjs";
 import { emitTs } from "./emitTs.mjs";
 import { buildModel } from "./model.mjs";
@@ -39,6 +39,7 @@ export function generate(headersDirectory, overrides = {}) {
     excluded: overrides.excluded ?? EXCLUDED,
     manual: overrides.manual ?? new Set(MANUAL.keys()),
     bounds: overrides.bounds ?? BOUNDS,
+    scalarOuts: overrides.scalarOuts ?? SCALAR_OUTS,
   });
 
   return {

@@ -70,8 +70,8 @@ jsi::Value BindTRShapingEngineGetTypeface(jsi::Runtime &rt, const jsi::Value &, 
 
 jsi::Value BindTRShapingEngineSetTypeSize(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRShapingEngineSetTypeSize";
-    TRShapingEngineRef a_engine = marshal::ToHandle<TRShapingEngineRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "engine", false);
     TRFloat a_typeSize = marshal::ToNumber<TRFloat>(rt, marshal::ArgAt(args, count, 1), kFunction, "typeSize");
+    TRShapingEngineRef a_engine = marshal::ToHandle<TRShapingEngineRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "engine", false);
 
     TRShapingEngineSetTypeSize(a_engine, a_typeSize);
     return jsi::Value::undefined();
@@ -87,8 +87,8 @@ jsi::Value BindTRShapingEngineGetTypeSize(jsi::Runtime &rt, const jsi::Value &, 
 
 jsi::Value BindTRShapingEngineSetScriptTag(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRShapingEngineSetScriptTag";
-    TRShapingEngineRef a_engine = marshal::ToHandle<TRShapingEngineRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "engine", false);
     TRTag a_scriptTag = marshal::ToNumber<TRTag>(rt, marshal::ArgAt(args, count, 1), kFunction, "scriptTag");
+    TRShapingEngineRef a_engine = marshal::ToHandle<TRShapingEngineRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "engine", false);
 
     TRShapingEngineSetScriptTag(a_engine, a_scriptTag);
     return jsi::Value::undefined();
@@ -104,8 +104,8 @@ jsi::Value BindTRShapingEngineGetScriptTag(jsi::Runtime &rt, const jsi::Value &,
 
 jsi::Value BindTRShapingEngineSetLanguageTag(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRShapingEngineSetLanguageTag";
-    TRShapingEngineRef a_engine = marshal::ToHandle<TRShapingEngineRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "engine", false);
     TRTag a_languageTag = marshal::ToNumber<TRTag>(rt, marshal::ArgAt(args, count, 1), kFunction, "languageTag");
+    TRShapingEngineRef a_engine = marshal::ToHandle<TRShapingEngineRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "engine", false);
 
     TRShapingEngineSetLanguageTag(a_engine, a_languageTag);
     return jsi::Value::undefined();
@@ -121,8 +121,8 @@ jsi::Value BindTRShapingEngineGetLanguageTag(jsi::Runtime &rt, const jsi::Value 
 
 jsi::Value BindTRShapingEngineSetWritingDirection(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRShapingEngineSetWritingDirection";
-    TRShapingEngineRef a_engine = marshal::ToHandle<TRShapingEngineRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "engine", false);
     TRWritingDirection a_writingDirection = marshal::ToNumber<TRWritingDirection>(rt, marshal::ArgAt(args, count, 1), kFunction, "writingDirection");
+    TRShapingEngineRef a_engine = marshal::ToHandle<TRShapingEngineRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "engine", false);
 
     TRShapingEngineSetWritingDirection(a_engine, a_writingDirection);
     return jsi::Value::undefined();
@@ -138,8 +138,8 @@ jsi::Value BindTRShapingEngineGetWritingDirection(jsi::Runtime &rt, const jsi::V
 
 jsi::Value BindTRShapingEngineSetShapingOrder(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRShapingEngineSetShapingOrder";
-    TRShapingEngineRef a_engine = marshal::ToHandle<TRShapingEngineRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "engine", false);
     TRShapingOrder a_shapingOrder = marshal::ToNumber<TRShapingOrder>(rt, marshal::ArgAt(args, count, 1), kFunction, "shapingOrder");
+    TRShapingEngineRef a_engine = marshal::ToHandle<TRShapingEngineRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "engine", false);
 
     TRShapingEngineSetShapingOrder(a_engine, a_shapingOrder);
     return jsi::Value::undefined();
@@ -155,7 +155,6 @@ jsi::Value BindTRShapingEngineGetShapingOrder(jsi::Runtime &rt, const jsi::Value
 
 jsi::Value BindTRShapingEngineSetOpenTypeFeatures(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRShapingEngineSetOpenTypeFeatures";
-    TRShapingEngineRef a_engine = marshal::ToHandle<TRShapingEngineRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "engine", false);
     std::vector<TROpenTypeFeature> v_features;
     size_t n_features = 0;
     const TROpenTypeFeature *a_features = nullptr;
@@ -169,6 +168,7 @@ jsi::Value BindTRShapingEngineSetOpenTypeFeatures(jsi::Runtime &rt, const jsi::V
         a_features = v_features.data();
     }
     TRUInteger a_count = marshal::ToNumber<TRUInteger>(rt, marshal::ArgAt(args, count, 2), kFunction, "count");
+    TRShapingEngineRef a_engine = marshal::ToHandle<TRShapingEngineRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "engine", false);
 
     if (a_features != nullptr) {
         marshal::RequireElements(rt, kFunction, "features", static_cast<size_t>(a_count), n_features);
@@ -196,9 +196,9 @@ jsi::Value BindTRShapingEngineGetOpenTypeFeatureCount(jsi::Runtime &rt, const js
 
 jsi::Value BindTRShapingEngineCreateShapingResult(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRShapingEngineCreateShapingResult";
-    TRShapingEngineRef a_engine = marshal::ToHandle<TRShapingEngineRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "engine", false);
     TRUInteger a_length = marshal::ToNumber<TRUInteger>(rt, marshal::ArgAt(args, count, 2), kFunction, "length");
     TRStringEncoding a_encoding = marshal::ToNumber<TRStringEncoding>(rt, marshal::ArgAt(args, count, 3), kFunction, "encoding");
+    TRShapingEngineRef a_engine = marshal::ToHandle<TRShapingEngineRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "engine", false);
     marshal::ConstBuffer a_codeUnits = marshal::ToConstBuffer(rt, marshal::ArgAt(args, count, 1), kFunction, "codeUnits", false);
 
     marshal::RequireCapacity(rt, kFunction, "codeUnits", static_cast<size_t>(a_length), marshal::CodeUnitSize(a_encoding), a_codeUnits.byteLength);

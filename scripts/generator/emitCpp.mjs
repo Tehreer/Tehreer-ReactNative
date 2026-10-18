@@ -143,7 +143,11 @@ template <class T> jsi::Value FromNumber(jsi::Runtime &rt, T value);
 bool ToBoolean(jsi::Runtime &rt, const jsi::Value &value, const char *function, const char *parameter);
 jsi::Value FromBoolean(bool value);
 
-/** Object references. A null or undefined value is \`NULL\` when \`nullable\`, else an error. */
+/**
+ * Object references. A null or undefined value is \`NULL\` when \`nullable\`, else an error. The
+ * generated code converts them after every argument that may run JavaScript and before the
+ * buffers, so a getter cannot dispose an object between here and the Core call.
+ */
 template <class Ref> Ref ToHandle(jsi::Runtime &rt, const jsi::Value &value, const char *function, const char *parameter, bool nullable);
 /**
  * \`NULL\` becomes undefined. If making the handle throws, an \`Adopt\`ed reference is released, so
@@ -390,6 +394,9 @@ function emitBinding(binding) {
   // The memory of a buffer is only valid while no JavaScript runs, as a getter or a Proxy could
   // detach it. So the buffers are taken last, after every argument that may run JavaScript.
   const bufferLines = [];
+  // Converting a struct or an array reads properties, which may run a getter that disposes an
+  // object. So the handles are converted after them, just before the buffers.
+  const handleLines = [];
   const checks = [];
   const callArguments = [];
   let jsIndex = 0;
@@ -412,7 +419,7 @@ function emitBinding(binding) {
         callArguments.push(v);
         break;
       case "ref":
-        lines.push(`    ${p.descriptor.c} ${v} = marshal::ToHandle<${p.descriptor.c}>(rt, ${argument()}, kFunction, "${name}", ${nullable});`);
+        handleLines.push(`    ${p.descriptor.c} ${v} = marshal::ToHandle<${p.descriptor.c}>(rt, ${argument()}, kFunction, "${name}", ${nullable});`);
         callArguments.push(v);
         break;
       case "struct":
@@ -502,7 +509,7 @@ function emitBinding(binding) {
   const hasCollector = Boolean(callbackPlan);
 
   const body = [];
-  body.push(...lines, ...bufferLines);
+  body.push(...lines, ...handleLines, ...bufferLines);
   if (checks.length > 0) body.push("", ...checks);
   body.push("");
   body.push(returnsValue ? `    auto result = ${call};` : `    ${call};`);

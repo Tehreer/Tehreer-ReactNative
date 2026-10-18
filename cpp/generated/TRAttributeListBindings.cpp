@@ -30,8 +30,8 @@ namespace {
 
 jsi::Value BindTRAttributeListGetItem(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRAttributeListGetItem";
-    TRAttributeListRef a_list = marshal::ToHandle<TRAttributeListRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "list", false);
     TRUInteger a_index = marshal::ToNumber<TRUInteger>(rt, marshal::ArgAt(args, count, 1), kFunction, "index");
+    TRAttributeListRef a_list = marshal::ToHandle<TRAttributeListRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "list", false);
 
     auto result = TRAttributeListGetItem(a_list, a_index);
     return marshal::MakePointerView(rt, result, "TRAttribute", sizeof(TRAttribute), marshal::ArgAt(args, count, 0));

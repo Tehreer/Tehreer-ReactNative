@@ -57,8 +57,8 @@ jsi::Value BindTRFontFileGetTypefaceCount(jsi::Runtime &rt, const jsi::Value &, 
 
 jsi::Value BindTRFontFileGetTypeface(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRFontFileGetTypeface";
-    TRFontFileRef a_fontFile = marshal::ToHandle<TRFontFileRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "fontFile", false);
     TRUInteger a_index = marshal::ToNumber<TRUInteger>(rt, marshal::ArgAt(args, count, 1), kFunction, "index");
+    TRFontFileRef a_fontFile = marshal::ToHandle<TRFontFileRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "fontFile", false);
 
     auto result = TRFontFileGetTypeface(a_fontFile, a_index);
     return marshal::FromHandle<TRTypefaceRef>(rt, result, marshal::Ownership::Retain);

@@ -67,9 +67,9 @@ void CollectTRTypefaceManagerEnumerateFamilies_callback(TRUInteger familyID, con
 
 jsi::Value BindTRTypefaceManagerRegisterTypeface(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRTypefaceManagerRegisterTypeface";
-    TRTypefaceRef a_typeface = marshal::ToHandle<TRTypefaceRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "typeface", false);
     TRUInteger a_tag = marshal::ToNumber<TRUInteger>(rt, marshal::ArgAt(args, count, 1), kFunction, "tag");
     TRUInteger a_familyID = marshal::ToNumber<TRUInteger>(rt, marshal::ArgAt(args, count, 2), kFunction, "familyID");
+    TRTypefaceRef a_typeface = marshal::ToHandle<TRTypefaceRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "typeface", false);
 
     auto result = TRTypefaceManagerRegisterTypeface(a_typeface, a_tag, a_familyID);
     return marshal::FromBoolean(result != 0);

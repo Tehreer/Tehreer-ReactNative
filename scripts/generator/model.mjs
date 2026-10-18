@@ -89,6 +89,7 @@ const stripRef = (name) => name.replace(/Ref$/, "");
  * @param {Set<string>} config.manual Bound by hand in cpp/runtime; each needs a reason in the config.
  * @param {Record<string, Record<string, { count: string }>>} config.bounds The element count of a
  *   buffer that the signature cannot tell; `{name}` stands for a parameter.
+ * @param {Record<string, string[]>} config.scalarOuts The mutable pointers that receive one value.
  * @param {Set<string>} [config.booleanTypes]
  */
 export function buildModel(headers, config) {
@@ -108,6 +109,16 @@ export function buildModel(headers, config) {
     for (const parameter of Object.keys(parameters)) {
       if (!fn.params.some((p) => p.name === parameter)) {
         throw new GeneratorError(`${name}: has bounds for "${parameter}", which is not a parameter`);
+      }
+    }
+  }
+
+  for (const [name, parameters] of Object.entries(config.scalarOuts)) {
+    const fn = known.get(name);
+    if (!fn) throw new GeneratorError(`${name}: has scalar outputs but no header declares it`);
+    for (const parameter of parameters) {
+      if (!fn.params.some((p) => p.name === parameter)) {
+        throw new GeneratorError(`${name}: has a scalar output "${parameter}", which is not a parameter`);
       }
     }
   }
@@ -442,6 +453,9 @@ export function buildModel(headers, config) {
         counter,
       };
     }
+    if (!(config.scalarOuts[fn.name] ?? []).includes(base.name)) {
+      fail(where, "it is not known how many values Core writes through it: it has no count and is not in SCALAR_OUTS");
+    }
     return {
       ...base,
       kind: "out",
@@ -477,6 +491,16 @@ export function buildModel(headers, config) {
   for (const binding of bindings) {
     if (seen.has(binding.name)) throw new GeneratorError(`${binding.name}: declared twice`);
     seen.add(binding.name);
+  }
+
+  for (const [name, parameters] of Object.entries(config.scalarOuts)) {
+    const binding = bindings.find((b) => b.name === name);
+    if (!binding) throw new GeneratorError(`${name}: has scalar outputs but is excluded or manual`);
+    for (const parameter of parameters) {
+      if (binding.params.find((p) => p.name === parameter)?.kind !== "out") {
+        throw new GeneratorError(`${name}: "${parameter}" is listed as a scalar output but is not one`);
+      }
+    }
   }
 
   const unusedBounds = Object.entries(config.bounds).filter(([name]) => !bindings.some((b) => b.name === name));

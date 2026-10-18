@@ -64,9 +64,9 @@ jsi::Value BindTRLineLocatorGetLineCount(jsi::Runtime &rt, const jsi::Value &, c
 
 jsi::Value BindTRLineLocatorGetLineBox(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRLineLocatorGetLineBox";
-    TRLineLocatorRef a_locator = marshal::ToHandle<TRLineLocatorRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "locator", false);
     TRUInteger a_lineIndex = marshal::ToNumber<TRUInteger>(rt, marshal::ArgAt(args, count, 1), kFunction, "lineIndex");
     TRRect o_box = {};
+    TRLineLocatorRef a_locator = marshal::ToHandle<TRLineLocatorRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "locator", false);
 
     auto result = TRLineLocatorGetLineBox(a_locator, a_lineIndex, &o_box);
     if (result == TRFalse) {
@@ -77,9 +77,9 @@ jsi::Value BindTRLineLocatorGetLineBox(jsi::Runtime &rt, const jsi::Value &, con
 
 jsi::Value BindTRLineLocatorEnumerateLines(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRLineLocatorEnumerateLines";
-    TRLineLocatorRef a_locator = marshal::ToHandle<TRLineLocatorRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "locator", false);
     TRRect a_rect = TRRectFromJs(rt, marshal::ArgAt(args, count, 1), kFunction, "rect");
     marshal::Collector collector(rt);
+    TRLineLocatorRef a_locator = marshal::ToHandle<TRLineLocatorRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "locator", false);
 
     auto result = TRLineLocatorEnumerateLines(a_locator, a_rect, CollectTRLineLocatorEnumerateLines_func, &collector);
     jsi::Value items = collector.Finish();
@@ -91,8 +91,8 @@ jsi::Value BindTRLineLocatorEnumerateLines(jsi::Runtime &rt, const jsi::Value &,
 
 jsi::Value BindTRLineLocatorGetFirstLineIndexBelow(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRLineLocatorGetFirstLineIndexBelow";
-    TRLineLocatorRef a_locator = marshal::ToHandle<TRLineLocatorRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "locator", false);
     TRFloat a_y = marshal::ToNumber<TRFloat>(rt, marshal::ArgAt(args, count, 1), kFunction, "y");
+    TRLineLocatorRef a_locator = marshal::ToHandle<TRLineLocatorRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "locator", false);
 
     auto result = TRLineLocatorGetFirstLineIndexBelow(a_locator, a_y);
     return marshal::FromNumber<TRUInteger>(rt, result);
