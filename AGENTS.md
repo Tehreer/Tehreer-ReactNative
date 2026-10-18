@@ -22,6 +22,10 @@ The wrapper exposes the whole public Core API to React Native through one C++ JS
 
 Sibling repos (read-only references): `../Tehreer-Core`, `../Tehreer-Web`, `/Users/mta/Personal/UrduFeeds/tehreerAndroid`, `/Users/mta/Personal/UrduFeeds/tehreerCocoa`.
 
+## Core submodule
+
+A clone or a new git worktree has an empty `Libraries/TehreerCore/`. Run `git submodule update --init` (or clone with `--recurse-submodules`) before building or testing, and use `submodules: recursive` in every CI checkout. Builds and tests that read Core's headers fail without it. Agents must do this first in their own checkout.
+
 ## Commands
 
 Commands exist only once the issue that creates them has landed; `package.json` is the source of truth.
