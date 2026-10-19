@@ -13,12 +13,10 @@ test("geometry values are plain objects with the Web members", () => {
   assert.deepEqual(Object.keys(rect), ["x", "y", "width", "height"]);
 });
 
-test("an affine transform maps (x, y) to (a x + c y + tx, b x + d y + ty)", () => {
-  const apply = (t: AffineTransform, p: Point): Point => ({
-    x: t.a * p.x + t.c * p.y + t.tx,
-    y: t.b * p.x + t.d * p.y + t.ty
-  });
-  const identity: AffineTransform = { a: 1, b: 0, c: 0, d: 1, tx: 0, ty: 0 };
-  assert.deepEqual(apply(identity, { x: 5, y: 6 }), { x: 5, y: 6 });
-  assert.deepEqual(apply({ a: 2, b: 0, c: 0, d: 3, tx: 10, ty: 20 }, { x: 1, y: 1 }), { x: 12, y: 23 });
+// A type-level check: the transform must have exactly the six members of the Web type, so a rename
+// or a missing member fails the typecheck. Core's TRAffineTransform is passed through unchanged.
+test("an affine transform has the members a, b, c, d, tx and ty", () => {
+  const transform = { a: 1, b: 0, c: 0, d: 1, tx: 0, ty: 0 } satisfies AffineTransform;
+  const members: Record<keyof AffineTransform, true> = { a: true, b: true, c: true, d: true, tx: true, ty: true };
+  assert.deepEqual(Object.keys(transform).sort(), Object.keys(members).sort());
 });

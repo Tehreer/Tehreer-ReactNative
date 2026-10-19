@@ -8,11 +8,22 @@
 // The lines come out of a system log, so they can be preceded by a log prefix and interleaved with
 // unrelated output; only the marker and what follows it on the same line count.
 
-const resultMarker = /TEHREER_RESULT [^\r\n]*[\r\n]/;
+const marker = /TEHREER_(SUITE|FAIL|RESULT) /;
+
+/**
+ * The first marker of a line decides what the line is. A failure message that happens to contain
+ * another marker is therefore still a failure line and cannot add a suite or end the run.
+ */
+function classify(line) {
+  const match = marker.exec(line);
+  return match ? { kind: match[1], text: line.slice(match.index + match[0].length) } : undefined;
+}
 
 /** True once the log holds a complete (newline terminated) result line. */
 export function hasResultLine(log) {
-  return resultMarker.test(log);
+  const lines = log.split(/\r\n|\n|\r/);
+  lines.pop(); // The last piece has no line break yet.
+  return lines.some((line) => classify(line)?.kind === "RESULT");
 }
 
 function fields(text) {
@@ -36,25 +47,18 @@ export function parseDeviceLog(log) {
   const failures = [];
   let result;
 
-  for (const line of log.split(/\r?\n|\r/)) {
-    const suite = /TEHREER_SUITE (.*)$/.exec(line);
-    if (suite) {
-      const values = fields(suite[1]);
+  const lines = log.split(/\r\n|\n|\r/);
+  for (const line of lines) {
+    const entry = classify(line);
+    if (entry?.kind === "SUITE") {
+      const values = fields(entry.text);
       suites.push({ name: values.get("name") ?? "", passed: count(values.get("passed")), total: count(values.get("total")) });
-      continue;
-    }
-
-    const failure = /TEHREER_FAIL (.*)$/.exec(line);
-    if (failure) {
-      const text = failure[1].trim();
+    } else if (entry?.kind === "FAIL") {
+      const text = entry.text.trim();
       const split = /^([^/\s]+)\/(.*?): (.*)$/s.exec(text);
       failures.push(split ? { suite: split[1], test: split[2], message: split[3] } : { suite: "", test: text, message: "" });
-      continue;
-    }
-
-    const final = /TEHREER_RESULT (.*)$/.exec(line);
-    if (final && result === undefined) {
-      const text = final[1].trim();
+    } else if (entry?.kind === "RESULT" && result === undefined) {
+      const text = entry.text.trim();
       if (text.startsWith("error=")) {
         result = { error: text.slice("error=".length) };
       } else {

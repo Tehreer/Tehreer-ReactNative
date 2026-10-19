@@ -72,6 +72,10 @@ Use `-sdk iphoneos -destination 'generic/platform=iOS' ARCHS=arm64` for a device
 
 `npm run test:ios` builds the example app for the booted simulator, starts Metro, launches the app and runs every suite registered in `example/tests/index.ts` and prints a per-suite summary and the names of failing tests. It exits non-zero on a failing test, a timeout or a missing result line.
 
+## Enums
+
+The Core enums (`TypeWeight`, `StrokeCap`, `TextAlignment` and so on) are exported as constant objects with a type of the same name (`const X = { ... } as const; type X = ...`) instead of TypeScript `enum`s, because the project compiles with `erasableSyntaxOnly`. They are used the same way as Web's enums (`TypeWeight.Bold`, `value: TypeWeight`), but are not enum objects at run time. Web's `unicode` enums (bidi class, general category, script) come from SheenBidi's headers and are added by a separate issue.
+
 ## Continuous integration
 
 Workflows live in `.github/workflows/`:
@@ -91,6 +95,8 @@ Every checkout uses `submodules: recursive`, because the generator and the tests
 - on every later push to a pull request that carries the label. Remove the label to stop them.
 
 Pull requests from forks never start the device jobs. Run the same tests locally with `npm run test:ios` and `npm run test:android` (see the platform sections above).
+
+The actions are pinned to version tags, not commit SHAs: the repository has no secrets in these workflows and read-only permissions, which limits what a moved tag could do, and tags stay readable and are what `claude-review.yml` already uses. `tests/workflows.test.ts` enforces that every action carries a version tag. Pin SHAs if the workflows ever get a secret or write access.
 
 **Not verified yet.** A workflow cannot run before it is pushed, and a `pull_request` workflow runs from the version on the pull request branch. At the time of writing neither workflow has run: the YAML parses and `tests/workflows.test.ts` checks its structure, but the first runs on GitHub may still reveal problems (the pinned `android-emulator-runner` version, the emulator image, runner disk space, the simulator boot step). Fix those in the first pull request that triggers them.
 

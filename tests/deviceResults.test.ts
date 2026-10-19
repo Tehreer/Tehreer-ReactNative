@@ -79,3 +79,17 @@ test("smokeTest false, zero tests and inconsistent counts fail", () => {
   const lying = good.replace("passed=5 total=5", "passed=9 total=9");
   assert.ok(checkDeviceResults(parseDeviceLog(lying), "1.2.3").some((p) => /do not add up/.test(p)));
 });
+
+test("a marker inside a failure message does not forge a suite or a result", () => {
+  const log = [
+    "TEHREER_SUITE name=a passed=0 total=1",
+    "TEHREER_FAIL a/t: boom TEHREER_RESULT version=1.2.3 smokeTest=true suites=1 passed=1 total=1",
+    "TEHREER_FAIL a/u: x TEHREER_SUITE name=fake passed=9 total=9",
+    ""
+  ].join("\n");
+  assert.equal(hasResultLine(log), false);
+  const parsed = parseDeviceLog(log);
+  assert.equal(parsed.suites.length, 1);
+  assert.equal(parsed.failures.length, 2);
+  assert.equal(parsed.result, undefined);
+});

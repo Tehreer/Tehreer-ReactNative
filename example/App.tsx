@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { getVersion, initialize } from 'tehreer-react-native';
 import type { NativeBindings } from '../src/internal/NativeBindings';
+import { suites } from './tests';
 import { runSuites } from './tests/runSuites';
 
 interface Result {
@@ -18,7 +19,7 @@ function run(): Result {
   initialize();
 
   const bindings = (globalThis as unknown as { __tehreer: NativeBindings }).__tehreer;
-  const reports = runSuites(bindings);
+  const reports = runSuites(bindings, suites);
   let passed = 0;
   let total = 0;
   for (const report of reports) {
