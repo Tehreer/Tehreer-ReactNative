@@ -30,6 +30,10 @@ Pod::Spec.new do |s|
       "Libraries/TehreerCore/Source/**/*.h",
       "Libraries/TehreerCore/Headers/**/*.h",
     ]
+    # Headers of the third-party sources stay out of the framework's Headers folder: with
+    # use_frameworks! CocoaPods copies every public header there, and Core and SheenBidi both
+    # have headers of the same names, which fails the build with "Multiple commands produce".
+    ss.project_header_files = ["Libraries/TehreerCore/Source/**/*.h", "Libraries/TehreerCore/Headers/**/*.h"]
     # Core and SheenBidi both have a Source/Core folder with headers of the same names, so each
     # gets its own Source folder through a flag instead of the shared HEADER_SEARCH_PATHS.
     ss.compiler_flags = ["-std=c89", '-I"$(PODS_TARGET_SRCROOT)/Libraries/TehreerCore/Source"']
@@ -57,6 +61,13 @@ Pod::Spec.new do |s|
       "Libraries/Dependencies/SheenBidi/Source/**/*.h",
       "Libraries/Dependencies/SheenBidi/Headers/**/*.h",
     ]
+    ss.project_header_files = [
+      "Libraries/Dependencies/freetype/include/**/*.h",
+      "Libraries/Dependencies/freetype/src/**/*.h",
+      "Libraries/Dependencies/libunibreak/src/*.h",
+      "Libraries/Dependencies/SheenBidi/Source/**/*.h",
+      "Libraries/Dependencies/SheenBidi/Headers/**/*.h",
+    ]
     ss.compiler_flags = ["-std=gnu99", '-I"$(PODS_TARGET_SRCROOT)/Libraries/Dependencies/SheenBidi/Source"']
   end
 
@@ -66,6 +77,7 @@ Pod::Spec.new do |s|
       "Libraries/Dependencies/harfbuzz/src/harfbuzz.cc",
       "Libraries/Dependencies/harfbuzz/src/**/*.{h,hh}",
     ]
+    ss.project_header_files = ["Libraries/Dependencies/harfbuzz/src/**/*.{h,hh}"]
   end
 
   s.subspec "Module" do |ss|
