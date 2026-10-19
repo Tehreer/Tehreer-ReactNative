@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
@@ -210,4 +210,18 @@ test("the compile check rejects glue that does not match the header", { skip: co
   } finally {
     rmSync(directory, { recursive: true, force: true });
   }
+});
+
+// -1 is TRInvalidIndex for indices and counts only. On 32-bit targets TRUInteger and TRColor are
+// one C type, so the rule cannot be a case of ToNumber<T>.
+test("indices go through ToIndex and FromIndex, every other number through ToNumber and FromNumber", () => {
+  const generated = readdirSync(join(import.meta.dirname, "..", "cpp/generated"))
+    .filter((name) => name.endsWith(".cpp") || name === "Structs.h")
+    .map((name) => readFileSync(join(import.meta.dirname, "..", "cpp/generated", name), "utf8"))
+    .join("\n");
+
+  assert.match(generated, /marshal::ToIndex\(rt, /);
+  assert.match(generated, /marshal::FromIndex\(rt, /);
+  assert.doesNotMatch(generated, /(To|From)Number<TRUInteger>/);
+  assert.match(generated, /marshal::FromNumber<TRColor>/);
 });

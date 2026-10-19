@@ -42,7 +42,7 @@ jsi::Value BindTRFontFeaturesCreate(jsi::Runtime &rt, const jsi::Value &, const 
         }
         a_features = v_features.data();
     }
-    TRUInteger a_count = marshal::ToNumber<TRUInteger>(rt, marshal::ArgAt(args, count, 1), kFunction, "count");
+    TRUInteger a_count = marshal::ToIndex(rt, marshal::ArgAt(args, count, 1), kFunction, "count");
 
     if (a_features != nullptr) {
         marshal::RequireElements(rt, kFunction, "features", static_cast<size_t>(a_count), n_features);
@@ -65,7 +65,7 @@ jsi::Value BindTRFontFeaturesGetCount(jsi::Runtime &rt, const jsi::Value &, cons
     TRFontFeaturesRef a_features = marshal::ToHandle<TRFontFeaturesRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "features", false);
 
     auto result = TRFontFeaturesGetCount(a_features);
-    return marshal::FromNumber<TRUInteger>(rt, result);
+    return marshal::FromIndex(rt, result);
 }
 
 jsi::Value BindTRFontFeaturesRetain(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {

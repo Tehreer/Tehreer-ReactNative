@@ -227,12 +227,12 @@ jsi::Value BindTRFrameResolverGetMaxLines(jsi::Runtime &rt, const jsi::Value &, 
     TRFrameResolverRef a_resolver = marshal::ToHandle<TRFrameResolverRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "resolver", false);
 
     auto result = TRFrameResolverGetMaxLines(a_resolver);
-    return marshal::FromNumber<TRUInteger>(rt, result);
+    return marshal::FromIndex(rt, result);
 }
 
 jsi::Value BindTRFrameResolverSetMaxLines(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRFrameResolverSetMaxLines";
-    TRUInteger a_maxLines = marshal::ToNumber<TRUInteger>(rt, marshal::ArgAt(args, count, 1), kFunction, "maxLines");
+    TRUInteger a_maxLines = marshal::ToIndex(rt, marshal::ArgAt(args, count, 1), kFunction, "maxLines");
     TRFrameResolverRef a_resolver = marshal::ToHandle<TRFrameResolverRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "resolver", false);
 
     TRFrameResolverSetMaxLines(a_resolver, a_maxLines);
@@ -275,8 +275,8 @@ jsi::Value BindTRFrameResolverSetLineHeightMultiplier(jsi::Runtime &rt, const js
 
 jsi::Value BindTRFrameResolverCreateFrame(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRFrameResolverCreateFrame";
-    TRUInteger a_index = marshal::ToNumber<TRUInteger>(rt, marshal::ArgAt(args, count, 1), kFunction, "index");
-    TRUInteger a_length = marshal::ToNumber<TRUInteger>(rt, marshal::ArgAt(args, count, 2), kFunction, "length");
+    TRUInteger a_index = marshal::ToIndex(rt, marshal::ArgAt(args, count, 1), kFunction, "index");
+    TRUInteger a_length = marshal::ToIndex(rt, marshal::ArgAt(args, count, 2), kFunction, "length");
     TRFrameResolverRef a_resolver = marshal::ToHandle<TRFrameResolverRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "resolver", false);
 
     auto result = TRFrameResolverCreateFrame(a_resolver, a_index, a_length);

@@ -55,7 +55,7 @@ void CollectTRTypefaceManagerEnumerateFamilies_callback(TRUInteger familyID, con
     try {
         jsi::Runtime &rt = collector->runtime;
         jsi::Object object(rt);
-        object.setProperty(rt, "familyID", marshal::FromNumber<TRUInteger>(rt, familyID));
+        object.setProperty(rt, "familyID", marshal::FromIndex(rt, familyID));
         object.setProperty(rt, "familyName", marshal::FromStringView(rt, familyName));
         jsi::Value item(std::move(object));
         collector->items.push_back(std::move(item));
@@ -67,8 +67,8 @@ void CollectTRTypefaceManagerEnumerateFamilies_callback(TRUInteger familyID, con
 
 jsi::Value BindTRTypefaceManagerRegisterTypeface(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRTypefaceManagerRegisterTypeface";
-    TRUInteger a_tag = marshal::ToNumber<TRUInteger>(rt, marshal::ArgAt(args, count, 1), kFunction, "tag");
-    TRUInteger a_familyID = marshal::ToNumber<TRUInteger>(rt, marshal::ArgAt(args, count, 2), kFunction, "familyID");
+    TRUInteger a_tag = marshal::ToIndex(rt, marshal::ArgAt(args, count, 1), kFunction, "tag");
+    TRUInteger a_familyID = marshal::ToIndex(rt, marshal::ArgAt(args, count, 2), kFunction, "familyID");
     TRTypefaceRef a_typeface = marshal::ToHandle<TRTypefaceRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "typeface", false);
 
     auto result = TRTypefaceManagerRegisterTypeface(a_typeface, a_tag, a_familyID);
@@ -85,7 +85,7 @@ jsi::Value BindTRTypefaceManagerUnregisterTypeface(jsi::Runtime &rt, const jsi::
 
 jsi::Value BindTRTypefaceManagerGetTypeface(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRTypefaceManagerGetTypeface";
-    TRUInteger a_tag = marshal::ToNumber<TRUInteger>(rt, marshal::ArgAt(args, count, 0), kFunction, "tag");
+    TRUInteger a_tag = marshal::ToIndex(rt, marshal::ArgAt(args, count, 0), kFunction, "tag");
 
     auto result = TRTypefaceManagerGetTypeface(a_tag);
     return marshal::FromHandle<TRTypefaceRef>(rt, result, marshal::Ownership::Retain);
@@ -96,7 +96,7 @@ jsi::Value BindTRTypefaceManagerGetTypefaceTag(jsi::Runtime &rt, const jsi::Valu
     TRTypefaceRef a_typeface = marshal::ToHandle<TRTypefaceRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "typeface", false);
 
     auto result = TRTypefaceManagerGetTypefaceTag(a_typeface);
-    return marshal::FromNumber<TRUInteger>(rt, result);
+    return marshal::FromIndex(rt, result);
 }
 
 jsi::Value BindTRTypefaceManagerGetTypefaceFamilyID(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
@@ -104,12 +104,12 @@ jsi::Value BindTRTypefaceManagerGetTypefaceFamilyID(jsi::Runtime &rt, const jsi:
     TRTypefaceRef a_typeface = marshal::ToHandle<TRTypefaceRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "typeface", false);
 
     auto result = TRTypefaceManagerGetTypefaceFamilyID(a_typeface);
-    return marshal::FromNumber<TRUInteger>(rt, result);
+    return marshal::FromIndex(rt, result);
 }
 
 jsi::Value BindTRTypefaceManagerGetMatchingTypefaceByFamilyID(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRTypefaceManagerGetMatchingTypefaceByFamilyID";
-    TRUInteger a_familyID = marshal::ToNumber<TRUInteger>(rt, marshal::ArgAt(args, count, 0), kFunction, "familyID");
+    TRUInteger a_familyID = marshal::ToIndex(rt, marshal::ArgAt(args, count, 0), kFunction, "familyID");
     TRWidth a_width = marshal::ToNumber<TRWidth>(rt, marshal::ArgAt(args, count, 1), kFunction, "width");
     TRWeight a_weight = marshal::ToNumber<TRWeight>(rt, marshal::ArgAt(args, count, 2), kFunction, "weight");
     TRSlope a_slope = marshal::ToNumber<TRSlope>(rt, marshal::ArgAt(args, count, 3), kFunction, "slope");

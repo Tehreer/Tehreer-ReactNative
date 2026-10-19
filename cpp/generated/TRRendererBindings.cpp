@@ -38,7 +38,7 @@ void CollectTRRendererEnumerateGlyphPlacements_func(void *userData, TRUInteger g
     try {
         jsi::Runtime &rt = collector->runtime;
         jsi::Object object(rt);
-        object.setProperty(rt, "glyphIndex", marshal::FromNumber<TRUInteger>(rt, glyphIndex));
+        object.setProperty(rt, "glyphIndex", marshal::FromIndex(rt, glyphIndex));
         object.setProperty(rt, "image", marshal::FromHandle<TRGlyphImageRef>(rt, image, marshal::Ownership::Retain));
         object.setProperty(rt, "origin", TRPointToJs(rt, origin));
         object.setProperty(rt, "scaleX", marshal::FromNumber<TRFloat>(rt, scaleX));
@@ -548,7 +548,7 @@ jsi::Value BindTRRendererComputeRunInkBox(jsi::Runtime &rt, const jsi::Value &, 
         }
         a_offsets = v_offsets.data();
     }
-    TRUInteger a_count = marshal::ToNumber<TRUInteger>(rt, marshal::ArgAt(args, count, 4), kFunction, "count");
+    TRUInteger a_count = marshal::ToIndex(rt, marshal::ArgAt(args, count, 4), kFunction, "count");
     TRRendererRef a_renderer = marshal::ToHandle<TRRendererRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "renderer", false);
     marshal::ConstBuffer a_glyphIDs = marshal::ToConstBuffer(rt, marshal::ArgAt(args, count, 1), kFunction, "glyphIDs", false);
     marshal::ConstBuffer a_advances = marshal::ToConstBuffer(rt, marshal::ArgAt(args, count, 3), kFunction, "advances", false);
@@ -576,7 +576,7 @@ jsi::Value BindTRRendererEnumerateGlyphPlacements(jsi::Runtime &rt, const jsi::V
         }
         a_offsets = v_offsets.data();
     }
-    TRUInteger a_count = marshal::ToNumber<TRUInteger>(rt, marshal::ArgAt(args, count, 5), kFunction, "count");
+    TRUInteger a_count = marshal::ToIndex(rt, marshal::ArgAt(args, count, 5), kFunction, "count");
     marshal::Collector collector(rt);
     TRRendererRef a_renderer = marshal::ToHandle<TRRendererRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "renderer", false);
     marshal::ConstBuffer a_glyphIDs = marshal::ToConstBuffer(rt, marshal::ArgAt(args, count, 2), kFunction, "glyphIDs", false);
@@ -605,7 +605,7 @@ jsi::Value BindTRRendererEnumerateGlyphPaths(jsi::Runtime &rt, const jsi::Value 
         }
         a_offsets = v_offsets.data();
     }
-    TRUInteger a_count = marshal::ToNumber<TRUInteger>(rt, marshal::ArgAt(args, count, 4), kFunction, "count");
+    TRUInteger a_count = marshal::ToIndex(rt, marshal::ArgAt(args, count, 4), kFunction, "count");
     marshal::Collector collector(rt);
     TRPathCallbacks callbacks = {};
     callbacks.moveTo = CollectTRRendererEnumerateGlyphPaths_moveTo;

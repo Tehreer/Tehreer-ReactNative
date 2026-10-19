@@ -94,11 +94,15 @@ const jsi::Value &ArgAt(const jsi::Value *args, size_t count, size_t index);
 bool IsNullish(const jsi::Value &value);
 
 /**
- * Numbers. `ToNumber` throws when the value is not a number or not representable as `T`. For
- * `TRUInteger`, -1 is `TRInvalidIndex` in both directions.
+ * Numbers. `ToNumber` throws when the value is not a number or not representable as `T`.
+ * `TRUInteger` (indices and counts) goes through `ToIndex` and `FromIndex` instead, where -1 is
+ * `TRInvalidIndex` in both directions; no other type has that rule, which a template argument could
+ * not express on 32-bit targets, where `TRUInteger` and `TRColor` are one C type.
  */
 template <class T> T ToNumber(jsi::Runtime &rt, const jsi::Value &value, const char *function, const char *parameter);
 template <class T> jsi::Value FromNumber(jsi::Runtime &rt, T value);
+TRUInteger ToIndex(jsi::Runtime &rt, const jsi::Value &value, const char *function, const char *parameter);
+jsi::Value FromIndex(jsi::Runtime &rt, TRUInteger value);
 bool ToBoolean(jsi::Runtime &rt, const jsi::Value &value, const char *function, const char *parameter);
 jsi::Value FromBoolean(bool value);
 
