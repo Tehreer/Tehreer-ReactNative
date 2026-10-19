@@ -55,7 +55,22 @@ The ABIs are not chosen by this library: the app picks them with the `reactNativ
 
 The wrapper sources are compiled with `-Wall -Wextra` and must stay free of warnings; `android/CMakeLists.txt` picks up new files in `cpp/`, `cpp/runtime/` and `cpp/generated/` by itself.
 
-Device tests (`npm run test:ios`, `npm run test:android`) are added together with the example app.
+`npm run test:android` runs the same smoke check on the emulator; the full device suites are added with the example-app issue.
+
+## iOS
+
+Supported architectures: `arm64` for devices and `arm64` and `x86_64` for the simulator. The deployment target is the one React Native 0.88 supports (iOS 15.1). Core and its dependencies are compiled from source into the pod by `tehreer-react-native.podspec`, together with the wrapper sources in `cpp/` (all subfolders) and `ios/`: the C files are compiled as C (Core as C89, FreeType, SheenBidi and libunibreak as gnu99), `harfbuzz.cc` and the wrapper as C++20. New files in `cpp/` and `ios/` are picked up by the next `pod install`.
+
+```bash
+npm run setup                                  # fetches the dependency sources, once
+cd example/ios && LANG=en_US.UTF-8 pod install  # CocoaPods needs a UTF-8 locale
+xcodebuild -workspace TehreerExample.xcworkspace -scheme TehreerExample -sdk iphonesimulator \
+  -destination 'generic/platform=iOS Simulator' ARCHS="arm64 x86_64" ONLY_ACTIVE_ARCH=NO build
+```
+
+Use `-sdk iphoneos -destination 'generic/platform=iOS' ARCHS=arm64` for a device build. The wrapper sources must stay free of compiler warnings; warnings from Core and the dependencies are reported by Xcode too and are not fixed here.
+
+`npm run test:ios` builds the example app for the booted simulator, starts Metro, launches the app and checks that the result line reports the Core version and a passing smoke test. The full device suites are added with the example-app issue.
 
 ## Repository layout
 
