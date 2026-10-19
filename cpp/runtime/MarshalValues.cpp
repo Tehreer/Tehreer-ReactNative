@@ -1,6 +1,8 @@
 #include "../generated/GeneratedSupport.h"
 
 #include "Errors.h"
+#include "HandleObject.h"
+#include "PointerViews.h"
 #include "TehreerBindings.h"
 
 #include <algorithm>
@@ -317,14 +319,15 @@ jsi::Value MakePointerView(jsi::Runtime &rt, const void *address, const char *el
         return jsi::Value::undefined();
     }
 
-    // The final shape of lists and views belongs to the lists issue. This keeps the address (exact,
-    // as a BigInt) next to the owner, so the owner stays reachable for as long as the view is.
-    jsi::Object view(rt);
-    view.setProperty(rt, "address", jsi::BigInt::fromUint64(rt, static_cast<uint64_t>(reinterpret_cast<uintptr_t>(address))));
-    view.setProperty(rt, "element", jsi::String::createFromAscii(rt, element));
-    view.setProperty(rt, "elementSize", static_cast<double>(elementSize));
-    view.setProperty(rt, "owner", jsi::Value(rt, owner));
-    return jsi::Value(std::move(view));
+    // The generated getters pass the handle they were called with, so anything else is a bug of the
+    // generator; refusing it keeps a view from ever pointing at memory with no owner to check.
+    std::shared_ptr<HandleObject> handle = AsHandleObject(rt, owner);
+    if (!handle) {
+        Fail(rt, "MakePointerView", "owner", "is not a Tehreer handle");
+    }
+
+    auto view = std::make_shared<PointerViewObject>(address, element, elementSize, std::move(handle));
+    return jsi::Value(jsi::Object::createFromHostObject(rt, std::move(view)));
 }
 
 jsi::Value FromToken(jsi::Runtime &rt, const void *pointer) {

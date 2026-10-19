@@ -5,6 +5,7 @@
 #include "Errors.h"
 #include "HandleObject.h"
 #include "HandlerTable.h"
+#include "PointerBuffers.h"
 #include "StructCodecs.h"
 
 #include <Tehreer/Tehreer.h>
@@ -207,6 +208,7 @@ void InstallBindings(jsi::Runtime &runtime) {
     jsi::Object bindings(runtime);
     generated::InstallBindings(runtime, bindings);
     InstallCallbackBindings(runtime, bindings);
+    InstallPointerBindings(runtime, bindings);
 
     // Its destructor ends the handlers of this runtime when the engine shuts down (see HandlerTable).
     // The bindings are frozen and read-only on global, so it stays reachable until then.
@@ -225,6 +227,7 @@ void InstallBindings(jsi::Runtime &runtime) {
     Define(runtime, bindings, "testRoundTripStruct", 2, RoundTripStruct);
     Define(runtime, bindings, "testGetStructNames", 0, GetStructNames);
     InstallCallbackTestHooks(runtime, bindings);
+    InstallPointerTestHooks(runtime, bindings);
 #endif
 
     jsi::Object objectConstructor = global.getPropertyAsObject(runtime, "Object");

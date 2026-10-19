@@ -1,5 +1,5 @@
 import type { NativeFunctions } from "./NativeFunctions.js";
-import type { Handle, TRReplacementRoom } from "./NativeFunctions.js";
+import type { Handle, PointerView, TRReplacementRoom } from "./NativeFunctions.js";
 
 /**
  * The JavaScript side of a replacement. Core calls `computeRoom` while it shapes text and lays out
@@ -38,6 +38,31 @@ export interface NativeBindings extends NativeFunctions {
    * handler. `undefined` when Core made nothing (an invalid `kind`).
    */
   TRReplacementCreate(handler: ReplacementHandler, kind: number): Handle<"TRReplacement"> | undefined;
+
+  /**
+   * An `ArrayBuffer` of `count` elements of a pointer that Core gave (a `*Ptr()` getter), over the
+   * memory of Core itself: nothing is copied. The buffer holds a reference of its own to the object
+   * that owns the memory, so the memory stays valid for as long as the engine keeps the buffer,
+   * even if the owner's wrapper is disposed meanwhile and nothing touches the buffer again; the
+   * reference goes back when the engine frees it, on any thread, without running JavaScript.
+   *
+   * The bytes are Core's and immutable. An `ArrayBuffer` cannot say so, so never write to it and
+   * never hand it to app code or to a binding that fills a buffer in.
+   *
+   * @param alignment The alignment, 1, 2, 4 or 8, that the typed array which will read the buffer
+   *   needs (its `BYTES_PER_ELEMENT`). A typed array does not check the address, only its offset.
+   * @throws Error if the owner of the pointer is disposed ("already disposed"), or `pointer` is not
+   *   one that Core gave.
+   * @throws RangeError if the address is not a multiple of `alignment`, or the count is too large.
+   */
+  createPointerBuffer(pointer: PointerView<string>, count: number, alignment: number): ArrayBuffer;
+  /**
+   * The elements `fromIndex` up to `toIndex` of a pointer to structs, as objects made by the codec of
+   * the struct (the same as the by-value structs of the bindings), so that TypeScript never knows an
+   * offset. Throws if the owner is disposed, if the element is not a struct that is converted, or
+   * for a range that is not within `count`.
+   */
+  readPointerStructs(pointer: PointerView<string>, count: number, fromIndex: number, toIndex: number): unknown[];
 
   // The functions below exist only in debug builds of the native module (no `NDEBUG`).
 
@@ -79,6 +104,29 @@ export interface NativeBindings extends NativeFunctions {
    * returning; rethrows the first error the handler threw, as a binding does.
    */
   testEnumerate?(handler: { item(index: number): void; coreCalls?: number }, count: number, honorsStop?: boolean): number;
+
+  /**
+   * A handle for an object that owns `bytes` (at most 256) in memory of its own, and counts its
+   * references like an object of Core does (it can be retained, and is freed with the last one).
+   * Stands in for a getter of Core that returns a pointer, with no font.
+   */
+  testCreateMemoryProbe?(bytes: ArrayBuffer | ArrayBufferView): Handle<"TRMemoryProbe">;
+  /**
+   * The pointer that a `*Ptr()` getter would return for the probe: its memory `byteOffset` bytes in,
+   * with the name and the size of its elements (`"TRPoint"`, 8).
+   */
+  testGetMemoryProbeView?(probe: Handle<"TRMemoryProbe">, element: string, elementSize: number, byteOffset?: number): PointerView<string>;
+  /** Overwrites the memory of the probe, which a pointer into it shows at once. */
+  testWriteMemoryProbe?(probe: Handle<"TRMemoryProbe">, byteOffset: number, bytes: ArrayBuffer | ArrayBufferView): void;
+  /** How many references the memory of the probe has: the handle's, plus one for each buffer over it. */
+  testGetMemoryProbeReferences?(probe: Handle<"TRMemoryProbe">): number;
+  /** How many probe memories exist, that is, have a reference left. */
+  testGetMemoryBlockCount?(): number;
+  /**
+   * Makes the memory that {@link createPointerBuffer} puts in a buffer and ends it on a thread of
+   * its own, as the engine's collector can, so that giving the reference back is seen to work there.
+   */
+  testDropPointerBufferOnOtherThread?(pointer: PointerView<string>, count: number): void;
 }
 
 export const nativeBindingsName = "__tehreer";

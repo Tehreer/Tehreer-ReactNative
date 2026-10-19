@@ -48,7 +48,7 @@ The generated glue converts arguments, calls one `TR*` function and converts the
 | struct by value (`TRPoint`, `TRRect`, ...) | object with the member names |
 | `const char *`, `const TRStringView *` | `string` |
 | `const void *` / `const T *` with a count | `ArrayBuffer` or typed array, checked against the count; array of structs: array of objects |
-| `const T *` returned by a getter | `PointerView<"T">` (address and owner; its length is the matching count function) |
+| `const T *` returned by a getter | `PointerView<"T">` (an opaque host object: address, element and owner; its length is the matching count function; `src/collections` reads it) |
 | `T *` that Core fills in | not a parameter; part of the result |
 | enumeration with a callback | the collected items, as an array |
 
