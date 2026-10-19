@@ -22,6 +22,7 @@
 #define TEHREER_GENERATED_STRUCTS_H
 
 #include "GeneratedSupport.h"
+#include "Layouts.h"
 
 namespace tehreer {
 namespace generated {
@@ -125,6 +126,60 @@ inline TRReplacementRoom TRReplacementRoomFromJs(jsi::Runtime &rt, const jsi::Va
     result.extent = marshal::ToNumber<TRFloat>(rt, object.getProperty(rt, "extent"), function, (parameter + ".extent").c_str());
     return result;
 }
+
+/** A struct that is converted by value, with its conversions erased to the struct's name. */
+struct StructCodec {
+    const char *name;
+    size_t size;
+    jsi::Value (*toJs)(jsi::Runtime &rt, const void *value);
+    /** Writes the whole struct; `out` points at `size` bytes that are suitably aligned. */
+    void (*fromJs)(jsi::Runtime &rt, const jsi::Value &value, const char *function, const std::string &parameter, void *out);
+};
+
+inline const StructCodec kStructCodecs[] = {
+    {
+        "TRPoint", sizeof(TRPoint),
+        [](jsi::Runtime &rt, const void *value) { return TRPointToJs(rt, *static_cast<const TRPoint *>(value)); },
+        [](jsi::Runtime &rt, const jsi::Value &value, const char *function, const std::string &parameter, void *out) {
+            *static_cast<TRPoint *>(out) = TRPointFromJs(rt, value, function, parameter);
+        },
+    },
+    {
+        "TRSize", sizeof(TRSize),
+        [](jsi::Runtime &rt, const void *value) { return TRSizeToJs(rt, *static_cast<const TRSize *>(value)); },
+        [](jsi::Runtime &rt, const jsi::Value &value, const char *function, const std::string &parameter, void *out) {
+            *static_cast<TRSize *>(out) = TRSizeFromJs(rt, value, function, parameter);
+        },
+    },
+    {
+        "TRRect", sizeof(TRRect),
+        [](jsi::Runtime &rt, const void *value) { return TRRectToJs(rt, *static_cast<const TRRect *>(value)); },
+        [](jsi::Runtime &rt, const jsi::Value &value, const char *function, const std::string &parameter, void *out) {
+            *static_cast<TRRect *>(out) = TRRectFromJs(rt, value, function, parameter);
+        },
+    },
+    {
+        "TROpenTypeFeature", sizeof(TROpenTypeFeature),
+        [](jsi::Runtime &rt, const void *value) { return TROpenTypeFeatureToJs(rt, *static_cast<const TROpenTypeFeature *>(value)); },
+        [](jsi::Runtime &rt, const jsi::Value &value, const char *function, const std::string &parameter, void *out) {
+            *static_cast<TROpenTypeFeature *>(out) = TROpenTypeFeatureFromJs(rt, value, function, parameter);
+        },
+    },
+    {
+        "TRAffineTransform", sizeof(TRAffineTransform),
+        [](jsi::Runtime &rt, const void *value) { return TRAffineTransformToJs(rt, *static_cast<const TRAffineTransform *>(value)); },
+        [](jsi::Runtime &rt, const jsi::Value &value, const char *function, const std::string &parameter, void *out) {
+            *static_cast<TRAffineTransform *>(out) = TRAffineTransformFromJs(rt, value, function, parameter);
+        },
+    },
+    {
+        "TRReplacementRoom", sizeof(TRReplacementRoom),
+        [](jsi::Runtime &rt, const void *value) { return TRReplacementRoomToJs(rt, *static_cast<const TRReplacementRoom *>(value)); },
+        [](jsi::Runtime &rt, const jsi::Value &value, const char *function, const std::string &parameter, void *out) {
+            *static_cast<TRReplacementRoom *>(out) = TRReplacementRoomFromJs(rt, value, function, parameter);
+        },
+    },
+};
 
 } // namespace generated
 } // namespace tehreer

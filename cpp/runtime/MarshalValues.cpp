@@ -337,6 +337,23 @@ jsi::Value FromToken(jsi::Runtime &rt, const void *pointer) {
     return jsi::Value(static_cast<double>(address));
 }
 
+const void *ToToken(jsi::Runtime &rt, const jsi::Value &value, const char *function, const char *parameter) {
+    if (!value.isNumber()) {
+        Fail(rt, function, parameter, "must be a number");
+    }
+
+    double number = value.getNumber();
+    if (!std::isfinite(number) || std::trunc(number) != number || number < 0) {
+        runtime::FailRange(rt, function, parameter, "must be a non-negative integer");
+    }
+    // An address that does not fit a pointer (a token above 4 GiB on a 32-bit target) would wrap
+    // into a different token.
+    if (number > kMaxSafeInteger || number > static_cast<double>(std::numeric_limits<uintptr_t>::max())) {
+        runtime::FailRange(rt, function, parameter, "is out of range");
+    }
+    return reinterpret_cast<const void *>(static_cast<uintptr_t>(number));
+}
+
 // Every type that the generated code converts. The generated code only sees the declarations, so
 // they are instantiated here; a type missing from the list fails to link, and tests/runtime.test.ts
 // compares the list with the generated files. Duplicates are fine: several names are one type.

@@ -237,6 +237,8 @@ jsi::Array ToArray(jsi::Runtime &rt, const jsi::Value &value, const char *functi
 jsi::Value MakePointerView(jsi::Runtime &rt, const void *address, const char *element, size_t elementSize, const jsi::Value &owner);
 /** The address of an opaque pointer, as a number (an application token such as \`userData\`). */
 jsi::Value FromToken(jsi::Runtime &rt, const void *pointer);
+/** The opposite: a non-negative integer number becomes the opaque pointer it was made from. */
+const void *ToToken(jsi::Runtime &rt, const jsi::Value &value, const char *function, const char *parameter);
 
 /**
  * Receives what Core passes to the callbacks of an enumeration. Nothing re-enters JavaScript
@@ -323,18 +325,115 @@ ${fromMembers}
 }`;
   }).join("\n\n");
 
+  // The table lets the runtime convert a struct that it only knows by name, such as an element of
+  // a pointer view or a value that a test passes in.
+  const table = model.structs.map((struct) => `    {
+        "${struct.name}", sizeof(${struct.name}),
+        [](jsi::Runtime &rt, const void *value) { return ${struct.name}ToJs(rt, *static_cast<const ${struct.name} *>(value)); },
+        [](jsi::Runtime &rt, const jsi::Value &value, const char *function, const std::string &parameter, void *out) {
+            *static_cast<${struct.name} *>(out) = ${struct.name}FromJs(rt, value, function, parameter);
+        },
+    },`).join("\n");
+
   return header(`#ifndef TEHREER_GENERATED_STRUCTS_H
 #define TEHREER_GENERATED_STRUCTS_H
 
 #include "GeneratedSupport.h"
+#include "Layouts.h"
 
 namespace tehreer {
 namespace generated {
 
 ${codecs}
 
+/** A struct that is converted by value, with its conversions erased to the struct's name. */
+struct StructCodec {
+    const char *name;
+    size_t size;
+    jsi::Value (*toJs)(jsi::Runtime &rt, const void *value);
+    /** Writes the whole struct; \`out\` points at \`size\` bytes that are suitably aligned. */
+    void (*fromJs)(jsi::Runtime &rt, const jsi::Value &value, const char *function, const std::string &parameter, void *out);
+};
+
+inline const StructCodec kStructCodecs[] = {
+${table}
+};
+
 } // namespace generated
 } // namespace tehreer
+
+#endif
+`);
+}
+
+/** Renders a member, which may be a function pointer, as the C declaration that Core's header has. */
+function memberDeclaration(member) {
+  if (!member.type.function) return declaration(member.type, member.name);
+  const { returns, params } = member.type.function;
+  return `${declaration(returns, "").trimEnd()} (*${member.name})(${params.map(memberDeclaration).join(", ") || "void"})`;
+}
+
+// A second description of every struct and union that a header declares, printed from the parsed
+// header, and compared with the real one at compile time. The conversions above and the runtime
+// read members by name, so a change that moves, retypes, adds or removes one has to fail the
+// build instead of reading the wrong bytes. A header that changes without a regeneration fails
+// here; one that is regenerated shows up in the diff of this file.
+function emitLayouts(model) {
+  const blocks = model.layouts.map((layout) => {
+    const mirror = `${layout.name}Layout`;
+    const check = layout.kind === "struct" ? "TEHREER_CHECK_STRUCT" : "TEHREER_CHECK_UNION";
+    const memberCheck = layout.kind === "struct" ? "TEHREER_CHECK_MEMBER" : "TEHREER_CHECK_UNION_MEMBER";
+    return [
+      `${layout.kind} ${mirror} {`,
+      ...layout.members.map((member) => `    ${memberDeclaration(member)};`),
+      "};",
+      `${check}(${layout.name}, ${mirror});`,
+      ...layout.members.map((member) => `${memberCheck}(${layout.name}, ${mirror}, ${member.name});`),
+    ].join("\n");
+  });
+
+  return header(`#ifndef TEHREER_GENERATED_LAYOUTS_H
+#define TEHREER_GENERATED_LAYOUTS_H
+
+#include <cstddef>
+#include <type_traits>
+
+#include "GeneratedSupport.h"
+
+#define TEHREER_STALE " differs from the header that the bindings were generated from; run npm run generate"
+
+#define TEHREER_CHECK_UNION(Real, Mirror) \\
+    static_assert(sizeof(Real) == sizeof(Mirror), #Real ": the size" TEHREER_STALE); \\
+    static_assert(alignof(Real) == alignof(Mirror), #Real ": the alignment" TEHREER_STALE)
+
+// offsetof is only defined for a standard-layout type.
+#define TEHREER_CHECK_STRUCT(Real, Mirror) \\
+    TEHREER_CHECK_UNION(Real, Mirror); \\
+    static_assert(std::is_standard_layout<Real>::value, #Real ": must stay a standard-layout struct")
+
+#define TEHREER_CHECK_UNION_MEMBER(Real, Mirror, member) \\
+    static_assert(std::is_same<decltype(Real::member), decltype(Mirror::member)>::value, #Real "." #member ": the type" TEHREER_STALE)
+
+// Every member of a union is at offset zero by definition, so a union has no offset to check.
+#define TEHREER_CHECK_MEMBER(Real, Mirror, member) \\
+    TEHREER_CHECK_UNION_MEMBER(Real, Mirror, member); \\
+    static_assert(offsetof(Real, member) == offsetof(Mirror, member), #Real "." #member ": the offset" TEHREER_STALE)
+
+namespace tehreer {
+namespace generated {
+namespace layouts {
+
+${blocks.join("\n\n")}
+
+} // namespace layouts
+} // namespace generated
+} // namespace tehreer
+
+#undef TEHREER_CHECK_MEMBER
+#undef TEHREER_CHECK_UNION_MEMBER
+#undef TEHREER_CHECK_STRUCT
+#undef TEHREER_CHECK_UNION
+#undef TEHREER_STALE
 
 #endif
 `);
@@ -625,6 +724,7 @@ export function emitCpp(model, options) {
   files.set("GeneratedSupport.h", emitSupport(model, options));
   files.set("Handles.h", emitHandles(model));
   files.set("Structs.h", emitStructs(model));
+  files.set("Layouts.h", emitLayouts(model));
 
   const byFile = new Map();
   for (const binding of model.bindings) {

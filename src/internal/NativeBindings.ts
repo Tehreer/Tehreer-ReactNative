@@ -31,6 +31,14 @@ export interface NativeBindings extends NativeFunctions {
   testGetProbeReleaseCount?(kind?: number): number;
   /** Asks the engine for a full garbage collection, which runs the finalizers of dead handles. */
   testCollectGarbage?(): void;
+  /**
+   * Converts `value` to the C struct called `name` (`"TRRect"`, `"TRAttribute"`, ...) and the C
+   * struct back to an object, which is what the bindings do with a struct argument and a struct
+   * result. Throws what the bindings throw for an invalid value.
+   */
+  testRoundTripStruct?(name: string, value: unknown): unknown;
+  /** The names that {@link testRoundTripStruct} accepts, one for each struct that is converted. */
+  testGetStructNames?(): string[];
 }
 
 export const nativeBindingsName = "__tehreer";

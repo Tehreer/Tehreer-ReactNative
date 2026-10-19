@@ -523,10 +523,16 @@ export function buildModel(headers, config) {
     throw new GeneratorError(`${unusedBounds[0][0]}: has bounds but is excluded or manual`);
   }
 
-  // Includes the structs that the headers declare, so the codecs can be checked against them.
+  // Every struct and union that the headers declare, not only the ones that are converted by value:
+  // native code reads the others (the draw callbacks, the attributes, what a typeface lists) too,
+  // and all of them have their layout checked at compile time.
+  const layouts = headers.flatMap((header) => header.parsed.typedefs)
+    .filter((typedef) => typedef.kind === "struct" || typedef.kind === "union");
+
   return {
     bindings,
     structs: [...structs.values()],
+    layouts,
     refs,
     files: [...new Set(headers.map((header) => header.file))],
     excluded: [...config.excluded],

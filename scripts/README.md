@@ -2,7 +2,7 @@
 
 `generate-bindings.mjs` reads the public headers of Tehreer Core (`Libraries/TehreerCore/Headers/Tehreer/TR*.h`) and writes
 
-- `cpp/generated/` the C++17 JSI glue: one `<Header>Bindings.cpp` per Core header, plus `Bindings.h/.cpp` (the `InstallBindings` entry point), `Structs.h` (struct codecs), `Handles.h` (retain/release traits) and `GeneratedSupport.h` (the contract with the runtime);
+- `cpp/generated/` the C++17 JSI glue: one `<Header>Bindings.cpp` per Core header, plus `Bindings.h/.cpp` (the `InstallBindings` entry point), `Structs.h` (struct codecs and `kStructCodecs`, the table of them by name), `Layouts.h` (compile-time layout checks), `Handles.h` (retain/release traits) and `GeneratedSupport.h` (the contract with the runtime);
 - `src/internal/NativeFunctions.ts` the typed signature of every binding, with the C declaration in its comment.
 
 ```bash
@@ -63,6 +63,12 @@ A collecting callback is given the address of a `marshal::Collector` on the stac
 **Handles remember mutability.** A handle made from a `const` reference type (`TRTextRef`) is refused where a non-const type (`TRMutableTextRef`) is expected, so an object Core documents as immutable is never mutated; a mutable handle is accepted for both.
 
 **Buffers cannot overrun.** The count of every buffer is read from the signature (`count`, `size`, `capacity`, `length` next to the pointer), or from `BOUNDS`, and the binding checks `count * unit <= byteLength` before calling Core. The unit of a `void *` is bytes (`size`, `capacity`), the code unit of the `encoding` parameter, or the code unit of the text in the first parameter. If none applies the generator stops.
+
+## Struct layouts
+
+`Layouts.h` has, for every struct and union that a Core header declares (not only the ones that are converted: the draw callbacks, the attributes and what a typeface lists are read by native code too), a second declaration of it printed from the parsed header, and `static_assert`s that compare the two: `sizeof`, `alignof`, that the struct is standard layout, the type of every member (`std::is_same` of `decltype`) and `offsetof` of every member of a struct. A header that moves, retypes, adds, removes or renames a member without `npm run generate` stops the compiler, and the generated glue and the runtime read members by name, so they never depend on an offset. `Structs.h` includes it, so every file of the glue is checked. The generator, not a hand-written file, owns these descriptions so that a stale one cannot exist; `cpp/runtime/StructCodecs.cpp` adds only the conversion that cannot be printed (`TRAttribute`, whose union member depends on `type`) and relies on the same checks. TypeScript has no offsets.
+
+`tests/structLayouts.test.ts` compiles `Layouts.h` against copies of Core's headers that are edited the way a change of Core could (a member added, retyped, swapped, renamed, a union that grows, a callback whose signature changes) and requires each to fail.
 
 ## What is not generated
 

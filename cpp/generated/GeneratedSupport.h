@@ -183,6 +183,8 @@ jsi::Array ToArray(jsi::Runtime &rt, const jsi::Value &value, const char *functi
 jsi::Value MakePointerView(jsi::Runtime &rt, const void *address, const char *element, size_t elementSize, const jsi::Value &owner);
 /** The address of an opaque pointer, as a number (an application token such as `userData`). */
 jsi::Value FromToken(jsi::Runtime &rt, const void *pointer);
+/** The opposite: a non-negative integer number becomes the opaque pointer it was made from. */
+const void *ToToken(jsi::Runtime &rt, const jsi::Value &value, const char *function, const char *parameter);
 
 /**
  * Receives what Core passes to the callbacks of an enumeration. Nothing re-enters JavaScript

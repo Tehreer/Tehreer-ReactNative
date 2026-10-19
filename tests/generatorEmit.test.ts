@@ -33,7 +33,7 @@ test("every generated file says that it is generated", () => {
 
 test("the files are one per header plus the shared ones", () => {
   assert.deepEqual([...sample.cpp.keys()].sort(), [
-    "Bindings.cpp", "Bindings.h", "GeneratedSupport.h", "Handles.h", "Structs.h", "TRSampleBindings.cpp",
+    "Bindings.cpp", "Bindings.h", "GeneratedSupport.h", "Handles.h", "Layouts.h", "Structs.h", "TRSampleBindings.cpp",
   ]);
   assert.match(cpp("Bindings.cpp"), /InstallTRSample\(rt, target\)/);
 });

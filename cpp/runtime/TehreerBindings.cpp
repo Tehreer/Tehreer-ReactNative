@@ -3,12 +3,16 @@
 #include "../generated/Bindings.h"
 #include "Errors.h"
 #include "HandleObject.h"
+#include "StructCodecs.h"
 
 #include <Tehreer/Tehreer.h>
 
 #include <atomic>
+#include <cstddef>
 #include <cstring>
 #include <memory>
+#include <string>
+#include <vector>
 
 #ifndef NDEBUG
 #include <jsi/instrumentation.h>
@@ -111,6 +115,39 @@ jsi::Value GetProbeReleaseCount(jsi::Runtime &runtime, const jsi::Value &, const
     return jsi::Value(static_cast<double>(gProbeReleases[kind].load()));
 }
 
+// Converts a JavaScript object to the C struct of the given name and back, so that a test sees
+// exactly what Core would be given and what native code would read. The memory is aligned for any
+// struct, and the value in it is the one the C struct holds, not a copy of the JavaScript object.
+jsi::Value RoundTripStruct(jsi::Runtime &runtime, const jsi::Value &, const jsi::Value *args, size_t count) {
+    const jsi::Value &nameValue = marshal::ArgAt(args, count, 0);
+    if (!nameValue.isString()) {
+        marshal::Fail(runtime, "testRoundTripStruct", "name", "must be a string");
+    }
+    std::string name = nameValue.getString(runtime).utf8(runtime);
+
+    const generated::StructCodec *codec = FindStructCodec(name);
+    if (codec == nullptr) {
+        runtime::FailRange(runtime, "testRoundTripStruct", "name", "is not a struct that JavaScript converts");
+    }
+
+    alignas(std::max_align_t) unsigned char storage[64];
+    if (codec->size > sizeof(storage)) {
+        marshal::Fail(runtime, "testRoundTripStruct", "name", "is bigger than the test buffer");
+    }
+
+    codec->fromJs(runtime, marshal::ArgAt(args, count, 1), "testRoundTripStruct", "value", storage);
+    return codec->toJs(runtime, storage);
+}
+
+jsi::Value GetStructNames(jsi::Runtime &runtime, const jsi::Value &, const jsi::Value *, size_t) {
+    std::vector<std::string> names = StructCodecNames();
+    jsi::Array array(runtime, names.size());
+    for (size_t index = 0; index < names.size(); index++) {
+        array.setValueAtIndex(runtime, index, jsi::String::createFromUtf8(runtime, names[index]));
+    }
+    return jsi::Value(runtime, array);
+}
+
 // Hermes runs the finalizers of host objects during a collection; JSI offers no other way to
 // ask for one.
 jsi::Value CollectGarbage(jsi::Runtime &runtime, const jsi::Value &, const jsi::Value *, size_t) {
@@ -177,6 +214,8 @@ void InstallBindings(jsi::Runtime &runtime) {
     Define(runtime, bindings, "testCreateProbe", 0, CreateProbe);
     Define(runtime, bindings, "testGetProbeReleaseCount", 0, GetProbeReleaseCount);
     Define(runtime, bindings, "testCollectGarbage", 0, CollectGarbage);
+    Define(runtime, bindings, "testRoundTripStruct", 2, RoundTripStruct);
+    Define(runtime, bindings, "testGetStructNames", 0, GetStructNames);
 #endif
 
     jsi::Object objectConstructor = global.getPropertyAsObject(runtime, "Object");

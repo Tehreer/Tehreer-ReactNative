@@ -76,6 +76,7 @@ export interface BindingPlan {
 export interface Model {
   bindings: BindingPlan[];
   structs: { name: string; members: { name: string; descriptor: Descriptor }[] }[];
+  layouts: { kind: "struct" | "union"; name: string; tag: string | null; members: Declaration[] }[];
   refs: { name: string; group: string; retain: string; release: string; const: boolean }[];
   files: string[];
   excluded: string[];

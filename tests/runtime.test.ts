@@ -64,7 +64,7 @@ test("the handle functions and the debug hooks agree between TypeScript and C++"
 
   assert.deepEqual(names, [
     "getVersion", "smokeTest", "disposeHandle", "isHandleDisposed", "handleEquals",
-    "testCreateProbe", "testGetProbeReleaseCount", "testCollectGarbage",
+    "testCreateProbe", "testGetProbeReleaseCount", "testCollectGarbage", "testRoundTripStruct", "testGetStructNames",
   ]);
   for (const name of names) {
     assert.ok(cpp.includes(`"${name}"`), `${name} is not installed by cpp/runtime/TehreerBindings.cpp`);
