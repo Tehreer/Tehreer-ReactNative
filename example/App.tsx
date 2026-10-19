@@ -2,11 +2,12 @@ import { useEffect, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { getVersion, initialize } from 'tehreer-react-native';
 import type { NativeBindings } from '../src/internal/NativeBindings';
-import { handleTestCount, runHandleTests } from './tests/HandleTests';
+import { runSuites } from './tests/runSuites';
 
 interface Result {
   version: string;
   smokeTest: boolean;
+  suites: number;
   passed: number;
   total: number;
 }
@@ -17,13 +18,20 @@ function run(): Result {
   initialize();
 
   const bindings = (globalThis as unknown as { __tehreer: NativeBindings }).__tehreer;
-  const suite = runHandleTests(bindings);
-  for (const failure of suite.failures) {
-    // The device test scripts read these lines from the system log.
-    console.log(`TEHREER_FAIL ${failure}`);
+  const reports = runSuites(bindings);
+  let passed = 0;
+  let total = 0;
+  for (const report of reports) {
+    // The device test scripts read these lines from the system log (format in AGENTS.md).
+    console.log(`TEHREER_SUITE name=${report.name} passed=${report.passed} total=${report.total}`);
+    for (const failure of report.failures) {
+      console.log(`TEHREER_FAIL ${report.name}/${failure}`);
+    }
+    passed += report.passed;
+    total += report.total;
   }
 
-  return { version: getVersion(), smokeTest: bindings.smokeTest(), passed: suite.passed, total: handleTestCount };
+  return { version: getVersion(), smokeTest: bindings.smokeTest(), suites: reports.length, passed, total };
 }
 
 export default function App() {
@@ -36,7 +44,7 @@ export default function App() {
       setResult(outcome);
       // The device test scripts read this line from the system log.
       console.log(
-        `TEHREER_RESULT version=${outcome.version} smokeTest=${outcome.smokeTest} handles=${outcome.passed}/${outcome.total}`,
+        `TEHREER_RESULT version=${outcome.version} smokeTest=${outcome.smokeTest} suites=${outcome.suites} passed=${outcome.passed} total=${outcome.total}`,
       );
     } catch (e) {
       const message = e instanceof Error ? e.message : String(e);
@@ -54,8 +62,8 @@ export default function App() {
       <Text testID="smokeTest" style={styles.text}>
         {`Core smoke test: ${result ? (result.smokeTest ? 'passed' : 'failed') : '...'}`}
       </Text>
-      <Text testID="handles" style={styles.text}>
-        {`Handle tests: ${result ? `${result.passed}/${result.total}` : '...'}`}
+      <Text testID="tests" style={styles.text}>
+        {`Tests: ${result ? `${result.passed}/${result.total}` : '...'}`}
       </Text>
     </View>
   );

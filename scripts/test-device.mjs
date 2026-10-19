@@ -1,9 +1,10 @@
 // Builds the example app, runs it on the booted iOS simulator or Android emulator, and checks the
 // line that App.tsx logs. Usage: node scripts/test-device.mjs <ios|android>
 //
-// The example app runs its suites and logs the failures (`TEHREER_FAIL <test>: <message>`), then one
-// result line: `TEHREER_RESULT version=<Core version> smokeTest=true handles=<passed>/<total>`. The
-// run passes when nothing failed and every test passed.
+// The example app runs its registered suites and logs TEHREER_SUITE, TEHREER_FAIL and one final
+// TEHREER_RESULT line (format in AGENTS.md, parser in scripts/device/DeviceResults.mjs). The run
+// passes when the result line is consistent and every test of every suite passed; a failure, a
+// timeout or a missing result line exits non-zero.
 // Prerequisites: scripts/fetch-deps, `npm install` in the root and in example/, `pod install` in
 // example/ios for iOS, ANDROID_HOME for Android, a booted simulator or emulator.
 import { spawn, spawnSync } from "node:child_process";
@@ -13,6 +14,7 @@ import { get } from "node:http";
 import process from "node:process";
 import { clearTimeout, setTimeout } from "node:timers";
 import { fileURLToPath, URL } from "node:url";
+import { checkDeviceResults, formatSummary, hasResultLine, parseDeviceLog } from "./device/DeviceResults.mjs";
 
 const example = fileURLToPath(new URL("../example", import.meta.url));
 const metroPort = 8081;
@@ -24,7 +26,6 @@ const header = readFileSync(
 );
 const version = /#define\s+TEHREER_VERSION_STRING\s+"([^"]+)"/.exec(header)?.[1];
 if (!version) throw new Error("TEHREER_VERSION_STRING not found in TRVersion.h");
-const expected = new RegExp(`^TEHREER_RESULT version=${version.replaceAll(".", "\\.")} smokeTest=true handles=(\\d+)/(\\d+)$`);
 const timeoutMs = 90_000;
 
 function run(command, args, options = {}) {
@@ -34,29 +35,34 @@ function run(command, args, options = {}) {
   }
 }
 
-/** Starts the logger, then `launch`, and resolves with the first TEHREER_RESULT line. */
+/** Starts the logger, then `launch`, and resolves with the log up to the first complete TEHREER_RESULT line. */
 function waitForResult(loggerCommand, loggerArgs, launch) {
   return new Promise((resolve, reject) => {
     const logger = spawn(loggerCommand, loggerArgs, { env: process.env });
     const timer = setTimeout(() => finish(new Error("timed out waiting for TEHREER_RESULT")), timeoutMs);
     let buffered = "";
 
-    function finish(error, line) {
+    function finish(error) {
       clearTimeout(timer);
+      // Only the logger child is signalled, never a process found by name.
       logger.kill();
-      if (error) reject(error);
-      else resolve(line);
+      if (error) {
+        // The partial log lets the caller still report the suites and failures seen so far.
+        error.log = buffered;
+        reject(error);
+      } else {
+        resolve(buffered);
+      }
     }
 
     logger.stdout.on("data", (chunk) => {
       buffered += chunk.toString();
-      const match = /TEHREER_RESULT [^\r\n]*/.exec(buffered);
-      if (match) {
-        const failures = [...buffered.matchAll(/TEHREER_FAIL [^\r\n]*/g)].map((failure) => failure[0].trim());
-        finish(undefined, { line: match[0].trim(), failures });
-      }
+      if (hasResultLine(buffered)) finish();
     });
     logger.on("error", finish);
+    logger.on("exit", (code) => {
+      if (code !== null && code !== 0) finish(new Error(`the log reader exited with status ${code}`));
+    });
 
     setTimeout(() => {
       try {
@@ -176,18 +182,25 @@ if (platform !== "ios" && platform !== "android") {
   process.exit(2);
 }
 
+function report(log) {
+  const parsed = parseDeviceLog(log);
+  const summary = formatSummary(parsed);
+  if (summary) console.log(summary);
+  return parsed;
+}
+
 try {
-  const { line, failures } = await (platform === "ios" ? ios() : android());
-  for (const failure of failures) console.log(failure);
-  console.log(line);
-  const match = expected.exec(line);
-  if (!match || failures.length > 0 || match[1] !== match[2] || match[1] === "0") {
-    console.error(`expected: ${expected} with every test passed`);
+  const parsed = report(await (platform === "ios" ? ios() : android()));
+  const problems = checkDeviceResults(parsed, version);
+  if (problems.length > 0) {
+    for (const problem of problems) console.error(`${platform}: ${problem}`);
+    console.error(`${platform}: failed`);
     process.exit(1);
   }
   console.log(`${platform}: passed`);
   process.exit(0);
 } catch (error) {
+  if (typeof error.log === "string") report(error.log);
   console.error(`${platform}: failed: ${error.message}`);
   process.exit(1);
 }

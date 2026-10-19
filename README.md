@@ -55,7 +55,7 @@ The ABIs are not chosen by this library: the app picks them with the `reactNativ
 
 The wrapper sources are compiled with `-Wall -Wextra` and must stay free of warnings; `android/CMakeLists.txt` picks up new files in `cpp/`, `cpp/runtime/` and `cpp/generated/` by itself.
 
-`npm run test:android` runs the same smoke check on the emulator; the full device suites are added with the example-app issue.
+`npm run test:android` builds the example app for the connected emulator, starts Metro, launches the app and runs every suite registered in `example/tests/index.ts` (output format in [AGENTS.md](AGENTS.md#device-test-output)). It exits non-zero on a failing test, a timeout or a missing result line.
 
 ## iOS
 
@@ -70,7 +70,7 @@ xcodebuild -workspace TehreerExample.xcworkspace -scheme TehreerExample -sdk iph
 
 Use `-sdk iphoneos -destination 'generic/platform=iOS' ARCHS=arm64` for a device build. The wrapper sources must stay free of compiler warnings; warnings from Core and the dependencies are reported by Xcode too and are not fixed here.
 
-`npm run test:ios` builds the example app for the booted simulator, starts Metro, launches the app and checks that the result line reports the Core version and a passing smoke test. The full device suites are added with the example-app issue.
+`npm run test:ios` builds the example app for the booted simulator, starts Metro, launches the app and runs every suite registered in `example/tests/index.ts` and prints a per-suite summary and the names of failing tests. It exits non-zero on a failing test, a timeout or a missing result line.
 
 ## Repository layout
 
