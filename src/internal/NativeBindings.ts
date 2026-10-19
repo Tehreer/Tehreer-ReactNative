@@ -22,10 +22,13 @@ export interface NativeBindings extends NativeFunctions {
 
   // The functions below exist only in debug builds of the native module (no `NDEBUG`).
 
-  /** A handle that owns no Core object but counts its release in {@link testGetProbeReleaseCount}. */
-  testCreateProbe?(): Handle<"TRProbe">;
-  /** How many probe handles have released their reference, by `disposeHandle` or by collection. */
-  testGetProbeReleaseCount?(): number;
+  /**
+   * A handle that owns no Core object but counts its release in {@link testGetProbeReleaseCount}.
+   * `kind` (0 or 1) keeps the counts of two groups of probes apart.
+   */
+  testCreateProbe?(kind?: number): Handle<"TRProbe">;
+  /** How many probe handles of the kind have released their reference, by `disposeHandle` or by collection. */
+  testGetProbeReleaseCount?(kind?: number): number;
   /** Asks the engine for a full garbage collection, which runs the finalizers of dead handles. */
   testCollectGarbage?(): void;
 }

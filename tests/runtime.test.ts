@@ -51,7 +51,9 @@ test("the runtime defines every function that GeneratedSupport.h declares withou
 
   assert.ok(declared.includes("ToConstBuffer"));
   for (const name of declared) {
-    assert.match(sources, new RegExp(`\\b${name}\\(`), `${name} is declared but not defined in cpp/runtime`);
+    // A definition starts in the first column and opens its body on the same line, which a call or
+    // a mention in a comment does not.
+    assert.match(sources, new RegExp(`^[^\\s/][^;\\n]*\\b${name}\\([^;\\n]*\\{$`, "m"), `${name} is declared but not defined in cpp/runtime`);
   }
 });
 

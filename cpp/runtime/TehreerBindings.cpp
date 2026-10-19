@@ -7,6 +7,7 @@
 #include <Tehreer/Tehreer.h>
 
 #include <atomic>
+#include <cstring>
 #include <memory>
 
 #ifndef NDEBUG
@@ -73,27 +74,41 @@ jsi::Value HandleEquals(jsi::Runtime &runtime, const jsi::Value &, const jsi::Va
         marshal::Fail(runtime, "handleEquals", "other", "is already disposed");
     }
 
-    return jsi::Value(first->ref() == second->ref() && std::string(first->group()) == second->group());
+    return jsi::Value(first->ref() == second->ref() && std::strcmp(first->group(), second->group()) == 0);
 }
 
 #ifndef NDEBUG
 
-std::atomic<int> gProbeReleases{0};
+// Two kinds of probe, so that a test can tell the handles it disposed from the ones it abandoned.
+std::atomic<int> gProbeReleases[2];
+int gProbeTokens[2];
 
-void ReleaseProbe(void *) {
-    gProbeReleases.fetch_add(1);
+void ReleaseProbe(void *ref) {
+    gProbeReleases[static_cast<int *>(ref) - gProbeTokens].fetch_add(1);
+}
+
+size_t ProbeKind(jsi::Runtime &runtime, const jsi::Value *args, size_t count, const char *function) {
+    const jsi::Value &kind = marshal::ArgAt(args, count, 0);
+    if (kind.isUndefined()) {
+        return 0;
+    }
+    if (!kind.isNumber() || (kind.getNumber() != 0 && kind.getNumber() != 1)) {
+        marshal::Fail(runtime, function, "kind", "must be 0 or 1");
+    }
+    return static_cast<size_t>(kind.getNumber());
 }
 
 // A handle that owns no Core object but counts its release, so that the finalizer path can be
 // observed without depending on what Core does with an object.
-jsi::Value CreateProbe(jsi::Runtime &runtime, const jsi::Value &, const jsi::Value *, size_t) {
-    static int token;
-    auto probe = std::make_shared<HandleObject>(&token, "TRProbe", true, &ReleaseProbe);
+jsi::Value CreateProbe(jsi::Runtime &runtime, const jsi::Value &, const jsi::Value *args, size_t count) {
+    size_t kind = ProbeKind(runtime, args, count, "testCreateProbe");
+    auto probe = std::make_shared<HandleObject>(&gProbeTokens[kind], "TRProbe", true, &ReleaseProbe);
     return jsi::Value(jsi::Object::createFromHostObject(runtime, std::move(probe)));
 }
 
-jsi::Value GetProbeReleaseCount(jsi::Runtime &, const jsi::Value &, const jsi::Value *, size_t) {
-    return jsi::Value(static_cast<double>(gProbeReleases.load()));
+jsi::Value GetProbeReleaseCount(jsi::Runtime &runtime, const jsi::Value &, const jsi::Value *args, size_t count) {
+    size_t kind = ProbeKind(runtime, args, count, "testGetProbeReleaseCount");
+    return jsi::Value(static_cast<double>(gProbeReleases[kind].load()));
 }
 
 // Hermes runs the finalizers of host objects during a collection; JSI offers no other way to
@@ -105,6 +120,33 @@ jsi::Value CollectGarbage(jsi::Runtime &runtime, const jsi::Value &, const jsi::
 
 #endif
 
+// The accessors of %TypedArray%.prototype and DataView.prototype as the engine defines them. Reading
+// `buffer` from a view through the property would run whatever app code put there; calling these
+// does not, and they throw for an object that is not a real view (see ResolveBuffer).
+jsi::Object CaptureViewGetters(jsi::Runtime &runtime, const jsi::Object &objectConstructor) {
+    jsi::Function getPrototypeOf = objectConstructor.getPropertyAsFunction(runtime, "getPrototypeOf");
+    jsi::Function getDescriptor = objectConstructor.getPropertyAsFunction(runtime, "getOwnPropertyDescriptor");
+    jsi::Object global = runtime.global();
+
+    jsi::Object typedArray = getPrototypeOf.call(runtime, global.getPropertyAsObject(runtime, "Uint8Array")).getObject(runtime);
+    jsi::Object prototypes[2] = {
+        typedArray.getPropertyAsObject(runtime, "prototype"),
+        global.getPropertyAsObject(runtime, "DataView").getPropertyAsObject(runtime, "prototype"),
+    };
+    const char *kinds[2] = { "typed", "dataView" };
+    const char *members[3][2] = { { "Buffer", "buffer" }, { "ByteOffset", "byteOffset" }, { "ByteLength", "byteLength" } };
+
+    jsi::Object intrinsics(runtime);
+    for (int kind = 0; kind < 2; kind++) {
+        for (const auto &member : members) {
+            jsi::Value descriptor = getDescriptor.call(runtime, prototypes[kind], jsi::String::createFromAscii(runtime, member[1]));
+            jsi::Value getter = descriptor.getObject(runtime).getProperty(runtime, "get");
+            intrinsics.setProperty(runtime, (std::string(kinds[kind]) + member[0]).c_str(), getter);
+        }
+    }
+    return intrinsics;
+}
+
 void Define(jsi::Runtime &runtime, jsi::Object &target, const char *name, unsigned int parameters, jsi::HostFunctionType function) {
     target.setProperty(runtime, name, jsi::Function::createFromHostFunction(
         runtime, jsi::PropNameID::forAscii(runtime, name), parameters, std::move(function)));
@@ -115,7 +157,12 @@ void Define(jsi::Runtime &runtime, jsi::Object &target, const char *name, unsign
 void InstallBindings(jsi::Runtime &runtime) {
     jsi::Object global = runtime.global();
     if (global.hasProperty(runtime, kBindingsName)) {
-        return;
+        // Installing again is fine; something else owning the name is not.
+        jsi::Value existing = global.getProperty(runtime, kBindingsName);
+        if (existing.isObject() && existing.getObject(runtime).hasProperty(runtime, "disposeHandle")) {
+            return;
+        }
+        throw jsi::JSError(runtime, "global.__tehreer is already defined by something other than Tehreer.");
     }
 
     jsi::Object bindings(runtime);
@@ -133,7 +180,11 @@ void InstallBindings(jsi::Runtime &runtime) {
 #endif
 
     jsi::Object objectConstructor = global.getPropertyAsObject(runtime, "Object");
-    objectConstructor.getPropertyAsFunction(runtime, "freeze").call(runtime, bindings);
+    jsi::Function freeze = objectConstructor.getPropertyAsFunction(runtime, "freeze");
+    jsi::Object intrinsics = CaptureViewGetters(runtime, objectConstructor);
+    freeze.call(runtime, intrinsics);
+    bindings.setProperty(runtime, "intrinsics", intrinsics);
+    freeze.call(runtime, bindings);
 
     // Read-only and non-configurable, so that app code cannot replace or delete the bindings that
     // the library holds on to. Not enumerable, to keep `global` free of an internal name.

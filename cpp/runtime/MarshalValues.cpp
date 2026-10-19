@@ -1,6 +1,7 @@
 #include "../generated/GeneratedSupport.h"
 
 #include "Errors.h"
+#include "TehreerBindings.h"
 
 #include <algorithm>
 #include <cmath>
@@ -29,8 +30,25 @@ struct RawBuffer {
     size_t byteLength;
 };
 
-// Resolves an ArrayBuffer, or a view on one (typed array, DataView), to its bytes. Only properties
-// of the engine's own objects are read; the caller runs no other JavaScript after the pointer is taken.
+// Reads the buffer, offset and length of a typed array or a DataView through the getters that the
+// installation captured from the engine's own prototypes (see TehreerBindings.cpp). A getter that
+// app code defined, or a Proxy trap, is never run: the captured getter checks the object's brand and
+// throws for anything that is not a real view.
+bool ReadView(jsi::Runtime &rt, const jsi::Object &intrinsics, const char *kind, const jsi::Object &object,
+              jsi::Value &buffer, jsi::Value &offset, jsi::Value &length) {
+    std::string prefix(kind);
+    try {
+        buffer = intrinsics.getPropertyAsFunction(rt, (prefix + "Buffer").c_str()).callWithThis(rt, object);
+        offset = intrinsics.getPropertyAsFunction(rt, (prefix + "ByteOffset").c_str()).callWithThis(rt, object);
+        length = intrinsics.getPropertyAsFunction(rt, (prefix + "ByteLength").c_str()).callWithThis(rt, object);
+        return true;
+    } catch (const jsi::JSError &) {
+        return false;
+    }
+}
+
+// Resolves an ArrayBuffer, or a view on one (typed array, DataView), to its bytes. The caller runs
+// no other JavaScript after the pointer is taken.
 RawBuffer ResolveBuffer(jsi::Runtime &rt, const jsi::Value &value, const char *function, const char *parameter, bool nullable) {
     if (value.isUndefined() || value.isNull()) {
         if (!nullable) {
@@ -48,17 +66,22 @@ RawBuffer ResolveBuffer(jsi::Runtime &rt, const jsi::Value &value, const char *f
         return { buffer.data(rt), buffer.size(rt) };
     }
 
-    jsi::Value underlying = object.getProperty(rt, "buffer");
-    jsi::Value offset = object.getProperty(rt, "byteOffset");
-    jsi::Value length = object.getProperty(rt, "byteLength");
-    if (!underlying.isObject() || !underlying.getObject(rt).isArrayBuffer(rt) || !offset.isNumber() || !length.isNumber()) {
+    jsi::Object intrinsics = rt.global().getPropertyAsObject(rt, kBindingsName).getPropertyAsObject(rt, "intrinsics");
+    jsi::Value underlying, offset, length;
+    if (!ReadView(rt, intrinsics, "typed", object, underlying, offset, length) &&
+        !ReadView(rt, intrinsics, "dataView", object, underlying, offset, length)) {
         Fail(rt, function, parameter, "must be an ArrayBuffer or a typed array");
+    }
+    if (!underlying.isObject() || !underlying.getObject(rt).isArrayBuffer(rt) || !offset.isNumber() || !length.isNumber()) {
+        Fail(rt, function, parameter, "must be backed by an ArrayBuffer");
     }
 
     jsi::ArrayBuffer buffer = underlying.getObject(rt).getArrayBuffer(rt);
     double start = offset.getNumber();
     double bytes = length.getNumber();
-    if (!(start >= 0) || !(bytes >= 0) || start + bytes > static_cast<double>(buffer.size(rt))) {
+    // The engine reports whole numbers; anything else means the view is not what it claims to be.
+    if (!(start >= 0) || !(bytes >= 0) || std::trunc(start) != start || std::trunc(bytes) != bytes ||
+        start + bytes > static_cast<double>(buffer.size(rt))) {
         Fail(rt, function, parameter, "is not backed by a valid ArrayBuffer range");
     }
 
@@ -98,12 +121,6 @@ T ToNumber(jsi::Runtime &rt, const jsi::Value &value, const char *function, cons
         if (!std::isfinite(number) || std::trunc(number) != number) {
             runtime::FailRange(rt, function, parameter, "must be an integer");
         }
-        if constexpr (std::is_same_v<Plain, TRUInteger>) {
-            if (number == -1.0) {
-                return static_cast<T>(TRInvalidIndex);
-            }
-        }
-
         double lowest = std::max(static_cast<double>(std::numeric_limits<Plain>::lowest()), -kMaxSafeInteger);
         double highest = std::min(static_cast<double>(std::numeric_limits<Plain>::max()), kMaxSafeInteger);
         if (number < lowest || number > highest) {
@@ -117,12 +134,24 @@ template <class T>
 jsi::Value FromNumber(jsi::Runtime &, T value) {
     using Plain = typename Representation<T>::Type;
 
-    if constexpr (std::is_same_v<Plain, TRUInteger>) {
-        if (static_cast<Plain>(value) == TRInvalidIndex) {
-            return jsi::Value(-1.0);
-        }
-    }
     return jsi::Value(static_cast<double>(static_cast<Plain>(value)));
+}
+
+// Only indices and counts have a -1. It is a function of its own, not a case of ToNumber, because
+// on 32-bit targets TRUInteger is the same type as TRUInt32 (colors, tags), whose 0xFFFFFFFF is a
+// plain number.
+TRUInteger ToIndex(jsi::Runtime &rt, const jsi::Value &value, const char *function, const char *parameter) {
+    if (value.isNumber() && value.getNumber() == -1.0) {
+        return TRInvalidIndex;
+    }
+    return ToNumber<TRUInteger>(rt, value, function, parameter);
+}
+
+jsi::Value FromIndex(jsi::Runtime &rt, TRUInteger value) {
+    if (value == TRInvalidIndex) {
+        return jsi::Value(-1.0);
+    }
+    return FromNumber<TRUInteger>(rt, value);
 }
 
 bool ToBoolean(jsi::Runtime &rt, const jsi::Value &value, const char *function, const char *parameter) {
@@ -298,8 +327,14 @@ jsi::Value MakePointerView(jsi::Runtime &rt, const void *address, const char *el
     return jsi::Value(std::move(view));
 }
 
-jsi::Value FromToken(jsi::Runtime &, const void *pointer) {
-    return jsi::Value(static_cast<double>(reinterpret_cast<uintptr_t>(pointer)));
+jsi::Value FromToken(jsi::Runtime &rt, const void *pointer) {
+    // Tokens are numbers that JavaScript stored in them, so they fit; a bigger address (a tagged
+    // pointer) would be rounded, which is refused instead of handing out a different token.
+    uint64_t address = static_cast<uint64_t>(reinterpret_cast<uintptr_t>(pointer));
+    if (address > static_cast<uint64_t>(kMaxSafeInteger)) {
+        runtime::FailRange(rt, "FromToken", "token", "does not fit in a JavaScript number");
+    }
+    return jsi::Value(static_cast<double>(address));
 }
 
 // Every type that the generated code converts. The generated code only sees the declarations, so
@@ -331,7 +366,6 @@ const void *const kInstantiatedNumbers[] = {
     TEHREER_NUMBER(TRTruncationPlace),
     TEHREER_NUMBER(TRUInt32),
     TEHREER_NUMBER(TRUInt8),
-    TEHREER_NUMBER(TRUInteger),
     TEHREER_NUMBER(TRVerticalAlignment),
     TEHREER_NUMBER(TRWeight),
     TEHREER_NUMBER(TRWidth),

@@ -89,7 +89,7 @@ jsi::Value BindTRTypefaceGetGlyphCount(jsi::Runtime &rt, const jsi::Value &, con
     TRTypefaceRef a_typeface = marshal::ToHandle<TRTypefaceRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "typeface", false);
 
     auto result = TRTypefaceGetGlyphCount(a_typeface);
-    return marshal::FromNumber<TRUInteger>(rt, result);
+    return marshal::FromIndex(rt, result);
 }
 
 jsi::Value BindTRTypefaceIsVariable(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
@@ -113,7 +113,7 @@ jsi::Value BindTRTypefaceGetVariationAxisCount(jsi::Runtime &rt, const jsi::Valu
     TRTypefaceRef a_typeface = marshal::ToHandle<TRTypefaceRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "typeface", false);
 
     auto result = TRTypefaceGetVariationAxisCount(a_typeface);
-    return marshal::FromNumber<TRUInteger>(rt, result);
+    return marshal::FromIndex(rt, result);
 }
 
 jsi::Value BindTRTypefaceGetNamedStylesPtr(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
@@ -129,7 +129,7 @@ jsi::Value BindTRTypefaceGetNamedStyleCount(jsi::Runtime &rt, const jsi::Value &
     TRTypefaceRef a_typeface = marshal::ToHandle<TRTypefaceRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "typeface", false);
 
     auto result = TRTypefaceGetNamedStyleCount(a_typeface);
-    return marshal::FromNumber<TRUInteger>(rt, result);
+    return marshal::FromIndex(rt, result);
 }
 
 jsi::Value BindTRTypefaceGetPaletteEntriesPtr(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
@@ -145,7 +145,7 @@ jsi::Value BindTRTypefaceGetPaletteEntryCount(jsi::Runtime &rt, const jsi::Value
     TRTypefaceRef a_typeface = marshal::ToHandle<TRTypefaceRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "typeface", false);
 
     auto result = TRTypefaceGetPaletteEntryCount(a_typeface);
-    return marshal::FromNumber<TRUInteger>(rt, result);
+    return marshal::FromIndex(rt, result);
 }
 
 jsi::Value BindTRTypefaceGetPredefinedPalettesPtr(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
@@ -161,7 +161,7 @@ jsi::Value BindTRTypefaceGetPredefinedPaletteCount(jsi::Runtime &rt, const jsi::
     TRTypefaceRef a_typeface = marshal::ToHandle<TRTypefaceRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "typeface", false);
 
     auto result = TRTypefaceGetPredefinedPaletteCount(a_typeface);
-    return marshal::FromNumber<TRUInteger>(rt, result);
+    return marshal::FromIndex(rt, result);
 }
 
 jsi::Value BindTRTypefaceIsScalable(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
@@ -185,7 +185,7 @@ jsi::Value BindTRTypefaceGetBitmapStrikeCount(jsi::Runtime &rt, const jsi::Value
     TRTypefaceRef a_typeface = marshal::ToHandle<TRTypefaceRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "typeface", false);
 
     auto result = TRTypefaceGetBitmapStrikeCount(a_typeface);
-    return marshal::FromNumber<TRUInteger>(rt, result);
+    return marshal::FromIndex(rt, result);
 }
 
 jsi::Value BindTRTypefaceGetVariationCoordinatesPtr(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
@@ -206,7 +206,7 @@ jsi::Value BindTRTypefaceGetAssociatedColorsPtr(jsi::Runtime &rt, const jsi::Val
 
 jsi::Value BindTRTypefaceCreateWithVariation(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRTypefaceCreateWithVariation";
-    TRUInteger a_count = marshal::ToNumber<TRUInteger>(rt, marshal::ArgAt(args, count, 2), kFunction, "count");
+    TRUInteger a_count = marshal::ToIndex(rt, marshal::ArgAt(args, count, 2), kFunction, "count");
     TRTypefaceRef a_typeface = marshal::ToHandle<TRTypefaceRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "typeface", false);
     marshal::ConstBuffer a_coordinates = marshal::ToConstBuffer(rt, marshal::ArgAt(args, count, 1), kFunction, "coordinates", true);
 
@@ -220,7 +220,7 @@ jsi::Value BindTRTypefaceCreateWithVariation(jsi::Runtime &rt, const jsi::Value 
 
 jsi::Value BindTRTypefaceCreateWithColors(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRTypefaceCreateWithColors";
-    TRUInteger a_count = marshal::ToNumber<TRUInteger>(rt, marshal::ArgAt(args, count, 2), kFunction, "count");
+    TRUInteger a_count = marshal::ToIndex(rt, marshal::ArgAt(args, count, 2), kFunction, "count");
     TRTypefaceRef a_typeface = marshal::ToHandle<TRTypefaceRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "typeface", false);
     marshal::ConstBuffer a_colors = marshal::ToConstBuffer(rt, marshal::ArgAt(args, count, 1), kFunction, "colors", true);
 
@@ -342,14 +342,14 @@ jsi::Value BindTRTypefaceGetTableSize(jsi::Runtime &rt, const jsi::Value &, cons
     TRTypefaceRef a_typeface = marshal::ToHandle<TRTypefaceRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "typeface", false);
 
     auto result = TRTypefaceGetTableSize(a_typeface, a_tag);
-    return marshal::FromNumber<TRUInteger>(rt, result);
+    return marshal::FromIndex(rt, result);
 }
 
 jsi::Value BindTRTypefaceGetTableData(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRTypefaceGetTableData";
     TRTag a_tag = marshal::ToNumber<TRTag>(rt, marshal::ArgAt(args, count, 1), kFunction, "tag");
-    TRUInteger a_offset = marshal::ToNumber<TRUInteger>(rt, marshal::ArgAt(args, count, 2), kFunction, "offset");
-    TRUInteger a_capacity = marshal::ToNumber<TRUInteger>(rt, marshal::ArgAt(args, count, 4), kFunction, "capacity");
+    TRUInteger a_offset = marshal::ToIndex(rt, marshal::ArgAt(args, count, 2), kFunction, "offset");
+    TRUInteger a_capacity = marshal::ToIndex(rt, marshal::ArgAt(args, count, 4), kFunction, "capacity");
     TRTypefaceRef a_typeface = marshal::ToHandle<TRTypefaceRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "typeface", false);
     marshal::MutableBuffer a_buffer = marshal::ToMutableBuffer(rt, marshal::ArgAt(args, count, 3), kFunction, "buffer", true);
 
@@ -358,13 +358,13 @@ jsi::Value BindTRTypefaceGetTableData(jsi::Runtime &rt, const jsi::Value &, cons
     }
 
     auto result = TRTypefaceGetTableData(a_typeface, a_tag, a_offset, a_buffer.data, a_capacity);
-    return marshal::FromNumber<TRUInteger>(rt, result);
+    return marshal::FromIndex(rt, result);
 }
 
 jsi::Value BindTRTypefaceGetGlyphName(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRTypefaceGetGlyphName";
     TRGlyphID a_glyphID = marshal::ToNumber<TRGlyphID>(rt, marshal::ArgAt(args, count, 1), kFunction, "glyphID");
-    TRUInteger a_capacity = marshal::ToNumber<TRUInteger>(rt, marshal::ArgAt(args, count, 3), kFunction, "capacity");
+    TRUInteger a_capacity = marshal::ToIndex(rt, marshal::ArgAt(args, count, 3), kFunction, "capacity");
     TRTypefaceRef a_typeface = marshal::ToHandle<TRTypefaceRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "typeface", false);
     marshal::MutableBuffer a_buffer = marshal::ToMutableBuffer(rt, marshal::ArgAt(args, count, 2), kFunction, "buffer", true);
 
@@ -373,7 +373,7 @@ jsi::Value BindTRTypefaceGetGlyphName(jsi::Runtime &rt, const jsi::Value &, cons
     }
 
     auto result = TRTypefaceGetGlyphName(a_typeface, a_glyphID, static_cast<char *>(a_buffer.data), a_capacity);
-    return marshal::FromNumber<TRUInteger>(rt, result);
+    return marshal::FromIndex(rt, result);
 }
 
 jsi::Value BindTRTypefaceRetain(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {

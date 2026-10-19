@@ -54,9 +54,17 @@ function declaration(type, name) {
 const variable = (name) => `a_${name}`;
 const expand = (expression) => expression.replace(/\{(\w+)\}/g, (_, name) => variable(name));
 
+// TRUInteger is the type of indices and counts, where -1 stands for TRInvalidIndex. It is a
+// separate function because on 32-bit targets TRUInteger is the same C type as TRUInt32, which
+// also holds colors and tags, so a template argument cannot tell the two apart.
+function toNumberCall(descriptor, value, fnName, paramExpression) {
+  const name = descriptor.c === "TRUInteger" ? "marshal::ToIndex" : `marshal::ToNumber<${descriptor.c}>`;
+  return `${name}(rt, ${value}, ${fnName}, ${paramExpression})`;
+}
+
 function fromJs(descriptor, value, fnName, paramName) {
   switch (descriptor.k) {
-    case "number": return `marshal::ToNumber<${descriptor.c}>(rt, ${value}, ${fnName}, "${paramName}")`;
+    case "number": return toNumberCall(descriptor, value, fnName, `"${paramName}"`);
     case "bool": return `(marshal::ToBoolean(rt, ${value}, ${fnName}, "${paramName}") ? TRTrue : TRFalse)`;
     case "struct": return `${descriptor.c}FromJs(rt, ${value}, ${fnName}, "${paramName}")`;
     default: throw new Error(`fromJs: ${descriptor.k}`);
@@ -65,7 +73,9 @@ function fromJs(descriptor, value, fnName, paramName) {
 
 function toJs(descriptor, value, extra = {}) {
   switch (descriptor.k) {
-    case "number": return `marshal::FromNumber<${descriptor.c}>(rt, ${value})`;
+    case "number": return descriptor.c === "TRUInteger"
+      ? `marshal::FromIndex(rt, ${value})`
+      : `marshal::FromNumber<${descriptor.c}>(rt, ${value})`;
     case "bool": return `marshal::FromBoolean(${value} != 0)`;
     case "struct": return `${descriptor.c}ToJs(rt, ${value})`;
     case "ref": return `marshal::FromHandle<${descriptor.c}>(rt, ${value}, marshal::Ownership::${extra.ownership === "owned" ? "Adopt" : "Retain"})`;
@@ -138,11 +148,15 @@ const jsi::Value &ArgAt(const jsi::Value *args, size_t count, size_t index);
 bool IsNullish(const jsi::Value &value);
 
 /**
- * Numbers. \`ToNumber\` throws when the value is not a number or not representable as \`T\`. For
- * \`TRUInteger\`, -1 is \`TRInvalidIndex\` in both directions.
+ * Numbers. \`ToNumber\` throws when the value is not a number or not representable as \`T\`.
+ * \`TRUInteger\` (indices and counts) goes through \`ToIndex\` and \`FromIndex\` instead, where -1 is
+ * \`TRInvalidIndex\` in both directions; no other type has that rule, which a template argument could
+ * not express on 32-bit targets, where \`TRUInteger\` and \`TRColor\` are one C type.
  */
 template <class T> T ToNumber(jsi::Runtime &rt, const jsi::Value &value, const char *function, const char *parameter);
 template <class T> jsi::Value FromNumber(jsi::Runtime &rt, T value);
+TRUInteger ToIndex(jsi::Runtime &rt, const jsi::Value &value, const char *function, const char *parameter);
+jsi::Value FromIndex(jsi::Runtime &rt, TRUInteger value);
 bool ToBoolean(jsi::Runtime &rt, const jsi::Value &value, const char *function, const char *parameter);
 jsi::Value FromBoolean(bool value);
 
@@ -330,7 +344,7 @@ function fromJsMember(descriptor, name) {
   const value = `object.getProperty(rt, "${name}")`;
   switch (descriptor.k) {
     // The path of the member, such as "rect.origin.x", is what an error names.
-    case "number": return `marshal::ToNumber<${descriptor.c}>(rt, ${value}, function, (parameter + ".${name}").c_str())`;
+    case "number": return toNumberCall(descriptor, value, "function", `(parameter + ".${name}").c_str()`);
     case "bool": return `(marshal::ToBoolean(rt, ${value}, function, (parameter + ".${name}").c_str()) ? TRTrue : TRFalse)`;
     case "struct": return `${descriptor.c}FromJs(rt, ${value}, function, parameter + ".${name}")`;
     default: throw new Error(`member ${name}: ${descriptor.k}`);

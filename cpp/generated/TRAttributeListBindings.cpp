@@ -30,7 +30,7 @@ namespace {
 
 jsi::Value BindTRAttributeListGetItem(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRAttributeListGetItem";
-    TRUInteger a_index = marshal::ToNumber<TRUInteger>(rt, marshal::ArgAt(args, count, 1), kFunction, "index");
+    TRUInteger a_index = marshal::ToIndex(rt, marshal::ArgAt(args, count, 1), kFunction, "index");
     TRAttributeListRef a_list = marshal::ToHandle<TRAttributeListRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "list", false);
 
     auto result = TRAttributeListGetItem(a_list, a_index);
@@ -42,7 +42,7 @@ jsi::Value BindTRAttributeListGetCount(jsi::Runtime &rt, const jsi::Value &, con
     TRAttributeListRef a_list = marshal::ToHandle<TRAttributeListRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "list", false);
 
     auto result = TRAttributeListGetCount(a_list);
-    return marshal::FromNumber<TRUInteger>(rt, result);
+    return marshal::FromIndex(rt, result);
 }
 
 jsi::Value BindTRAttributeListRetain(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {

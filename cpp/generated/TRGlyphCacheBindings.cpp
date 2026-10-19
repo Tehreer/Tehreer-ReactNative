@@ -30,7 +30,7 @@ namespace {
 
 jsi::Value BindTRGlyphCacheCreate(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRGlyphCacheCreate";
-    TRUInteger a_capacity = marshal::ToNumber<TRUInteger>(rt, marshal::ArgAt(args, count, 0), kFunction, "capacity");
+    TRUInteger a_capacity = marshal::ToIndex(rt, marshal::ArgAt(args, count, 0), kFunction, "capacity");
 
     auto result = TRGlyphCacheCreate(a_capacity);
     return marshal::FromHandle<TRGlyphCacheRef>(rt, result, marshal::Ownership::Adopt);
@@ -48,12 +48,12 @@ jsi::Value BindTRGlyphCacheGetCapacity(jsi::Runtime &rt, const jsi::Value &, con
     TRGlyphCacheRef a_cache = marshal::ToHandle<TRGlyphCacheRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "cache", false);
 
     auto result = TRGlyphCacheGetCapacity(a_cache);
-    return marshal::FromNumber<TRUInteger>(rt, result);
+    return marshal::FromIndex(rt, result);
 }
 
 jsi::Value BindTRGlyphCacheSetCapacity(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRGlyphCacheSetCapacity";
-    TRUInteger a_capacity = marshal::ToNumber<TRUInteger>(rt, marshal::ArgAt(args, count, 1), kFunction, "capacity");
+    TRUInteger a_capacity = marshal::ToIndex(rt, marshal::ArgAt(args, count, 1), kFunction, "capacity");
     TRGlyphCacheRef a_cache = marshal::ToHandle<TRGlyphCacheRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "cache", false);
 
     TRGlyphCacheSetCapacity(a_cache, a_capacity);
@@ -65,7 +65,7 @@ jsi::Value BindTRGlyphCacheGetSize(jsi::Runtime &rt, const jsi::Value &, const j
     TRGlyphCacheRef a_cache = marshal::ToHandle<TRGlyphCacheRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "cache", false);
 
     auto result = TRGlyphCacheGetSize(a_cache);
-    return marshal::FromNumber<TRUInteger>(rt, result);
+    return marshal::FromIndex(rt, result);
 }
 
 jsi::Value BindTRGlyphCacheClear(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {

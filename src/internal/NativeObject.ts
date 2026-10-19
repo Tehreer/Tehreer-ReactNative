@@ -3,6 +3,9 @@ import { getNativeBindings } from "./NativeBindings.js";
 import type { Handle } from "./NativeFunctions.js";
 
 // `Symbol.dispose` is part of the language only in recent engines, and Hermes does not have it yet.
+// The class below names a method with it when this module is evaluated, so it has to exist by then:
+// it cannot wait for `initialize()`. It only fills a missing symbol (`Symbol.for` makes every copy of
+// the library agree) and never replaces one the engine or another polyfill already defines.
 (Symbol as { dispose?: symbol }).dispose ??= Symbol.for("Symbol.dispose");
 
 /** A constructor with the internal overload that takes ownership of a reference. */
@@ -38,8 +41,12 @@ export abstract class NativeObject<Kind extends string> implements Disposable {
   }
 
   /**
-   * Wraps a handle that the caller keeps, by retaining a reference of its own first. The `Get`
-   * bindings already hand out an owning handle, so this is for a handle that is owned elsewhere.
+   * Wraps a second reference to an object whose handle the caller keeps: `retain` (the `Retain`
+   * binding of the kind) gives a new handle with a reference of its own, which the wrapper adopts.
+   *
+   * Do not use it on the result of a `Get` binding. Those retain inside the binding, so the handle
+   * they return already owns its reference and is wrapped with `adopting`; retaining it again would
+   * leak a reference.
    *
    * @param retain The `Retain` binding of the kind, such as `TRTypefaceRetain`.
    * @throws Error if Core does not return a reference.
@@ -90,8 +97,10 @@ export abstract class NativeObject<Kind extends string> implements Disposable {
   dispose(): void {
     const handle = this.#handle;
     if (handle !== undefined) {
-      this.#handle = undefined;
+      // Cleared after the release, so that a failure leaves the object alive and dispose() can be
+      // tried again instead of silently leaving the reference to the finalizer.
       getNativeBindings().disposeHandle(handle);
+      this.#handle = undefined;
     }
   }
 

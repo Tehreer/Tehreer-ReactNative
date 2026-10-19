@@ -33,7 +33,7 @@ jsi::Value BindTRShapingResultGetCodeUnitCount(jsi::Runtime &rt, const jsi::Valu
     TRShapingResultRef a_result = marshal::ToHandle<TRShapingResultRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "result", false);
 
     auto result = TRShapingResultGetCodeUnitCount(a_result);
-    return marshal::FromNumber<TRUInteger>(rt, result);
+    return marshal::FromIndex(rt, result);
 }
 
 jsi::Value BindTRShapingResultIsBackward(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
@@ -57,7 +57,7 @@ jsi::Value BindTRShapingResultGetGlyphCount(jsi::Runtime &rt, const jsi::Value &
     TRShapingResultRef a_result = marshal::ToHandle<TRShapingResultRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "result", false);
 
     auto result = TRShapingResultGetGlyphCount(a_result);
-    return marshal::FromNumber<TRUInteger>(rt, result);
+    return marshal::FromIndex(rt, result);
 }
 
 jsi::Value BindTRShapingResultGetGlyphIDsPtr(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {

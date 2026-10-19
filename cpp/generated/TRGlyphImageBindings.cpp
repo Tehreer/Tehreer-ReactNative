@@ -81,7 +81,7 @@ jsi::Value BindTRGlyphImageGetByteCount(jsi::Runtime &rt, const jsi::Value &, co
     TRGlyphImageRef a_image = marshal::ToHandle<TRGlyphImageRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "image", false);
 
     auto result = TRGlyphImageGetByteCount(a_image);
-    return marshal::FromNumber<TRUInteger>(rt, result);
+    return marshal::FromIndex(rt, result);
 }
 
 jsi::Value BindTRGlyphImageRetain(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {

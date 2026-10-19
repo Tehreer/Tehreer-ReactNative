@@ -38,7 +38,7 @@ jsi::Value BindTRFontFileCreateFromPath(jsi::Runtime &rt, const jsi::Value &, co
 
 jsi::Value BindTRFontFileCreateFromMemory(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRFontFileCreateFromMemory";
-    TRUInteger a_size = marshal::ToNumber<TRUInteger>(rt, marshal::ArgAt(args, count, 1), kFunction, "size");
+    TRUInteger a_size = marshal::ToIndex(rt, marshal::ArgAt(args, count, 1), kFunction, "size");
     marshal::ConstBuffer a_memory = marshal::ToConstBuffer(rt, marshal::ArgAt(args, count, 0), kFunction, "memory", false);
 
     marshal::RequireCapacity(rt, kFunction, "memory", static_cast<size_t>(a_size), 1, a_memory.byteLength);
@@ -52,12 +52,12 @@ jsi::Value BindTRFontFileGetTypefaceCount(jsi::Runtime &rt, const jsi::Value &, 
     TRFontFileRef a_fontFile = marshal::ToHandle<TRFontFileRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "fontFile", false);
 
     auto result = TRFontFileGetTypefaceCount(a_fontFile);
-    return marshal::FromNumber<TRUInteger>(rt, result);
+    return marshal::FromIndex(rt, result);
 }
 
 jsi::Value BindTRFontFileGetTypeface(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRFontFileGetTypeface";
-    TRUInteger a_index = marshal::ToNumber<TRUInteger>(rt, marshal::ArgAt(args, count, 1), kFunction, "index");
+    TRUInteger a_index = marshal::ToIndex(rt, marshal::ArgAt(args, count, 1), kFunction, "index");
     TRFontFileRef a_fontFile = marshal::ToHandle<TRFontFileRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "fontFile", false);
 
     auto result = TRFontFileGetTypeface(a_fontFile, a_index);

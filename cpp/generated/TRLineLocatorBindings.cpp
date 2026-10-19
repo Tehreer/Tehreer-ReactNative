@@ -37,7 +37,7 @@ void CollectTRLineLocatorEnumerateLines_func(void *userData, TRUInteger lineInde
 
     try {
         jsi::Runtime &rt = collector->runtime;
-        jsi::Value item = marshal::FromNumber<TRUInteger>(rt, lineIndex);
+        jsi::Value item = marshal::FromIndex(rt, lineIndex);
         collector->items.push_back(std::move(item));
     } catch (...) {
         collector->error = std::current_exception();
@@ -59,12 +59,12 @@ jsi::Value BindTRLineLocatorGetLineCount(jsi::Runtime &rt, const jsi::Value &, c
     TRLineLocatorRef a_locator = marshal::ToHandle<TRLineLocatorRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "locator", false);
 
     auto result = TRLineLocatorGetLineCount(a_locator);
-    return marshal::FromNumber<TRUInteger>(rt, result);
+    return marshal::FromIndex(rt, result);
 }
 
 jsi::Value BindTRLineLocatorGetLineBox(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRLineLocatorGetLineBox";
-    TRUInteger a_lineIndex = marshal::ToNumber<TRUInteger>(rt, marshal::ArgAt(args, count, 1), kFunction, "lineIndex");
+    TRUInteger a_lineIndex = marshal::ToIndex(rt, marshal::ArgAt(args, count, 1), kFunction, "lineIndex");
     TRRect o_box = {};
     TRLineLocatorRef a_locator = marshal::ToHandle<TRLineLocatorRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "locator", false);
 
@@ -95,7 +95,7 @@ jsi::Value BindTRLineLocatorGetFirstLineIndexBelow(jsi::Runtime &rt, const jsi::
     TRLineLocatorRef a_locator = marshal::ToHandle<TRLineLocatorRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "locator", false);
 
     auto result = TRLineLocatorGetFirstLineIndexBelow(a_locator, a_y);
-    return marshal::FromNumber<TRUInteger>(rt, result);
+    return marshal::FromIndex(rt, result);
 }
 
 jsi::Value BindTRLineLocatorRetain(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {

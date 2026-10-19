@@ -64,6 +64,10 @@ before(async () => {
 
   (globalThis as Record<string, unknown>)["__tehreer"] = {
     disposeHandle(handle: Handle) {
+      if (handle.group === "TRFailing" && !fake.disposed.has(-handle.id)) {
+        fake.disposed.add(-handle.id);
+        throw new Error("release failed");
+      }
       if (!fake.disposed.has(handle.id)) {
         fake.disposed.add(handle.id);
         fake.releases++;
@@ -151,4 +155,13 @@ test("retaining takes the reference of its own that retain returns", () => {
 
 test("retaining fails when Core returns no reference", () => {
   assert.throws(() => loaded.NativeObject.retaining.call(Wrapper, makeHandle(), () => undefined), /did not return a reference/);
+});
+
+test("a dispose that fails leaves the object alive, and it can be disposed again", () => {
+  const object = loaded.NativeObject.adopting.call(Wrapper, makeHandle("TRFailing"));
+
+  assert.throws(() => object.dispose(), /release failed/);
+  assert.equal(object.isDisposed, false);
+  object.dispose();
+  assert.equal(object.isDisposed, true);
 });
