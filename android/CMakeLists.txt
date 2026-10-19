@@ -23,8 +23,9 @@ add_subdirectory("${TEHREER_ROOT}/Libraries/TehreerCore" Tehreer)
 
 find_package(ReactAndroid REQUIRED CONFIG)
 
-# CONFIGURE_DEPENDS re-globs at build time, so a new source file in one of these folders needs no
-# edit of this file; it keeps the work of parallel tasks from colliding here.
+# The generated bindings change with every Core bump, so the sources are globbed instead of listed.
+# CONFIGURE_DEPENDS re-globs at build time, so a new file in these folders needs no edit here. The
+# cost is that a deleted or misplaced file is not reported by CMake: the link fails instead.
 file(GLOB TEHREER_SOURCES CONFIGURE_DEPENDS
     "${TEHREER_ROOT}/cpp/*.cpp"
     "${TEHREER_ROOT}/cpp/runtime/*.cpp"
