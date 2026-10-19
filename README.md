@@ -55,7 +55,7 @@ The ABIs are not chosen by this library: the app picks them with the `reactNativ
 
 The wrapper sources are compiled with `-Wall -Wextra` and must stay free of warnings; `android/CMakeLists.txt` picks up new files in `cpp/`, `cpp/runtime/` and `cpp/generated/` by itself.
 
-Device tests (`npm run test:android`) are added together with the example app.
+`npm run test:android` runs the same smoke check on the emulator; the full device suites are added with the example-app issue.
 
 ## iOS
 
