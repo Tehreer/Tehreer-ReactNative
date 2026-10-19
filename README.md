@@ -43,6 +43,18 @@ scripts/sync-core <sha|ref>
 scripts/sync-core main /Users/mta/Learning/Tehreer-Core   # fetch from a local Core instead of origin
 ```
 
+## Android
+
+Supported ABIs: `armeabi-v7a`, `arm64-v8a`, `x86` and `x86_64`. The minimum SDK is 24 and the NDK is 28.2.13676358 (the version the example app pins in `example/android/build.gradle`; it is the only NDK that is tested). The module is built with CMake as part of the app's native project, together with Core and its dependencies, and needs `scripts/fetch-deps` to have run first.
+
+The ABIs are not chosen by this library: the app picks them with the `reactNativeArchitectures` property, in `gradle.properties` or on the command line, and React Native builds only those.
+
+```bash
+./gradlew assembleDebug -PreactNativeArchitectures=arm64-v8a,x86_64
+```
+
+The wrapper sources are compiled with `-Wall -Wextra` and must stay free of warnings; `android/CMakeLists.txt` picks up new files in `cpp/`, `cpp/runtime/` and `cpp/generated/` by itself.
+
 Device tests (`npm run test:ios`, `npm run test:android`) are added together with the example app.
 
 ## Repository layout
