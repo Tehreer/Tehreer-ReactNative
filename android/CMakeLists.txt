@@ -23,10 +23,20 @@ add_subdirectory("${TEHREER_ROOT}/Libraries/TehreerCore" Tehreer)
 
 find_package(ReactAndroid REQUIRED CONFIG)
 
-add_library(tehreer_module STATIC
-    "${TEHREER_ROOT}/cpp/TehreerModule.cpp"
-    "${TEHREER_ROOT}/cpp/runtime/TehreerBindings.cpp"
+# The generated bindings change with every Core bump, so the sources are globbed instead of listed.
+# CONFIGURE_DEPENDS re-globs at build time, so a new file in these folders needs no edit here. The
+# cost is that a deleted or misplaced file is not reported by CMake: the link fails instead.
+file(GLOB TEHREER_SOURCES CONFIGURE_DEPENDS
+    "${TEHREER_ROOT}/cpp/*.cpp"
+    "${TEHREER_ROOT}/cpp/runtime/*.cpp"
+    "${TEHREER_ROOT}/cpp/generated/*.cpp"
 )
+
+add_library(tehreer_module STATIC ${TEHREER_SOURCES})
+
+# Warnings are enabled on the wrapper target only: Core and its dependencies are built with the
+# flags of their own projects.
+target_compile_options(tehreer_module PRIVATE -Wall -Wextra)
 
 target_include_directories(tehreer_module PUBLIC "${TEHREER_ROOT}/cpp")
 
