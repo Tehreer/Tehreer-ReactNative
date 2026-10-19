@@ -1,0 +1,121 @@
+name: Device tests
+
+# The example app is built and run on the iOS simulator and on an Android emulator. These jobs are
+# slow and expensive (macOS minutes cost ten times as much as Linux minutes in a private
+# repository), so they never run on every push. They run
+#   - when someone starts the workflow by hand (Actions tab, "Run workflow"),
+#   - when the label `device-tests` is added to a pull request,
+#   - on later pushes to a pull request that carries that label.
+on:
+  workflow_dispatch:
+    inputs:
+      platform:
+        description: Which platform to test
+        type: choice
+        options: [all, ios, android]
+        default: all
+  pull_request:
+    types: [labeled, synchronize]
+
+permissions:
+  contents: read
+
+# Adding an unrelated label starts a run whose jobs are skipped; it must not cancel a running test,
+# so such runs get a group of their own.
+concurrency:
+  group: >-
+    device-tests-${{ github.event.pull_request.number || github.ref }}-${{
+    (github.event.action == 'labeled' && github.event.label.name != 'device-tests') && github.run_id || 'device' }}
+  cancel-in-progress: true
+
+jobs:
+  ios:
+    if: >-
+      (github.event_name == 'workflow_dispatch' && inputs.platform != 'android') ||
+      (github.event_name == 'pull_request' &&
+        github.event.pull_request.head.repo.full_name == github.repository &&
+        ((github.event.action == 'labeled' && github.event.label.name == 'device-tests') ||
+         (github.event.action == 'synchronize' && contains(github.event.pull_request.labels.*.name, 'device-tests'))))
+    runs-on: macos-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.x
+          cache: npm
+
+      - name: Install
+        run: |
+          npm ci
+          npm ci --prefix example
+
+      # Downloads FreeType, HarfBuzz, libunibreak and SheenBidi at the versions Core pins.
+      - name: Fetch the Core dependencies
+        run: scripts/fetch-deps
+
+      # The script builds for the booted simulator, so one has to be running first.
+      - name: Boot a simulator
+        run: |
+          udid=$(xcrun simctl list devices available -j | node -e '
+            const devices = Object.values(JSON.parse(require("fs").readFileSync(0, "utf8")).devices).flat();
+            const iphone = devices.find((d) => d.name.startsWith("iPhone") && d.isAvailable);
+            if (!iphone) { console.error("no iPhone simulator available"); process.exit(1); }
+            console.log(iphone.udid);
+          ')
+          xcrun simctl boot "$udid"
+          xcrun simctl bootstatus "$udid" -b
+
+      - name: Device tests (iOS)
+        run: npm run test:ios
+
+  android:
+    if: >-
+      (github.event_name == 'workflow_dispatch' && inputs.platform != 'ios') ||
+      (github.event_name == 'pull_request' &&
+        github.event.pull_request.head.repo.full_name == github.repository &&
+        ((github.event.action == 'labeled' && github.event.label.name == 'device-tests') ||
+         (github.event.action == 'synchronize' && contains(github.event.pull_request.labels.*.name, 'device-tests'))))
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.x
+          cache: npm
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Install
+        run: |
+          npm ci
+          npm ci --prefix example
+
+      - name: Fetch the Core dependencies
+        run: scripts/fetch-deps
+
+      # The emulator needs hardware acceleration, which the runner offers through KVM.
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Device tests (Android)
+        uses: reactivecircus/android-emulator-runner@v2.33.0
+        with:
+          api-level: 34
+          arch: x86_64
+          target: google_apis
+          disable-animations: true
+          script: npm run test:android

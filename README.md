@@ -55,7 +55,7 @@ The ABIs are not chosen by this library: the app picks them with the `reactNativ
 
 The wrapper sources are compiled with `-Wall -Wextra` and must stay free of warnings; `android/CMakeLists.txt` picks up new files in `cpp/`, `cpp/runtime/` and `cpp/generated/` by itself.
 
-`npm run test:android` runs the same smoke check on the emulator; the full device suites are added with the example-app issue.
+`npm run test:android` builds the example app for the connected emulator, starts Metro, launches the app and runs every suite registered in `example/tests/index.ts` (output format in [AGENTS.md](AGENTS.md#device-test-output)). It exits non-zero on a failing test, a timeout or a missing result line.
 
 ## iOS
 
@@ -70,7 +70,35 @@ xcodebuild -workspace TehreerExample.xcworkspace -scheme TehreerExample -sdk iph
 
 Use `-sdk iphoneos -destination 'generic/platform=iOS' ARCHS=arm64` for a device build. The wrapper sources must stay free of compiler warnings; warnings from Core and the dependencies are reported by Xcode too and are not fixed here.
 
-`npm run test:ios` builds the example app for the booted simulator, starts Metro, launches the app and checks that the result line reports the Core version and a passing smoke test. The full device suites are added with the example-app issue.
+`npm run test:ios` builds the example app for the booted simulator, starts Metro, launches the app and runs every suite registered in `example/tests/index.ts` and prints a per-suite summary and the names of failing tests. It exits non-zero on a failing test, a timeout or a missing result line.
+
+## Enums
+
+The Core enums (`TypeWeight`, `StrokeCap`, `TextAlignment` and so on) are exported as constant objects with a type of the same name (`const X = { ... } as const; type X = ...`) instead of TypeScript `enum`s, because the project compiles with `erasableSyntaxOnly`. They are used the same way as Web's enums (`TypeWeight.Bold`, `value: TypeWeight`), but are not enum objects at run time. Web's `unicode` enums (bidi class, general category, script) come from SheenBidi's headers and are added by a separate issue.
+
+## Continuous integration
+
+Workflows live in `.github/workflows/`:
+
+| File | Runs | Triggers | What it does |
+|------|------|----------|--------------|
+| `ci.yml` (job `checks`) | ubuntu, 15 min limit | every pull request, every push to `main` | `npm ci`, typecheck, lint, `npm run generate:check`, `npm test` with the spec reporter (every test name and its failure details appear in the log) |
+| `device-tests.yml` (jobs `ios`, `android`) | macOS and ubuntu with KVM, 60 min limit | only the triggers below | fetches the Core dependencies (`scripts/fetch-deps`), then `npm run test:ios` on a booted simulator and `npm run test:android` on an API 34 x86_64 emulator (`reactivecircus/android-emulator-runner`) |
+| `claude-review.yml` | ubuntu | pull requests | automated review; the only workflow with a secret |
+
+Every checkout uses `submodules: recursive`, because the generator and the tests read Core's headers. None of `ci.yml` and `device-tests.yml` uses a secret, and both only request `contents: read`. A new push to a pull request cancels the older `checks` run.
+
+**Why the device tests are separate.** The repository is private, so macOS minutes are billed at ten times the Linux rate, and an emulator on a Linux runner needs several minutes to boot and build. Running them on every push would cost more than they are worth during development. They start only
+
+- by hand: Actions tab, "Device tests", "Run workflow", then pick `all`, `ios` or `android`;
+- when the label `device-tests` is added to a pull request (`gh pr edit <number> --add-label device-tests`);
+- on every later push to a pull request that carries the label. Remove the label to stop them.
+
+Pull requests from forks never start the device jobs. Run the same tests locally with `npm run test:ios` and `npm run test:android` (see the platform sections above).
+
+The actions are pinned to version tags, not commit SHAs: the repository has no secrets in these workflows and read-only permissions, which limits what a moved tag could do, and tags stay readable and are what `claude-review.yml` already uses. `tests/workflows.test.ts` enforces that every action carries a version tag. Pin SHAs if the workflows ever get a secret or write access.
+
+**Not verified yet.** A workflow cannot run before it is pushed, and a `pull_request` workflow runs from the version on the pull request branch. At the time of writing neither workflow has run: the YAML parses and `tests/workflows.test.ts` checks its structure, but the first runs on GitHub may still reveal problems (the pinned `android-emulator-runner` version, the emulator image, runner disk space, the simulator boot step). Fix those in the first pull request that triggers them.
 
 ## Repository layout
 

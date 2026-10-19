@@ -1,18 +1,22 @@
 // Builds the example app, runs it on the booted iOS simulator or Android emulator, and checks the
 // line that App.tsx logs. Usage: node scripts/test-device.mjs <ios|android>
 //
-// The example app runs its suites and logs the failures (`TEHREER_FAIL <test>: <message>`), then one
-// result line: `TEHREER_RESULT version=<Core version> smokeTest=true handles=<passed>/<total>`. The
-// run passes when nothing failed and every test passed.
+// The example app runs its registered suites and logs TEHREER_SUITE, TEHREER_FAIL and one final
+// TEHREER_RESULT line (format in AGENTS.md, parser in scripts/device/DeviceResults.mjs). The run
+// passes when the result line is consistent and every test of every suite passed; a failure, a
+// timeout or a missing result line exits non-zero.
 // Prerequisites: scripts/fetch-deps, `npm install` in the root and in example/, `pod install` in
 // example/ios for iOS, ANDROID_HOME for Android, a booted simulator or emulator.
 import { spawn, spawnSync } from "node:child_process";
 import console from "node:console";
-import { existsSync, readFileSync } from "node:fs";
+import { closeSync, existsSync, mkdtempSync, openSync, readFileSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { get } from "node:http";
 import process from "node:process";
 import { clearTimeout, setTimeout } from "node:timers";
 import { fileURLToPath, URL } from "node:url";
+import { checkDeviceResults, formatSummary, hasResultLine, parseDeviceLog } from "./device/DeviceResults.mjs";
 
 const example = fileURLToPath(new URL("../example", import.meta.url));
 const metroPort = 8081;
@@ -24,8 +28,14 @@ const header = readFileSync(
 );
 const version = /#define\s+TEHREER_VERSION_STRING\s+"([^"]+)"/.exec(header)?.[1];
 if (!version) throw new Error("TEHREER_VERSION_STRING not found in TRVersion.h");
-const expected = new RegExp(`^TEHREER_RESULT version=${version.replaceAll(".", "\\.")} smokeTest=true handles=(\\d+)/(\\d+)$`);
+// Counted from the launch of the app: Metro has built the bundle by then (see warmBundle).
 const timeoutMs = 90_000;
+const tailLines = 60;
+
+/** The last lines of a log, for the output of a failed run. */
+function tail(text) {
+  return text.trimEnd().split("\n").slice(-tailLines).join("\n");
+}
 
 function run(command, args, options = {}) {
   const result = spawnSync(command, args, { stdio: "inherit", env: process.env, ...options });
@@ -34,33 +44,47 @@ function run(command, args, options = {}) {
   }
 }
 
-/** Starts the logger, then `launch`, and resolves with the first TEHREER_RESULT line. */
+/** Starts the logger, then `launch`, and resolves with the log up to the first complete TEHREER_RESULT line. */
 function waitForResult(loggerCommand, loggerArgs, launch) {
   return new Promise((resolve, reject) => {
-    const logger = spawn(loggerCommand, loggerArgs, { env: process.env });
-    const timer = setTimeout(() => finish(new Error("timed out waiting for TEHREER_RESULT")), timeoutMs);
+    // Its own process group, so that the readers it starts (`xcrun` runs `log stream` in the
+    // simulator) are stopped with it.
+    const logger = spawn(loggerCommand, loggerArgs, { env: process.env, detached: true });
+    let timer;
+    let launchTimer;
     let buffered = "";
 
-    function finish(error, line) {
+    function finish(error) {
       clearTimeout(timer);
-      logger.kill();
-      if (error) reject(error);
-      else resolve(line);
+      clearTimeout(launchTimer);
+      // Only the group of the logger child is signalled, never a process found by name.
+      try {
+        process.kill(-logger.pid, "SIGTERM");
+      } catch {
+        // Already gone.
+      }
+      if (error) {
+        // The partial log lets the caller still report the suites and failures seen so far.
+        error.log = buffered;
+        reject(error);
+      } else {
+        resolve(buffered);
+      }
     }
 
     logger.stdout.on("data", (chunk) => {
       buffered += chunk.toString();
-      const match = /TEHREER_RESULT [^\r\n]*/.exec(buffered);
-      if (match) {
-        const failures = [...buffered.matchAll(/TEHREER_FAIL [^\r\n]*/g)].map((failure) => failure[0].trim());
-        finish(undefined, { line: match[0].trim(), failures });
-      }
+      if (hasResultLine(buffered)) finish();
     });
     logger.on("error", finish);
+    logger.on("exit", (code) => {
+      if (code !== null && code !== 0) finish(new Error(`the log reader exited with status ${code}`));
+    });
 
-    setTimeout(() => {
+    launchTimer = setTimeout(() => {
       try {
         launch();
+        timer = setTimeout(() => finish(new Error("timed out waiting for TEHREER_RESULT")), timeoutMs);
       } catch (error) {
         finish(error);
       }
@@ -90,24 +114,56 @@ async function waitUntil(condition, message, limitMs) {
 }
 
 /**
+ * The first request builds the JavaScript bundle, which takes minutes on a cold cache. Doing it
+ * before the app is launched keeps that time out of the test timeout. A failure is not fatal: the
+ * app then requests the bundle itself.
+ */
+function warmBundle(bundlePlatform) {
+  return new Promise((resolve) => {
+    const request = get(
+      { host: "localhost", port: metroPort, path: `/index.bundle?platform=${bundlePlatform}&dev=true`, timeout: 300_000 },
+      (response) => {
+        response.resume();
+        response.on("end", resolve);
+        response.on("error", resolve);
+      },
+    );
+    request.on("error", resolve);
+    request.on("timeout", () => {
+      request.destroy();
+      resolve();
+    });
+  });
+}
+
+/**
  * Runs `body` while Metro serves the example app. Metro is started as node on the CLI directly (no
  * npx or shell in between) in its own process group, which is killed afterwards, so that no stale
  * Metro keeps port 8081 and serves an old bundle to the next run.
  */
-async function withMetro(body) {
+async function withMetro(bundlePlatform, body) {
   if ((await metroStatus()) !== undefined) {
     throw new Error(`port ${metroPort} is already served; stop that Metro first`);
   }
 
   const cli = `${example}/node_modules/react-native/cli.js`;
+  // Metro's output is kept so that a failed run can show what it reported.
+  const scratch = mkdtempSync(join(tmpdir(), "tehreer-metro-"));
+  const metroLog = join(scratch, "metro.log");
+  const logFd = openSync(metroLog, "w");
   const metro = spawn(process.execPath, [cli, "start", "--port", String(metroPort)], {
     cwd: example,
-    stdio: "ignore",
+    stdio: ["ignore", logFd, logFd],
     detached: true,
   });
+  closeSync(logFd);
   try {
     await waitUntil(async () => (await metroStatus()) === "packager-status:running", "Metro did not start", 60_000);
+    await warmBundle(bundlePlatform);
     return await body();
+  } catch (error) {
+    console.error(`--- last lines of the Metro log ---\n${tail(readFileSync(metroLog, "utf8"))}\n---`);
+    throw error;
   } finally {
     try {
       process.kill(-metro.pid, "SIGTERM");
@@ -115,6 +171,7 @@ async function withMetro(body) {
       // Already gone.
     }
     await waitUntil(async () => (await metroStatus()) === undefined, `Metro still serves port ${metroPort}`, 10_000);
+    rmSync(scratch, { recursive: true, force: true });
   }
 }
 
@@ -134,7 +191,7 @@ async function ios() {
   ], { cwd: `${example}/ios` });
   run("xcrun", ["simctl", "install", "booted", `${example}/ios/build/Build/Products/Debug-iphonesimulator/TehreerExample.app`]);
 
-  return withMetro(() => {
+  return withMetro("ios", () => {
     spawnSync("xcrun", ["simctl", "terminate", "booted", bundleId]);
     return waitForResult(
       "xcrun",
@@ -165,7 +222,7 @@ async function android() {
   run(adb, device("install", "-r", `${example}/android/app/build/outputs/apk/debug/app-debug.apk`));
   run(adb, device("logcat", "-c"));
 
-  return withMetro(() =>
+  return withMetro("android", () =>
     waitForResult(adb, device("logcat", "-s", "ReactNativeJS:I"), () =>
       run(adb, device("shell", "am", "start", "-n", "com.tehreerexample/.MainActivity"))));
 }
@@ -176,18 +233,30 @@ if (platform !== "ios" && platform !== "android") {
   process.exit(2);
 }
 
+function report(log) {
+  const parsed = parseDeviceLog(log);
+  const summary = formatSummary(parsed);
+  if (summary) console.log(summary);
+  return parsed;
+}
+
 try {
-  const { line, failures } = await (platform === "ios" ? ios() : android());
-  for (const failure of failures) console.log(failure);
-  console.log(line);
-  const match = expected.exec(line);
-  if (!match || failures.length > 0 || match[1] !== match[2] || match[1] === "0") {
-    console.error(`expected: ${expected} with every test passed`);
+  const log = await (platform === "ios" ? ios() : android());
+  const parsed = report(log);
+  const problems = checkDeviceResults(parsed, version);
+  if (problems.length > 0) {
+    console.error(`--- last lines of the device log ---\n${tail(log)}\n---`);
+    for (const problem of problems) console.error(`${platform}: ${problem}`);
+    console.error(`${platform}: failed`);
     process.exit(1);
   }
   console.log(`${platform}: passed`);
   process.exit(0);
 } catch (error) {
+  if (typeof error.log === "string") {
+    report(error.log);
+    console.error(`--- last lines of the device log ---\n${tail(error.log)}\n---`);
+  }
   console.error(`${platform}: failed: ${error.message}`);
   process.exit(1);
 }

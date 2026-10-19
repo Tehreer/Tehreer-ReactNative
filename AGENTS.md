@@ -38,6 +38,19 @@ npm run test:ios
 npm run test:android
 ```
 
+## Device test output
+
+The example app (`example/App.tsx`) runs every suite registered in `example/tests/index.ts` (one `{ name, run(bindings) }` entry per package or issue) and writes these lines to the system log; `scripts/test-device.mjs` parses them with `scripts/device/DeviceResults.mjs`:
+
+```
+TEHREER_SUITE name=<suite> passed=<p> total=<t>
+TEHREER_FAIL <suite>/<test>: <message>
+TEHREER_RESULT version=<Core version> smokeTest=<true|false> suites=<k> passed=<p> total=<t>
+TEHREER_RESULT error=<message>
+```
+
+One `TEHREER_SUITE` line per suite, one `TEHREER_FAIL` line per failed test (a suite that throws as a whole is reported as the failed test `(suite)`), and exactly one final `TEHREER_RESULT`. The run passes only if the version matches Core's, `smokeTest=true`, the suite lines add up to the result line, `total` is not 0 and `passed` equals `total`. A failing test, a timeout (90 s) or a missing result line exits non-zero. Scripts must never kill processes by name or pattern (`pkill`, `killall`); they signal only the pid or process group of a child they spawned (`tests/scripts.test.ts` enforces this).
+
 ## Conventions
 
 - TypeScript strict, ES modules, imports end in `.js`, no default exports, one class per file named after the class.

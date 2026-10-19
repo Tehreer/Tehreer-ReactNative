@@ -249,3 +249,28 @@ test("fetch-deps is idempotent against local repositories", () => {
     }
   });
 });
+
+// A pattern kill can match the shell or tool that runs it (its own command line contains the
+// pattern). Only a pid or a process group of a spawned child may be signalled.
+test("no script or package script kills processes by name or pattern", async () => {
+  const { readdirSync, readFileSync, statSync } = await import("node:fs");
+  const root = new URL("../", import.meta.url).pathname;
+  const files: string[] = [join(root, "package.json")];
+  const walk = (dir: string) => {
+    for (const entry of readdirSync(dir)) {
+      const path = join(dir, entry);
+      if (statSync(path).isDirectory()) walk(path);
+      else files.push(path);
+    }
+  };
+  walk(join(root, "scripts"));
+  walk(join(root, ".github"));
+
+  const banned = /\b(pkill|killall|taskkill|pgrep)\b|\bkill\b[^\n]*\$\(\s*(ps|pgrep)|\bps\b[^\n]*\|[^\n]*\bkill\b/;
+  for (const file of files) {
+    const lines = readFileSync(file, "utf8").split("\n");
+    lines.forEach((line, index) => {
+      assert.doesNotMatch(line, banned, `${file}:${index + 1} kills by name or pattern`);
+    });
+  }
+});
