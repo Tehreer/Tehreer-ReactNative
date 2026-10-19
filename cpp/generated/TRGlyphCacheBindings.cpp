@@ -33,6 +33,7 @@ jsi::Value BindTRGlyphCacheCreate(jsi::Runtime &rt, const jsi::Value &, const js
     TRUInteger a_capacity = marshal::ToIndex(rt, marshal::ArgAt(args, count, 0), kFunction, "capacity");
 
     auto result = TRGlyphCacheCreate(a_capacity);
+    marshal::RethrowCallbackError(rt, result);
     return marshal::FromHandle<TRGlyphCacheRef>(rt, result, marshal::Ownership::Adopt);
 }
 
@@ -40,6 +41,7 @@ jsi::Value BindTRGlyphCacheGetDefault(jsi::Runtime &rt, const jsi::Value &, cons
     [[maybe_unused]] constexpr const char *kFunction = "TRGlyphCacheGetDefault";
 
     auto result = TRGlyphCacheGetDefault();
+    marshal::RethrowCallbackError(rt);
     return marshal::FromHandle<TRGlyphCacheRef>(rt, result, marshal::Ownership::Retain);
 }
 
@@ -48,6 +50,7 @@ jsi::Value BindTRGlyphCacheGetCapacity(jsi::Runtime &rt, const jsi::Value &, con
     TRGlyphCacheRef a_cache = marshal::ToHandle<TRGlyphCacheRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "cache", false);
 
     auto result = TRGlyphCacheGetCapacity(a_cache);
+    marshal::RethrowCallbackError(rt);
     return marshal::FromIndex(rt, result);
 }
 
@@ -57,6 +60,7 @@ jsi::Value BindTRGlyphCacheSetCapacity(jsi::Runtime &rt, const jsi::Value &, con
     TRGlyphCacheRef a_cache = marshal::ToHandle<TRGlyphCacheRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "cache", false);
 
     TRGlyphCacheSetCapacity(a_cache, a_capacity);
+    marshal::RethrowCallbackError(rt);
     return jsi::Value::undefined();
 }
 
@@ -65,6 +69,7 @@ jsi::Value BindTRGlyphCacheGetSize(jsi::Runtime &rt, const jsi::Value &, const j
     TRGlyphCacheRef a_cache = marshal::ToHandle<TRGlyphCacheRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "cache", false);
 
     auto result = TRGlyphCacheGetSize(a_cache);
+    marshal::RethrowCallbackError(rt);
     return marshal::FromIndex(rt, result);
 }
 
@@ -73,6 +78,7 @@ jsi::Value BindTRGlyphCacheClear(jsi::Runtime &rt, const jsi::Value &, const jsi
     TRGlyphCacheRef a_cache = marshal::ToHandle<TRGlyphCacheRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "cache", false);
 
     TRGlyphCacheClear(a_cache);
+    marshal::RethrowCallbackError(rt);
     return jsi::Value::undefined();
 }
 
@@ -81,6 +87,7 @@ jsi::Value BindTRGlyphCacheRetain(jsi::Runtime &rt, const jsi::Value &, const js
     TRGlyphCacheRef a_cache = marshal::ToHandle<TRGlyphCacheRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "cache", false);
 
     auto result = TRGlyphCacheRetain(a_cache);
+    marshal::RethrowCallbackError(rt, result);
     return marshal::FromHandle<TRGlyphCacheRef>(rt, result, marshal::Ownership::Adopt);
 }
 

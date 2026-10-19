@@ -214,6 +214,22 @@ struct Collector {
     }
 };
 
+/**
+ * Callbacks that Core keeps and calls later (a replacement's `computeRoom`) run JavaScript the
+ * app wrote, which can throw, and an exception must never unwind through the C frames of Core. The
+ * runtime's trampolines catch it and remember the first one; every binding asks for it right after
+ * the Core function returns and throws it from there. No JavaScript runs in between, so the
+ * checks cost one read of a thread-local.
+ */
+bool HasCallbackError(jsi::Runtime &rt);
+/** Throws the remembered error, the very value the handler threw, and forgets it. */
+[[noreturn]] void ThrowCallbackError(jsi::Runtime &rt);
+inline void RethrowCallbackError(jsi::Runtime &rt) {
+    if (HasCallbackError(rt)) {
+        ThrowCallbackError(rt);
+    }
+}
+
 } // namespace marshal
 } // namespace tehreer
 

@@ -268,6 +268,22 @@ struct Collector {
     }
 };
 
+/**
+ * Callbacks that Core keeps and calls later (a replacement's \`computeRoom\`) run JavaScript the
+ * app wrote, which can throw, and an exception must never unwind through the C frames of Core. The
+ * runtime's trampolines catch it and remember the first one; every binding asks for it right after
+ * the Core function returns and throws it from there. No JavaScript runs in between, so the
+ * checks cost one read of a thread-local.
+ */
+bool HasCallbackError(jsi::Runtime &rt);
+/** Throws the remembered error, the very value the handler threw, and forgets it. */
+[[noreturn]] void ThrowCallbackError(jsi::Runtime &rt);
+inline void RethrowCallbackError(jsi::Runtime &rt) {
+    if (HasCallbackError(rt)) {
+        ThrowCallbackError(rt);
+    }
+}
+
 } // namespace marshal
 } // namespace tehreer
 
@@ -292,6 +308,19 @@ namespace tehreer {
 namespace marshal {
 
 ${traits}
+
+/**
+ * The same as \`RethrowCallbackError(rt)\` for a Core function that returned a reference that the
+ * caller owns: the reference is released first, so a failed callback leaks nothing.
+ */
+template <class Ref> inline void RethrowCallbackError(jsi::Runtime &rt, Ref owned) {
+    if (HasCallbackError(rt)) {
+        if (owned != nullptr) {
+            HandleTraits<Ref>::Release(owned);
+        }
+        ThrowCallbackError(rt);
+    }
+}
 
 } // namespace marshal
 } // namespace tehreer
@@ -636,6 +665,11 @@ function emitBinding(binding) {
   if (checks.length > 0) body.push("", ...checks);
   body.push("");
   body.push(returnsValue ? `    auto result = ${call};` : `    ${call};`);
+  // A handler of a callback that Core keeps may have thrown during the call. The result of a
+  // function that creates something is released, since nothing owns it yet.
+  body.push(binding.returns.k === "ref" && binding.returns.ownership === "owned"
+    ? "    marshal::RethrowCallbackError(rt, result);"
+    : "    marshal::RethrowCallbackError(rt);");
 
   const outputValue = (output) => output.source === "collector"
     ? "collector.Finish()"

@@ -51,6 +51,7 @@ jsi::Value BindTRLineLocatorCreate(jsi::Runtime &rt, const jsi::Value &, const j
     TRRendererRef a_renderer = marshal::ToHandle<TRRendererRef>(rt, marshal::ArgAt(args, count, 1), kFunction, "renderer", false);
 
     auto result = TRLineLocatorCreate(a_frame, a_renderer);
+    marshal::RethrowCallbackError(rt, result);
     return marshal::FromHandle<TRLineLocatorRef>(rt, result, marshal::Ownership::Adopt);
 }
 
@@ -59,6 +60,7 @@ jsi::Value BindTRLineLocatorGetLineCount(jsi::Runtime &rt, const jsi::Value &, c
     TRLineLocatorRef a_locator = marshal::ToHandle<TRLineLocatorRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "locator", false);
 
     auto result = TRLineLocatorGetLineCount(a_locator);
+    marshal::RethrowCallbackError(rt);
     return marshal::FromIndex(rt, result);
 }
 
@@ -69,6 +71,7 @@ jsi::Value BindTRLineLocatorGetLineBox(jsi::Runtime &rt, const jsi::Value &, con
     TRLineLocatorRef a_locator = marshal::ToHandle<TRLineLocatorRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "locator", false);
 
     auto result = TRLineLocatorGetLineBox(a_locator, a_lineIndex, &o_box);
+    marshal::RethrowCallbackError(rt);
     if (result == TRFalse) {
         return jsi::Value::undefined();
     }
@@ -82,6 +85,7 @@ jsi::Value BindTRLineLocatorEnumerateLines(jsi::Runtime &rt, const jsi::Value &,
     TRLineLocatorRef a_locator = marshal::ToHandle<TRLineLocatorRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "locator", false);
 
     auto result = TRLineLocatorEnumerateLines(a_locator, a_rect, CollectTRLineLocatorEnumerateLines_func, &collector);
+    marshal::RethrowCallbackError(rt);
     jsi::Value items = collector.Finish();
     if (result == TRFalse) {
         return jsi::Value::undefined();
@@ -95,6 +99,7 @@ jsi::Value BindTRLineLocatorGetFirstLineIndexBelow(jsi::Runtime &rt, const jsi::
     TRLineLocatorRef a_locator = marshal::ToHandle<TRLineLocatorRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "locator", false);
 
     auto result = TRLineLocatorGetFirstLineIndexBelow(a_locator, a_y);
+    marshal::RethrowCallbackError(rt);
     return marshal::FromIndex(rt, result);
 }
 
@@ -103,6 +108,7 @@ jsi::Value BindTRLineLocatorRetain(jsi::Runtime &rt, const jsi::Value &, const j
     TRLineLocatorRef a_locator = marshal::ToHandle<TRLineLocatorRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "locator", false);
 
     auto result = TRLineLocatorRetain(a_locator);
+    marshal::RethrowCallbackError(rt, result);
     return marshal::FromHandle<TRLineLocatorRef>(rt, result, marshal::Ownership::Adopt);
 }
 

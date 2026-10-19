@@ -33,6 +33,7 @@ jsi::Value BindTRGlyphRunGetStartIndex(jsi::Runtime &rt, const jsi::Value &, con
     TRGlyphRunRef a_run = marshal::ToHandle<TRGlyphRunRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "run", false);
 
     auto result = TRGlyphRunGetStartIndex(a_run);
+    marshal::RethrowCallbackError(rt);
     return marshal::FromIndex(rt, result);
 }
 
@@ -41,6 +42,7 @@ jsi::Value BindTRGlyphRunGetEndIndex(jsi::Runtime &rt, const jsi::Value &, const
     TRGlyphRunRef a_run = marshal::ToHandle<TRGlyphRunRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "run", false);
 
     auto result = TRGlyphRunGetEndIndex(a_run);
+    marshal::RethrowCallbackError(rt);
     return marshal::FromIndex(rt, result);
 }
 
@@ -49,6 +51,7 @@ jsi::Value BindTRGlyphRunGetStartExtraLength(jsi::Runtime &rt, const jsi::Value 
     TRGlyphRunRef a_run = marshal::ToHandle<TRGlyphRunRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "run", false);
 
     auto result = TRGlyphRunGetStartExtraLength(a_run);
+    marshal::RethrowCallbackError(rt);
     return marshal::FromIndex(rt, result);
 }
 
@@ -57,6 +60,7 @@ jsi::Value BindTRGlyphRunGetEndExtraLength(jsi::Runtime &rt, const jsi::Value &,
     TRGlyphRunRef a_run = marshal::ToHandle<TRGlyphRunRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "run", false);
 
     auto result = TRGlyphRunGetEndExtraLength(a_run);
+    marshal::RethrowCallbackError(rt);
     return marshal::FromIndex(rt, result);
 }
 
@@ -65,6 +69,7 @@ jsi::Value BindTRGlyphRunGetBidiLevel(jsi::Runtime &rt, const jsi::Value &, cons
     TRGlyphRunRef a_run = marshal::ToHandle<TRGlyphRunRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "run", false);
 
     auto result = TRGlyphRunGetBidiLevel(a_run);
+    marshal::RethrowCallbackError(rt);
     return marshal::FromNumber<TRUInt8>(rt, result);
 }
 
@@ -73,6 +78,7 @@ jsi::Value BindTRGlyphRunGetWritingDirection(jsi::Runtime &rt, const jsi::Value 
     TRGlyphRunRef a_run = marshal::ToHandle<TRGlyphRunRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "run", false);
 
     auto result = TRGlyphRunGetWritingDirection(a_run);
+    marshal::RethrowCallbackError(rt);
     return marshal::FromNumber<TRWritingDirection>(rt, result);
 }
 
@@ -81,6 +87,7 @@ jsi::Value BindTRGlyphRunIsBackward(jsi::Runtime &rt, const jsi::Value &, const 
     TRGlyphRunRef a_run = marshal::ToHandle<TRGlyphRunRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "run", false);
 
     auto result = TRGlyphRunIsBackward(a_run);
+    marshal::RethrowCallbackError(rt);
     return marshal::FromBoolean(result != 0);
 }
 
@@ -89,6 +96,7 @@ jsi::Value BindTRGlyphRunGetTypeface(jsi::Runtime &rt, const jsi::Value &, const
     TRGlyphRunRef a_run = marshal::ToHandle<TRGlyphRunRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "run", false);
 
     auto result = TRGlyphRunGetTypeface(a_run);
+    marshal::RethrowCallbackError(rt);
     return marshal::FromHandle<TRTypefaceRef>(rt, result, marshal::Ownership::Retain);
 }
 
@@ -97,6 +105,7 @@ jsi::Value BindTRGlyphRunGetTypeSize(jsi::Runtime &rt, const jsi::Value &, const
     TRGlyphRunRef a_run = marshal::ToHandle<TRGlyphRunRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "run", false);
 
     auto result = TRGlyphRunGetTypeSize(a_run);
+    marshal::RethrowCallbackError(rt);
     return marshal::FromNumber<TRFloat>(rt, result);
 }
 
@@ -105,6 +114,7 @@ jsi::Value BindTRGlyphRunGetScaleX(jsi::Runtime &rt, const jsi::Value &, const j
     TRGlyphRunRef a_run = marshal::ToHandle<TRGlyphRunRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "run", false);
 
     auto result = TRGlyphRunGetScaleX(a_run);
+    marshal::RethrowCallbackError(rt);
     return marshal::FromNumber<TRFloat>(rt, result);
 }
 
@@ -113,6 +123,7 @@ jsi::Value BindTRGlyphRunGetScaleY(jsi::Runtime &rt, const jsi::Value &, const j
     TRGlyphRunRef a_run = marshal::ToHandle<TRGlyphRunRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "run", false);
 
     auto result = TRGlyphRunGetScaleY(a_run);
+    marshal::RethrowCallbackError(rt);
     return marshal::FromNumber<TRFloat>(rt, result);
 }
 
@@ -121,6 +132,7 @@ jsi::Value BindTRGlyphRunGetReplacement(jsi::Runtime &rt, const jsi::Value &, co
     TRGlyphRunRef a_run = marshal::ToHandle<TRGlyphRunRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "run", false);
 
     auto result = TRGlyphRunGetReplacement(a_run);
+    marshal::RethrowCallbackError(rt);
     return marshal::FromHandle<TRReplacementRef>(rt, result, marshal::Ownership::Retain);
 }
 
@@ -130,6 +142,7 @@ jsi::Value BindTRGlyphRunGetForegroundColor(jsi::Runtime &rt, const jsi::Value &
     TRGlyphRunRef a_run = marshal::ToHandle<TRGlyphRunRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "run", false);
 
     auto result = TRGlyphRunGetForegroundColor(a_run, &o_foregroundColor);
+    marshal::RethrowCallbackError(rt);
     if (result == TRFalse) {
         return jsi::Value::undefined();
     }
@@ -142,6 +155,7 @@ jsi::Value BindTRGlyphRunGetBackgroundColor(jsi::Runtime &rt, const jsi::Value &
     TRGlyphRunRef a_run = marshal::ToHandle<TRGlyphRunRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "run", false);
 
     auto result = TRGlyphRunGetBackgroundColor(a_run, &o_backgroundColor);
+    marshal::RethrowCallbackError(rt);
     if (result == TRFalse) {
         return jsi::Value::undefined();
     }
@@ -153,6 +167,7 @@ jsi::Value BindTRGlyphRunHasUnderline(jsi::Runtime &rt, const jsi::Value &, cons
     TRGlyphRunRef a_run = marshal::ToHandle<TRGlyphRunRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "run", false);
 
     auto result = TRGlyphRunHasUnderline(a_run);
+    marshal::RethrowCallbackError(rt);
     return marshal::FromBoolean(result != 0);
 }
 
@@ -161,6 +176,7 @@ jsi::Value BindTRGlyphRunHasStrikethrough(jsi::Runtime &rt, const jsi::Value &, 
     TRGlyphRunRef a_run = marshal::ToHandle<TRGlyphRunRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "run", false);
 
     auto result = TRGlyphRunHasStrikethrough(a_run);
+    marshal::RethrowCallbackError(rt);
     return marshal::FromBoolean(result != 0);
 }
 
@@ -170,6 +186,7 @@ jsi::Value BindTRGlyphRunGetDecorationColor(jsi::Runtime &rt, const jsi::Value &
     TRGlyphRunRef a_run = marshal::ToHandle<TRGlyphRunRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "run", false);
 
     auto result = TRGlyphRunGetDecorationColor(a_run, &o_decorationColor);
+    marshal::RethrowCallbackError(rt);
     if (result == TRFalse) {
         return jsi::Value::undefined();
     }
@@ -181,6 +198,7 @@ jsi::Value BindTRGlyphRunGetUserData(jsi::Runtime &rt, const jsi::Value &, const
     TRGlyphRunRef a_run = marshal::ToHandle<TRGlyphRunRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "run", false);
 
     auto result = TRGlyphRunGetUserData(a_run);
+    marshal::RethrowCallbackError(rt);
     return marshal::FromToken(rt, result);
 }
 
@@ -189,6 +207,7 @@ jsi::Value BindTRGlyphRunGetAscent(jsi::Runtime &rt, const jsi::Value &, const j
     TRGlyphRunRef a_run = marshal::ToHandle<TRGlyphRunRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "run", false);
 
     auto result = TRGlyphRunGetAscent(a_run);
+    marshal::RethrowCallbackError(rt);
     return marshal::FromNumber<TRFloat>(rt, result);
 }
 
@@ -197,6 +216,7 @@ jsi::Value BindTRGlyphRunGetDescent(jsi::Runtime &rt, const jsi::Value &, const 
     TRGlyphRunRef a_run = marshal::ToHandle<TRGlyphRunRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "run", false);
 
     auto result = TRGlyphRunGetDescent(a_run);
+    marshal::RethrowCallbackError(rt);
     return marshal::FromNumber<TRFloat>(rt, result);
 }
 
@@ -205,6 +225,7 @@ jsi::Value BindTRGlyphRunGetLeading(jsi::Runtime &rt, const jsi::Value &, const 
     TRGlyphRunRef a_run = marshal::ToHandle<TRGlyphRunRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "run", false);
 
     auto result = TRGlyphRunGetLeading(a_run);
+    marshal::RethrowCallbackError(rt);
     return marshal::FromNumber<TRFloat>(rt, result);
 }
 
@@ -213,6 +234,7 @@ jsi::Value BindTRGlyphRunGetOrigin(jsi::Runtime &rt, const jsi::Value &, const j
     TRGlyphRunRef a_run = marshal::ToHandle<TRGlyphRunRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "run", false);
 
     auto result = TRGlyphRunGetOrigin(a_run);
+    marshal::RethrowCallbackError(rt);
     return TRPointToJs(rt, result);
 }
 
@@ -221,6 +243,7 @@ jsi::Value BindTRGlyphRunGetWidth(jsi::Runtime &rt, const jsi::Value &, const js
     TRGlyphRunRef a_run = marshal::ToHandle<TRGlyphRunRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "run", false);
 
     auto result = TRGlyphRunGetWidth(a_run);
+    marshal::RethrowCallbackError(rt);
     return marshal::FromNumber<TRFloat>(rt, result);
 }
 
@@ -229,6 +252,7 @@ jsi::Value BindTRGlyphRunGetHeight(jsi::Runtime &rt, const jsi::Value &, const j
     TRGlyphRunRef a_run = marshal::ToHandle<TRGlyphRunRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "run", false);
 
     auto result = TRGlyphRunGetHeight(a_run);
+    marshal::RethrowCallbackError(rt);
     return marshal::FromNumber<TRFloat>(rt, result);
 }
 
@@ -237,6 +261,7 @@ jsi::Value BindTRGlyphRunGetGlyphCount(jsi::Runtime &rt, const jsi::Value &, con
     TRGlyphRunRef a_run = marshal::ToHandle<TRGlyphRunRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "run", false);
 
     auto result = TRGlyphRunGetGlyphCount(a_run);
+    marshal::RethrowCallbackError(rt);
     return marshal::FromIndex(rt, result);
 }
 
@@ -245,6 +270,7 @@ jsi::Value BindTRGlyphRunGetGlyphIDsPtr(jsi::Runtime &rt, const jsi::Value &, co
     TRGlyphRunRef a_run = marshal::ToHandle<TRGlyphRunRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "run", false);
 
     auto result = TRGlyphRunGetGlyphIDsPtr(a_run);
+    marshal::RethrowCallbackError(rt);
     return marshal::MakePointerView(rt, result, "TRGlyphID", sizeof(TRGlyphID), marshal::ArgAt(args, count, 0));
 }
 
@@ -253,6 +279,7 @@ jsi::Value BindTRGlyphRunGetGlyphOffsetsPtr(jsi::Runtime &rt, const jsi::Value &
     TRGlyphRunRef a_run = marshal::ToHandle<TRGlyphRunRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "run", false);
 
     auto result = TRGlyphRunGetGlyphOffsetsPtr(a_run);
+    marshal::RethrowCallbackError(rt);
     return marshal::MakePointerView(rt, result, "TRPoint", sizeof(TRPoint), marshal::ArgAt(args, count, 0));
 }
 
@@ -261,6 +288,7 @@ jsi::Value BindTRGlyphRunGetGlyphAdvancesPtr(jsi::Runtime &rt, const jsi::Value 
     TRGlyphRunRef a_run = marshal::ToHandle<TRGlyphRunRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "run", false);
 
     auto result = TRGlyphRunGetGlyphAdvancesPtr(a_run);
+    marshal::RethrowCallbackError(rt);
     return marshal::MakePointerView(rt, result, "TRFloat", sizeof(TRFloat), marshal::ArgAt(args, count, 0));
 }
 
@@ -269,6 +297,7 @@ jsi::Value BindTRGlyphRunGetClusterMapPtr(jsi::Runtime &rt, const jsi::Value &, 
     TRGlyphRunRef a_run = marshal::ToHandle<TRGlyphRunRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "run", false);
 
     auto result = TRGlyphRunGetClusterMapPtr(a_run);
+    marshal::RethrowCallbackError(rt);
     return marshal::MakePointerView(rt, result, "TRUInteger", sizeof(TRUInteger), marshal::ArgAt(args, count, 0));
 }
 
@@ -277,6 +306,7 @@ jsi::Value BindTRGlyphRunGetClusterMapCount(jsi::Runtime &rt, const jsi::Value &
     TRGlyphRunRef a_run = marshal::ToHandle<TRGlyphRunRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "run", false);
 
     auto result = TRGlyphRunGetClusterMapCount(a_run);
+    marshal::RethrowCallbackError(rt);
     return marshal::FromIndex(rt, result);
 }
 
@@ -286,6 +316,7 @@ jsi::Value BindTRGlyphRunGetClusterStart(jsi::Runtime &rt, const jsi::Value &, c
     TRGlyphRunRef a_run = marshal::ToHandle<TRGlyphRunRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "run", false);
 
     auto result = TRGlyphRunGetClusterStart(a_run, a_codeUnitIndex);
+    marshal::RethrowCallbackError(rt);
     return marshal::FromIndex(rt, result);
 }
 
@@ -295,6 +326,7 @@ jsi::Value BindTRGlyphRunGetClusterEnd(jsi::Runtime &rt, const jsi::Value &, con
     TRGlyphRunRef a_run = marshal::ToHandle<TRGlyphRunRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "run", false);
 
     auto result = TRGlyphRunGetClusterEnd(a_run, a_codeUnitIndex);
+    marshal::RethrowCallbackError(rt);
     return marshal::FromIndex(rt, result);
 }
 
@@ -305,6 +337,7 @@ jsi::Value BindTRGlyphRunGetCodeUnitDistance(jsi::Runtime &rt, const jsi::Value 
     TRGlyphRunRef a_run = marshal::ToHandle<TRGlyphRunRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "run", false);
 
     auto result = TRGlyphRunGetCodeUnitDistance(a_run, a_codeUnitIndex, &o_distance);
+    marshal::RethrowCallbackError(rt);
     if (result == TRFalse) {
         return jsi::Value::undefined();
     }
@@ -317,6 +350,7 @@ jsi::Value BindTRGlyphRunGetCodeUnitIndexAtDistance(jsi::Runtime &rt, const jsi:
     TRGlyphRunRef a_run = marshal::ToHandle<TRGlyphRunRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "run", false);
 
     auto result = TRGlyphRunGetCodeUnitIndexAtDistance(a_run, a_distance);
+    marshal::RethrowCallbackError(rt);
     return marshal::FromIndex(rt, result);
 }
 
@@ -326,6 +360,7 @@ jsi::Value BindTRGlyphRunComputeInkBox(jsi::Runtime &rt, const jsi::Value &, con
     TRRendererRef a_renderer = marshal::ToHandle<TRRendererRef>(rt, marshal::ArgAt(args, count, 1), kFunction, "renderer", true);
 
     auto result = TRGlyphRunComputeInkBox(a_run, a_renderer);
+    marshal::RethrowCallbackError(rt);
     return TRRectToJs(rt, result);
 }
 
@@ -336,6 +371,7 @@ jsi::Value BindTRGlyphRunDraw(jsi::Runtime &rt, const jsi::Value &, const jsi::V
     TRRendererRef a_renderer = marshal::ToHandle<TRRendererRef>(rt, marshal::ArgAt(args, count, 1), kFunction, "renderer", true);
 
     TRGlyphRunDraw(a_run, a_renderer, a_origin);
+    marshal::RethrowCallbackError(rt);
     return jsi::Value::undefined();
 }
 
@@ -344,6 +380,7 @@ jsi::Value BindTRGlyphRunRetain(jsi::Runtime &rt, const jsi::Value &, const jsi:
     TRGlyphRunRef a_run = marshal::ToHandle<TRGlyphRunRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "run", false);
 
     auto result = TRGlyphRunRetain(a_run);
+    marshal::RethrowCallbackError(rt, result);
     return marshal::FromHandle<TRGlyphRunRef>(rt, result, marshal::Ownership::Adopt);
 }
 

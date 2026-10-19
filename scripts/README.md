@@ -56,9 +56,11 @@ A function that returns `TRBoolean` and fills in values gives `undefined` for `T
 
 **Ownership** follows Core's naming: a function with `Create` or `Copy` in its name, and `Retain`, returns a reference the handle adopts; `Get` returns one the handle retains first. Any other name returning a reference is refused (ownership unknown). `TR*Release` is not bound: a handle releases its single reference on `dispose()` or collection, and a release from JavaScript would free it twice.
 
-**Callbacks never run JavaScript the caller wrote.** The generated trampolines turn each call into an item and append it to a `marshal::Collector`; if making an item throws, the first error is kept, `stop` is set, and the error is rethrown when the Core function returns.
+**Collecting callbacks never run JavaScript the caller wrote.** The generated trampolines turn each call into an item and append it to a `marshal::Collector`; if making an item throws, the first error is kept, `stop` is set, and the error is rethrown when the Core function returns.
 
-A collecting callback is given the address of a `marshal::Collector` on the stack as its `userData`. That is an exception to the rule of the skill (section 4) that `userData` is a key into a handler table, and it is safe because the enumeration is synchronous and Core keeps no callback after the call returns. Callbacks that Core keeps and calls later (such as `TRReplacementCreate`, which is bound by hand) use the handler table.
+A collecting callback is given the address of a `marshal::Collector` on the stack as its `userData`. That is an exception to the rule of the skill (section 4) that `userData` is a key into a handler table, and it is safe because the enumeration is synchronous and Core keeps no callback after the call returns. Callbacks that Core keeps and calls later (`TRReplacementCreate`, bound by hand in `cpp/runtime/ReplacementBindings.cpp`) use the handler table, and run a handler that the app wrote, which can throw.
+
+**Every binding checks for such an error.** Right after the Core call (before any result is converted) the generated code calls `marshal::RethrowCallbackError(rt)`, which throws the error that a trampoline of the runtime recorded and does nothing otherwise. A function that returns a reference the caller owns (`Create`, `Copy`, `Retain`) calls `RethrowCallbackError(rt, result)`, which releases that reference first so a failed callback leaks nothing. `GeneratedSupport.h` declares `HasCallbackError` and `ThrowCallbackError`, which `cpp/runtime/Callbacks.cpp` defines; `tests/callbacks.test.ts` requires the call after the call to Core in every binding.
 
 **Handles remember mutability.** A handle made from a `const` reference type (`TRTextRef`) is refused where a non-const type (`TRMutableTextRef`) is expected, so an object Core documents as immutable is never mutated; a mutable handle is accepted for both.
 
@@ -75,7 +77,7 @@ A collecting callback is given the address of a `marshal::Collector` on the stac
 | Set | Functions | Why |
 |-----|-----------|-----|
 | `EXCLUDED` | `TRVersionGetString`, `TRTextGetSheenBidiText` | declared but not implemented / needs SheenBidi's text API |
-| `MANUAL` | draw callbacks and user data of the renderer, native data of a glyph image, `TRReplacementCreate`, `TRTextSetAttribute`, `TRTypesetterCreate` | C function pointers that stay native, retained callbacks that need the handler table, and the union `TRAttributeValue` written by the attribute codec; `cpp/runtime` binds them by hand |
+| `MANUAL` | draw callbacks and user data of the renderer, native data of a glyph image, `TRReplacementCreate`, `TRTextSetAttribute`, `TRTypesetterCreate` | C function pointers that stay native, retained callbacks that need the handler table (`TRReplacementCreate`, the only one, bound in `cpp/runtime/ReplacementBindings.cpp`), and the union `TRAttributeValue` written by the attribute codec; `cpp/runtime` binds them by hand |
 | releases | every `TR*Release` | see Ownership |
 
 A name in `EXCLUDED`, `MANUAL` or `BOUNDS` that no header declares stops the generator, so these lists cannot go stale quietly.

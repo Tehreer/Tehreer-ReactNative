@@ -50,6 +50,7 @@ jsi::Value BindTRComposedFrameGetStartIndex(jsi::Runtime &rt, const jsi::Value &
     TRComposedFrameRef a_frame = marshal::ToHandle<TRComposedFrameRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "frame", false);
 
     auto result = TRComposedFrameGetStartIndex(a_frame);
+    marshal::RethrowCallbackError(rt);
     return marshal::FromIndex(rt, result);
 }
 
@@ -58,6 +59,7 @@ jsi::Value BindTRComposedFrameGetEndIndex(jsi::Runtime &rt, const jsi::Value &, 
     TRComposedFrameRef a_frame = marshal::ToHandle<TRComposedFrameRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "frame", false);
 
     auto result = TRComposedFrameGetEndIndex(a_frame);
+    marshal::RethrowCallbackError(rt);
     return marshal::FromIndex(rt, result);
 }
 
@@ -66,6 +68,7 @@ jsi::Value BindTRComposedFrameGetWidth(jsi::Runtime &rt, const jsi::Value &, con
     TRComposedFrameRef a_frame = marshal::ToHandle<TRComposedFrameRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "frame", false);
 
     auto result = TRComposedFrameGetWidth(a_frame);
+    marshal::RethrowCallbackError(rt);
     return marshal::FromNumber<TRFloat>(rt, result);
 }
 
@@ -74,6 +77,7 @@ jsi::Value BindTRComposedFrameGetHeight(jsi::Runtime &rt, const jsi::Value &, co
     TRComposedFrameRef a_frame = marshal::ToHandle<TRComposedFrameRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "frame", false);
 
     auto result = TRComposedFrameGetHeight(a_frame);
+    marshal::RethrowCallbackError(rt);
     return marshal::FromNumber<TRFloat>(rt, result);
 }
 
@@ -82,6 +86,7 @@ jsi::Value BindTRComposedFrameGetLineCount(jsi::Runtime &rt, const jsi::Value &,
     TRComposedFrameRef a_frame = marshal::ToHandle<TRComposedFrameRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "frame", false);
 
     auto result = TRComposedFrameGetLineCount(a_frame);
+    marshal::RethrowCallbackError(rt);
     return marshal::FromIndex(rt, result);
 }
 
@@ -91,6 +96,7 @@ jsi::Value BindTRComposedFrameGetLine(jsi::Runtime &rt, const jsi::Value &, cons
     TRComposedFrameRef a_frame = marshal::ToHandle<TRComposedFrameRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "frame", false);
 
     auto result = TRComposedFrameGetLine(a_frame, a_index);
+    marshal::RethrowCallbackError(rt);
     return marshal::FromHandle<TRComposedLineRef>(rt, result, marshal::Ownership::Retain);
 }
 
@@ -100,6 +106,7 @@ jsi::Value BindTRComposedFrameGetLineIndexForCodeUnit(jsi::Runtime &rt, const js
     TRComposedFrameRef a_frame = marshal::ToHandle<TRComposedFrameRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "frame", false);
 
     auto result = TRComposedFrameGetLineIndexForCodeUnit(a_frame, a_codeUnitIndex);
+    marshal::RethrowCallbackError(rt);
     return marshal::FromIndex(rt, result);
 }
 
@@ -109,6 +116,7 @@ jsi::Value BindTRComposedFrameGetLineIndexAtPosition(jsi::Runtime &rt, const jsi
     TRComposedFrameRef a_frame = marshal::ToHandle<TRComposedFrameRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "frame", false);
 
     auto result = TRComposedFrameGetLineIndexAtPosition(a_frame, a_position);
+    marshal::RethrowCallbackError(rt);
     return marshal::FromIndex(rt, result);
 }
 
@@ -120,6 +128,7 @@ jsi::Value BindTRComposedFrameEnumerateSelection(jsi::Runtime &rt, const jsi::Va
     TRComposedFrameRef a_frame = marshal::ToHandle<TRComposedFrameRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "frame", false);
 
     auto result = TRComposedFrameEnumerateSelection(a_frame, a_index, a_length, CollectTRComposedFrameEnumerateSelection_func, &collector);
+    marshal::RethrowCallbackError(rt);
     jsi::Value items = collector.Finish();
     if (result == TRFalse) {
         return jsi::Value::undefined();
@@ -134,6 +143,7 @@ jsi::Value BindTRComposedFrameDraw(jsi::Runtime &rt, const jsi::Value &, const j
     TRRendererRef a_renderer = marshal::ToHandle<TRRendererRef>(rt, marshal::ArgAt(args, count, 1), kFunction, "renderer", true);
 
     TRComposedFrameDraw(a_frame, a_renderer, a_origin);
+    marshal::RethrowCallbackError(rt);
     return jsi::Value::undefined();
 }
 
@@ -142,6 +152,7 @@ jsi::Value BindTRComposedFrameRetain(jsi::Runtime &rt, const jsi::Value &, const
     TRComposedFrameRef a_frame = marshal::ToHandle<TRComposedFrameRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "frame", false);
 
     auto result = TRComposedFrameRetain(a_frame);
+    marshal::RethrowCallbackError(rt, result);
     return marshal::FromHandle<TRComposedFrameRef>(rt, result, marshal::Ownership::Adopt);
 }
 

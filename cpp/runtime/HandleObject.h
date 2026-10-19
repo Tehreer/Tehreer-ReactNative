@@ -37,6 +37,9 @@ public:
     /** Releases the reference. Does nothing the second time. */
     void Dispose();
 
+    /** Gives the reference to the caller, who must release it, and leaves the handle disposed. */
+    void *Take();
+
 private:
     void *_ref;
     const char *_group;

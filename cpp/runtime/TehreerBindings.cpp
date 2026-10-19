@@ -1,8 +1,10 @@
 #include "TehreerBindings.h"
 
 #include "../generated/Bindings.h"
+#include "CallbackBindings.h"
 #include "Errors.h"
 #include "HandleObject.h"
+#include "HandlerTable.h"
 #include "StructCodecs.h"
 
 #include <Tehreer/Tehreer.h>
@@ -204,6 +206,12 @@ void InstallBindings(jsi::Runtime &runtime) {
 
     jsi::Object bindings(runtime);
     generated::InstallBindings(runtime, bindings);
+    InstallCallbackBindings(runtime, bindings);
+
+    // Its destructor ends the handlers of this runtime when the engine shuts down (see HandlerTable).
+    // The bindings are frozen and read-only on global, so it stays reachable until then.
+    bindings.setProperty(runtime, "lifetime", jsi::Object::createFromHostObject(
+        runtime, runtime::HandlerTable::Shared().Attach(runtime)));
 
     Define(runtime, bindings, "getVersion", 0, GetVersion);
     Define(runtime, bindings, "smokeTest", 0, SmokeTest);
@@ -216,6 +224,7 @@ void InstallBindings(jsi::Runtime &runtime) {
     Define(runtime, bindings, "testCollectGarbage", 0, CollectGarbage);
     Define(runtime, bindings, "testRoundTripStruct", 2, RoundTripStruct);
     Define(runtime, bindings, "testGetStructNames", 0, GetStructNames);
+    InstallCallbackTestHooks(runtime, bindings);
 #endif
 
     jsi::Object objectConstructor = global.getPropertyAsObject(runtime, "Object");

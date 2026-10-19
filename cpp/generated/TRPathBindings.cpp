@@ -155,6 +155,7 @@ jsi::Value BindTRPathEnumerate(jsi::Runtime &rt, const jsi::Value &, const jsi::
     TRPathRef a_path = marshal::ToHandle<TRPathRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "path", false);
 
     auto result = TRPathEnumerate(a_path, a_transform, &callbacks, &collector);
+    marshal::RethrowCallbackError(rt);
     jsi::Value items = collector.Finish();
     if (result == TRFalse) {
         return jsi::Value::undefined();
@@ -167,6 +168,7 @@ jsi::Value BindTRPathRetain(jsi::Runtime &rt, const jsi::Value &, const jsi::Val
     TRPathRef a_path = marshal::ToHandle<TRPathRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "path", false);
 
     auto result = TRPathRetain(a_path);
+    marshal::RethrowCallbackError(rt, result);
     return marshal::FromHandle<TRPathRef>(rt, result, marshal::Ownership::Adopt);
 }
 

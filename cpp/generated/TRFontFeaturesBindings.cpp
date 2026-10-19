@@ -49,6 +49,7 @@ jsi::Value BindTRFontFeaturesCreate(jsi::Runtime &rt, const jsi::Value &, const 
     }
 
     auto result = TRFontFeaturesCreate(a_features, a_count);
+    marshal::RethrowCallbackError(rt, result);
     return marshal::FromHandle<TRFontFeaturesRef>(rt, result, marshal::Ownership::Adopt);
 }
 
@@ -57,6 +58,7 @@ jsi::Value BindTRFontFeaturesGetItemsPtr(jsi::Runtime &rt, const jsi::Value &, c
     TRFontFeaturesRef a_features = marshal::ToHandle<TRFontFeaturesRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "features", false);
 
     auto result = TRFontFeaturesGetItemsPtr(a_features);
+    marshal::RethrowCallbackError(rt);
     return marshal::MakePointerView(rt, result, "TROpenTypeFeature", sizeof(TROpenTypeFeature), marshal::ArgAt(args, count, 0));
 }
 
@@ -65,6 +67,7 @@ jsi::Value BindTRFontFeaturesGetCount(jsi::Runtime &rt, const jsi::Value &, cons
     TRFontFeaturesRef a_features = marshal::ToHandle<TRFontFeaturesRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "features", false);
 
     auto result = TRFontFeaturesGetCount(a_features);
+    marshal::RethrowCallbackError(rt);
     return marshal::FromIndex(rt, result);
 }
 
@@ -73,6 +76,7 @@ jsi::Value BindTRFontFeaturesRetain(jsi::Runtime &rt, const jsi::Value &, const 
     TRFontFeaturesRef a_features = marshal::ToHandle<TRFontFeaturesRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "features", false);
 
     auto result = TRFontFeaturesRetain(a_features);
+    marshal::RethrowCallbackError(rt, result);
     return marshal::FromHandle<TRFontFeaturesRef>(rt, result, marshal::Ownership::Adopt);
 }
 

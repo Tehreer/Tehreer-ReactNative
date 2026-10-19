@@ -53,6 +53,7 @@ jsi::Value BindTRComposedLineGetStartIndex(jsi::Runtime &rt, const jsi::Value &,
     TRComposedLineRef a_line = marshal::ToHandle<TRComposedLineRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "line", false);
 
     auto result = TRComposedLineGetStartIndex(a_line);
+    marshal::RethrowCallbackError(rt);
     return marshal::FromIndex(rt, result);
 }
 
@@ -61,6 +62,7 @@ jsi::Value BindTRComposedLineGetEndIndex(jsi::Runtime &rt, const jsi::Value &, c
     TRComposedLineRef a_line = marshal::ToHandle<TRComposedLineRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "line", false);
 
     auto result = TRComposedLineGetEndIndex(a_line);
+    marshal::RethrowCallbackError(rt);
     return marshal::FromIndex(rt, result);
 }
 
@@ -69,6 +71,7 @@ jsi::Value BindTRComposedLineGetParagraphLevel(jsi::Runtime &rt, const jsi::Valu
     TRComposedLineRef a_line = marshal::ToHandle<TRComposedLineRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "line", false);
 
     auto result = TRComposedLineGetParagraphLevel(a_line);
+    marshal::RethrowCallbackError(rt);
     return marshal::FromNumber<TRUInt8>(rt, result);
 }
 
@@ -77,6 +80,7 @@ jsi::Value BindTRComposedLineGetOrigin(jsi::Runtime &rt, const jsi::Value &, con
     TRComposedLineRef a_line = marshal::ToHandle<TRComposedLineRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "line", false);
 
     auto result = TRComposedLineGetOrigin(a_line);
+    marshal::RethrowCallbackError(rt);
     return TRPointToJs(rt, result);
 }
 
@@ -85,6 +89,7 @@ jsi::Value BindTRComposedLineGetAscent(jsi::Runtime &rt, const jsi::Value &, con
     TRComposedLineRef a_line = marshal::ToHandle<TRComposedLineRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "line", false);
 
     auto result = TRComposedLineGetAscent(a_line);
+    marshal::RethrowCallbackError(rt);
     return marshal::FromNumber<TRFloat>(rt, result);
 }
 
@@ -93,6 +98,7 @@ jsi::Value BindTRComposedLineGetDescent(jsi::Runtime &rt, const jsi::Value &, co
     TRComposedLineRef a_line = marshal::ToHandle<TRComposedLineRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "line", false);
 
     auto result = TRComposedLineGetDescent(a_line);
+    marshal::RethrowCallbackError(rt);
     return marshal::FromNumber<TRFloat>(rt, result);
 }
 
@@ -101,6 +107,7 @@ jsi::Value BindTRComposedLineGetLeading(jsi::Runtime &rt, const jsi::Value &, co
     TRComposedLineRef a_line = marshal::ToHandle<TRComposedLineRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "line", false);
 
     auto result = TRComposedLineGetLeading(a_line);
+    marshal::RethrowCallbackError(rt);
     return marshal::FromNumber<TRFloat>(rt, result);
 }
 
@@ -109,6 +116,7 @@ jsi::Value BindTRComposedLineGetWidth(jsi::Runtime &rt, const jsi::Value &, cons
     TRComposedLineRef a_line = marshal::ToHandle<TRComposedLineRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "line", false);
 
     auto result = TRComposedLineGetWidth(a_line);
+    marshal::RethrowCallbackError(rt);
     return marshal::FromNumber<TRFloat>(rt, result);
 }
 
@@ -117,6 +125,7 @@ jsi::Value BindTRComposedLineGetHeight(jsi::Runtime &rt, const jsi::Value &, con
     TRComposedLineRef a_line = marshal::ToHandle<TRComposedLineRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "line", false);
 
     auto result = TRComposedLineGetHeight(a_line);
+    marshal::RethrowCallbackError(rt);
     return marshal::FromNumber<TRFloat>(rt, result);
 }
 
@@ -125,6 +134,7 @@ jsi::Value BindTRComposedLineGetTrailingWhitespaceExtent(jsi::Runtime &rt, const
     TRComposedLineRef a_line = marshal::ToHandle<TRComposedLineRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "line", false);
 
     auto result = TRComposedLineGetTrailingWhitespaceExtent(a_line);
+    marshal::RethrowCallbackError(rt);
     return marshal::FromNumber<TRFloat>(rt, result);
 }
 
@@ -133,6 +143,7 @@ jsi::Value BindTRComposedLineIsBlock(jsi::Runtime &rt, const jsi::Value &, const
     TRComposedLineRef a_line = marshal::ToHandle<TRComposedLineRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "line", false);
 
     auto result = TRComposedLineIsBlock(a_line);
+    marshal::RethrowCallbackError(rt);
     return marshal::FromBoolean(result != 0);
 }
 
@@ -141,6 +152,7 @@ jsi::Value BindTRComposedLineIsTruncated(jsi::Runtime &rt, const jsi::Value &, c
     TRComposedLineRef a_line = marshal::ToHandle<TRComposedLineRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "line", false);
 
     auto result = TRComposedLineIsTruncated(a_line);
+    marshal::RethrowCallbackError(rt);
     return marshal::FromBoolean(result != 0);
 }
 
@@ -149,6 +161,7 @@ jsi::Value BindTRComposedLineGetGlyphRunCount(jsi::Runtime &rt, const jsi::Value
     TRComposedLineRef a_line = marshal::ToHandle<TRComposedLineRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "line", false);
 
     auto result = TRComposedLineGetGlyphRunCount(a_line);
+    marshal::RethrowCallbackError(rt);
     return marshal::FromIndex(rt, result);
 }
 
@@ -158,6 +171,7 @@ jsi::Value BindTRComposedLineGetGlyphRun(jsi::Runtime &rt, const jsi::Value &, c
     TRComposedLineRef a_line = marshal::ToHandle<TRComposedLineRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "line", false);
 
     auto result = TRComposedLineGetGlyphRun(a_line, a_index);
+    marshal::RethrowCallbackError(rt);
     return marshal::FromHandle<TRGlyphRunRef>(rt, result, marshal::Ownership::Retain);
 }
 
@@ -168,6 +182,7 @@ jsi::Value BindTRComposedLineGetCodeUnitDistance(jsi::Runtime &rt, const jsi::Va
     TRComposedLineRef a_line = marshal::ToHandle<TRComposedLineRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "line", false);
 
     auto result = TRComposedLineGetCodeUnitDistance(a_line, a_codeUnitIndex, &o_distance);
+    marshal::RethrowCallbackError(rt);
     if (result == TRFalse) {
         return jsi::Value::undefined();
     }
@@ -182,6 +197,7 @@ jsi::Value BindTRComposedLineEnumerateVisualEdges(jsi::Runtime &rt, const jsi::V
     TRComposedLineRef a_line = marshal::ToHandle<TRComposedLineRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "line", false);
 
     auto result = TRComposedLineEnumerateVisualEdges(a_line, a_index, a_length, CollectTRComposedLineEnumerateVisualEdges_func, &collector);
+    marshal::RethrowCallbackError(rt);
     jsi::Value items = collector.Finish();
     if (result == TRFalse) {
         return jsi::Value::undefined();
@@ -195,6 +211,7 @@ jsi::Value BindTRComposedLineGetCodeUnitIndexAtDistance(jsi::Runtime &rt, const 
     TRComposedLineRef a_line = marshal::ToHandle<TRComposedLineRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "line", false);
 
     auto result = TRComposedLineGetCodeUnitIndexAtDistance(a_line, a_distance);
+    marshal::RethrowCallbackError(rt);
     return marshal::FromIndex(rt, result);
 }
 
@@ -205,6 +222,7 @@ jsi::Value BindTRComposedLineGetPenOffset(jsi::Runtime &rt, const jsi::Value &, 
     TRComposedLineRef a_line = marshal::ToHandle<TRComposedLineRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "line", false);
 
     auto result = TRComposedLineGetPenOffset(a_line, a_flushFactor, a_flushExtent);
+    marshal::RethrowCallbackError(rt);
     return marshal::FromNumber<TRFloat>(rt, result);
 }
 
@@ -214,6 +232,7 @@ jsi::Value BindTRComposedLineComputeInkBox(jsi::Runtime &rt, const jsi::Value &,
     TRRendererRef a_renderer = marshal::ToHandle<TRRendererRef>(rt, marshal::ArgAt(args, count, 1), kFunction, "renderer", false);
 
     auto result = TRComposedLineComputeInkBox(a_line, a_renderer);
+    marshal::RethrowCallbackError(rt);
     return TRRectToJs(rt, result);
 }
 
@@ -224,6 +243,7 @@ jsi::Value BindTRComposedLineDraw(jsi::Runtime &rt, const jsi::Value &, const js
     TRRendererRef a_renderer = marshal::ToHandle<TRRendererRef>(rt, marshal::ArgAt(args, count, 1), kFunction, "renderer", true);
 
     TRComposedLineDraw(a_line, a_renderer, a_origin);
+    marshal::RethrowCallbackError(rt);
     return jsi::Value::undefined();
 }
 
@@ -232,6 +252,7 @@ jsi::Value BindTRComposedLineRetain(jsi::Runtime &rt, const jsi::Value &, const 
     TRComposedLineRef a_line = marshal::ToHandle<TRComposedLineRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "line", false);
 
     auto result = TRComposedLineRetain(a_line);
+    marshal::RethrowCallbackError(rt, result);
     return marshal::FromHandle<TRComposedLineRef>(rt, result, marshal::Ownership::Adopt);
 }
 

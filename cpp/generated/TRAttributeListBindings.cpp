@@ -34,6 +34,7 @@ jsi::Value BindTRAttributeListGetItem(jsi::Runtime &rt, const jsi::Value &, cons
     TRAttributeListRef a_list = marshal::ToHandle<TRAttributeListRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "list", false);
 
     auto result = TRAttributeListGetItem(a_list, a_index);
+    marshal::RethrowCallbackError(rt);
     return marshal::MakePointerView(rt, result, "TRAttribute", sizeof(TRAttribute), marshal::ArgAt(args, count, 0));
 }
 
@@ -42,6 +43,7 @@ jsi::Value BindTRAttributeListGetCount(jsi::Runtime &rt, const jsi::Value &, con
     TRAttributeListRef a_list = marshal::ToHandle<TRAttributeListRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "list", false);
 
     auto result = TRAttributeListGetCount(a_list);
+    marshal::RethrowCallbackError(rt);
     return marshal::FromIndex(rt, result);
 }
 
@@ -50,6 +52,7 @@ jsi::Value BindTRAttributeListRetain(jsi::Runtime &rt, const jsi::Value &, const
     TRAttributeListRef a_list = marshal::ToHandle<TRAttributeListRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "list", false);
 
     auto result = TRAttributeListRetain(a_list);
+    marshal::RethrowCallbackError(rt, result);
     return marshal::FromHandle<TRAttributeListRef>(rt, result, marshal::Ownership::Adopt);
 }
 

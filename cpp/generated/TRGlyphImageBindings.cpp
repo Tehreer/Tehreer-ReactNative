@@ -33,6 +33,7 @@ jsi::Value BindTRGlyphImageGetFormat(jsi::Runtime &rt, const jsi::Value &, const
     TRGlyphImageRef a_image = marshal::ToHandle<TRGlyphImageRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "image", false);
 
     auto result = TRGlyphImageGetFormat(a_image);
+    marshal::RethrowCallbackError(rt);
     return marshal::FromNumber<TRGlyphImageFormat>(rt, result);
 }
 
@@ -41,6 +42,7 @@ jsi::Value BindTRGlyphImageGetLeft(jsi::Runtime &rt, const jsi::Value &, const j
     TRGlyphImageRef a_image = marshal::ToHandle<TRGlyphImageRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "image", false);
 
     auto result = TRGlyphImageGetLeft(a_image);
+    marshal::RethrowCallbackError(rt);
     return marshal::FromNumber<TRInt32>(rt, result);
 }
 
@@ -49,6 +51,7 @@ jsi::Value BindTRGlyphImageGetTop(jsi::Runtime &rt, const jsi::Value &, const js
     TRGlyphImageRef a_image = marshal::ToHandle<TRGlyphImageRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "image", false);
 
     auto result = TRGlyphImageGetTop(a_image);
+    marshal::RethrowCallbackError(rt);
     return marshal::FromNumber<TRInt32>(rt, result);
 }
 
@@ -57,6 +60,7 @@ jsi::Value BindTRGlyphImageGetWidth(jsi::Runtime &rt, const jsi::Value &, const 
     TRGlyphImageRef a_image = marshal::ToHandle<TRGlyphImageRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "image", false);
 
     auto result = TRGlyphImageGetWidth(a_image);
+    marshal::RethrowCallbackError(rt);
     return marshal::FromNumber<TRUInt32>(rt, result);
 }
 
@@ -65,6 +69,7 @@ jsi::Value BindTRGlyphImageGetHeight(jsi::Runtime &rt, const jsi::Value &, const
     TRGlyphImageRef a_image = marshal::ToHandle<TRGlyphImageRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "image", false);
 
     auto result = TRGlyphImageGetHeight(a_image);
+    marshal::RethrowCallbackError(rt);
     return marshal::FromNumber<TRUInt32>(rt, result);
 }
 
@@ -73,6 +78,7 @@ jsi::Value BindTRGlyphImageGetPixelsPtr(jsi::Runtime &rt, const jsi::Value &, co
     TRGlyphImageRef a_image = marshal::ToHandle<TRGlyphImageRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "image", false);
 
     auto result = TRGlyphImageGetPixelsPtr(a_image);
+    marshal::RethrowCallbackError(rt);
     return marshal::MakePointerView(rt, result, "TRUInt8", sizeof(TRUInt8), marshal::ArgAt(args, count, 0));
 }
 
@@ -81,6 +87,7 @@ jsi::Value BindTRGlyphImageGetByteCount(jsi::Runtime &rt, const jsi::Value &, co
     TRGlyphImageRef a_image = marshal::ToHandle<TRGlyphImageRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "image", false);
 
     auto result = TRGlyphImageGetByteCount(a_image);
+    marshal::RethrowCallbackError(rt);
     return marshal::FromIndex(rt, result);
 }
 
@@ -89,6 +96,7 @@ jsi::Value BindTRGlyphImageRetain(jsi::Runtime &rt, const jsi::Value &, const js
     TRGlyphImageRef a_image = marshal::ToHandle<TRGlyphImageRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "image", false);
 
     auto result = TRGlyphImageRetain(a_image);
+    marshal::RethrowCallbackError(rt, result);
     return marshal::FromHandle<TRGlyphImageRef>(rt, result, marshal::Ownership::Adopt);
 }
 

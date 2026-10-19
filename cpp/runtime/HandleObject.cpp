@@ -20,6 +20,12 @@ void HandleObject::Dispose() {
     }
 }
 
+void *HandleObject::Take() {
+    void *ref = _ref;
+    _ref = nullptr;
+    return ref;
+}
+
 std::shared_ptr<HandleObject> AsHandleObject(facebook::jsi::Runtime &rt, const facebook::jsi::Value &value) {
     if (!value.isObject()) {
         return nullptr;

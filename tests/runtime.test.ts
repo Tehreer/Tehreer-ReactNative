@@ -46,7 +46,7 @@ test("the runtime instantiates ToNumber and FromNumber for every type the genera
 
 test("the runtime defines every function that GeneratedSupport.h declares without a body", () => {
   const header = read("cpp/generated/GeneratedSupport.h");
-  const sources = ["Errors", "MarshalHandles", "MarshalValues"].map((name) => read(`cpp/runtime/${name}.cpp`)).join("\n");
+  const sources = ["Callbacks", "Errors", "MarshalHandles", "MarshalValues"].map((name) => read(`cpp/runtime/${name}.cpp`)).join("\n");
   const declared = [...header.matchAll(/^(?:\[\[noreturn\]\] )?[\w:<>&\s*]+?[\s&*](\w+)\([^)]*\);$/gm)].map((match) => match[1] as string);
 
   assert.ok(declared.includes("ToConstBuffer"));
@@ -59,20 +59,31 @@ test("the runtime defines every function that GeneratedSupport.h declares withou
 
 test("the handle functions and the debug hooks agree between TypeScript and C++", () => {
   const typescript = read("src/internal/NativeBindings.ts");
-  const cpp = read("cpp/runtime/TehreerBindings.cpp");
+  const cpp = ["TehreerBindings", "ReplacementBindings", "CallbackTestHooks"].map((name) => read(`cpp/runtime/${name}.cpp`)).join("\n");
   const names = [...typescript.matchAll(/^ {2}(\w+)\??\(/gm)].map((match) => match[1] as string);
 
   assert.deepEqual(names, [
-    "getVersion", "smokeTest", "disposeHandle", "isHandleDisposed", "handleEquals",
+    "getVersion", "smokeTest", "disposeHandle", "isHandleDisposed", "handleEquals", "TRReplacementCreate",
     "testCreateProbe", "testGetProbeReleaseCount", "testCollectGarbage", "testRoundTripStruct", "testGetStructNames",
+    "testGetHandlerCount", "testGetRetiredHandlerCount", "testDrainHandlers", "testReleaseOnOtherThread",
+    "testComputeRoomOnOtherThread", "testEnumerate",
   ]);
   for (const name of names) {
-    assert.ok(cpp.includes(`"${name}"`), `${name} is not installed by cpp/runtime/TehreerBindings.cpp`);
+    assert.ok(cpp.includes(`"${name}"`), `${name} is not installed by cpp/runtime`);
   }
 
-  // The hooks must not exist in release builds.
-  const hooks = cpp.slice(cpp.indexOf('#ifndef NDEBUG\n    Define'), cpp.indexOf("#endif", cpp.indexOf('#ifndef NDEBUG\n    Define')));
+  // The hooks must not exist in release builds: the ones of TehreerBindings.cpp are behind
+  // #ifndef NDEBUG, and the file of the callback hooks is empty without the debug build.
+  const bindings = read("cpp/runtime/TehreerBindings.cpp");
+  const start = bindings.indexOf('#ifndef NDEBUG\n    Define');
+  const hooks = bindings.slice(start, bindings.indexOf("#endif", start));
+  const callbackHooks = read("cpp/runtime/CallbackTestHooks.cpp");
+  const debugOnly = (name: string) => hooks.includes(`"${name}"`) || (callbackHooks.indexOf("#ifndef NDEBUG") < callbackHooks.indexOf(`"${name}"`)
+    && callbackHooks.trimEnd().endsWith("#endif"));
+
+  assert.ok(hooks.includes("InstallCallbackTestHooks(runtime, bindings)"));
   for (const name of names.filter((n) => n.startsWith("test"))) {
-    assert.ok(hooks.includes(`"${name}"`), `${name} is not behind #ifndef NDEBUG`);
+    assert.ok(debugOnly(name), `${name} is not behind #ifndef NDEBUG`);
   }
+  assert.ok(!bindings.slice(bindings.indexOf("#endif", start)).includes('"test'), "a hook is installed after the debug block");
 });

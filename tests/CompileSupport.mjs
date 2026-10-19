@@ -13,11 +13,13 @@ export function findCompiler() {
 export const NO_COMPILER = "no C++ compiler (CXX, clang++, g++ or c++) was found";
 
 /**
- * Checks the syntax and the types of a C++17 file without producing code. Warnings are errors, so
- * the generated glue stays clean.
+ * Checks the syntax and the types of a C++ file without producing code. Warnings are errors, so
+ * the generated glue stays clean. The standard is C++17 (what the stub supports) unless the caller
+ * asks for another, such as the C++20 that React Native compiles with; `defines` are `-D` flags.
  */
-export function checkSyntax(compiler, file, includeDirectories) {
-  const args = ["-std=c++17", "-fsyntax-only", "-Wall", "-Wextra", "-Werror", ...includeDirectories.map((directory) => `-I${directory}`), file];
+export function checkSyntax(compiler, file, includeDirectories, options = {}) {
+  const { standard = "c++17", defines = [] } = options;
+  const args = [`-std=${standard}`, "-fsyntax-only", "-Wall", "-Wextra", "-Werror", ...defines.map((define) => `-D${define}`), ...includeDirectories.map((directory) => `-I${directory}`), file];
   return new Promise((resolve) => {
     const child = spawn(compiler, args);
     let output = "";

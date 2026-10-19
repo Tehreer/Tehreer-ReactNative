@@ -159,6 +159,19 @@ template <> struct HandleTraits<TRTypesetterRef> {
     static void Release(TRTypesetterRef ref) { TRTypesetterRelease(ref); }
 };
 
+/**
+ * The same as `RethrowCallbackError(rt)` for a Core function that returned a reference that the
+ * caller owns: the reference is released first, so a failed callback leaks nothing.
+ */
+template <class Ref> inline void RethrowCallbackError(jsi::Runtime &rt, Ref owned) {
+    if (HasCallbackError(rt)) {
+        if (owned != nullptr) {
+            HandleTraits<Ref>::Release(owned);
+        }
+        ThrowCallbackError(rt);
+    }
+}
+
 } // namespace marshal
 } // namespace tehreer
 
