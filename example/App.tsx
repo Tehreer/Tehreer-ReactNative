@@ -1,10 +1,14 @@
 import { useEffect, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { getVersion, initialize } from 'tehreer-react-native';
+import type { NativeBindings } from '../src/internal/NativeBindings';
+import { handleTestCount, runHandleTests } from './tests/HandleTests';
 
 interface Result {
   version: string;
   smokeTest: boolean;
+  passed: number;
+  total: number;
 }
 
 function run(): Result {
@@ -12,8 +16,14 @@ function run(): Result {
   // Calling twice proves that initialize() is idempotent.
   initialize();
 
-  const bindings = (globalThis as unknown as { __tehreer: { smokeTest(): boolean } }).__tehreer;
-  return { version: getVersion(), smokeTest: bindings.smokeTest() };
+  const bindings = (globalThis as unknown as { __tehreer: NativeBindings }).__tehreer;
+  const suite = runHandleTests(bindings);
+  for (const failure of suite.failures) {
+    // The device test scripts read these lines from the system log.
+    console.log(`TEHREER_FAIL ${failure}`);
+  }
+
+  return { version: getVersion(), smokeTest: bindings.smokeTest(), passed: suite.passed, total: handleTestCount };
 }
 
 export default function App() {
@@ -25,7 +35,9 @@ export default function App() {
       const outcome = run();
       setResult(outcome);
       // The device test scripts read this line from the system log.
-      console.log(`TEHREER_RESULT version=${outcome.version} smokeTest=${outcome.smokeTest}`);
+      console.log(
+        `TEHREER_RESULT version=${outcome.version} smokeTest=${outcome.smokeTest} handles=${outcome.passed}/${outcome.total}`,
+      );
     } catch (e) {
       const message = e instanceof Error ? e.message : String(e);
       setError(message);
@@ -41,6 +53,9 @@ export default function App() {
       </Text>
       <Text testID="smokeTest" style={styles.text}>
         {`Core smoke test: ${result ? (result.smokeTest ? 'passed' : 'failed') : '...'}`}
+      </Text>
+      <Text testID="handles" style={styles.text}>
+        {`Handle tests: ${result ? `${result.passed}/${result.total}` : '...'}`}
       </Text>
     </View>
   );

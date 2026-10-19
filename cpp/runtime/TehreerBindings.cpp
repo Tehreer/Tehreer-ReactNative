@@ -1,9 +1,17 @@
 #include "TehreerBindings.h"
 
+#include "../generated/Bindings.h"
+#include "Errors.h"
+#include "HandleObject.h"
+
 #include <Tehreer/Tehreer.h>
 
+#include <atomic>
 #include <memory>
-#include <vector>
+
+#ifndef NDEBUG
+#include <jsi/instrumentation.h>
+#endif
 
 namespace tehreer {
 
@@ -32,35 +40,75 @@ jsi::Value SmokeTest(jsi::Runtime &, const jsi::Value &, const jsi::Value *, siz
     return jsi::Value(isCounted);
 }
 
-class Bindings final : public jsi::HostObject {
-public:
-    jsi::Value get(jsi::Runtime &runtime, const jsi::PropNameID &name) override {
-        std::string key = name.utf8(runtime);
-
-        if (key == "getVersion") {
-            return makeFunction(runtime, "getVersion", GetVersion);
-        }
-        if (key == "smokeTest") {
-            return makeFunction(runtime, "smokeTest", SmokeTest);
-        }
-
-        return jsi::Value::undefined();
+std::shared_ptr<HandleObject> RequireHandle(jsi::Runtime &runtime, const jsi::Value *args, size_t count,
+                                            size_t index, const char *function, const char *parameter) {
+    std::shared_ptr<HandleObject> handle = AsHandleObject(runtime, marshal::ArgAt(args, count, index));
+    if (!handle) {
+        marshal::Fail(runtime, function, parameter, "is not a Tehreer handle");
     }
 
-    std::vector<jsi::PropNameID> getPropertyNames(jsi::Runtime &runtime) override {
-        std::vector<jsi::PropNameID> names;
-        names.push_back(jsi::PropNameID::forAscii(runtime, "getVersion"));
-        names.push_back(jsi::PropNameID::forAscii(runtime, "smokeTest"));
+    return handle;
+}
 
-        return names;
+// The release of a reference is not bound (see the ownership rules): this is the one way for
+// JavaScript to give the reference back early. It is idempotent.
+jsi::Value DisposeHandle(jsi::Runtime &runtime, const jsi::Value &, const jsi::Value *args, size_t count) {
+    RequireHandle(runtime, args, count, 0, "disposeHandle", "handle")->Dispose();
+    return jsi::Value::undefined();
+}
+
+jsi::Value IsHandleDisposed(jsi::Runtime &runtime, const jsi::Value &, const jsi::Value *args, size_t count) {
+    return jsi::Value(RequireHandle(runtime, args, count, 0, "isHandleDisposed", "handle")->isDisposed());
+}
+
+// Two handles are different objects even when they hold references to the same Core object (a
+// retain gives a new one), so the identity of the Core object is what is compared.
+jsi::Value HandleEquals(jsi::Runtime &runtime, const jsi::Value &, const jsi::Value *args, size_t count) {
+    auto first = RequireHandle(runtime, args, count, 0, "handleEquals", "handle");
+    auto second = RequireHandle(runtime, args, count, 1, "handleEquals", "other");
+    if (first->isDisposed()) {
+        marshal::Fail(runtime, "handleEquals", "handle", "is already disposed");
+    }
+    if (second->isDisposed()) {
+        marshal::Fail(runtime, "handleEquals", "other", "is already disposed");
     }
 
-private:
-    static jsi::Value makeFunction(jsi::Runtime &runtime, const char *name, jsi::HostFunctionType function) {
-        return jsi::Function::createFromHostFunction(
-            runtime, jsi::PropNameID::forAscii(runtime, name), 0, std::move(function));
-    }
-};
+    return jsi::Value(first->ref() == second->ref() && std::string(first->group()) == second->group());
+}
+
+#ifndef NDEBUG
+
+std::atomic<int> gProbeReleases{0};
+
+void ReleaseProbe(void *) {
+    gProbeReleases.fetch_add(1);
+}
+
+// A handle that owns no Core object but counts its release, so that the finalizer path can be
+// observed without depending on what Core does with an object.
+jsi::Value CreateProbe(jsi::Runtime &runtime, const jsi::Value &, const jsi::Value *, size_t) {
+    static int token;
+    auto probe = std::make_shared<HandleObject>(&token, "TRProbe", true, &ReleaseProbe);
+    return jsi::Value(jsi::Object::createFromHostObject(runtime, std::move(probe)));
+}
+
+jsi::Value GetProbeReleaseCount(jsi::Runtime &, const jsi::Value &, const jsi::Value *, size_t) {
+    return jsi::Value(static_cast<double>(gProbeReleases.load()));
+}
+
+// Hermes runs the finalizers of host objects during a collection; JSI offers no other way to
+// ask for one.
+jsi::Value CollectGarbage(jsi::Runtime &runtime, const jsi::Value &, const jsi::Value *, size_t) {
+    runtime.instrumentation().collectGarbage("tehreer test");
+    return jsi::Value::undefined();
+}
+
+#endif
+
+void Define(jsi::Runtime &runtime, jsi::Object &target, const char *name, unsigned int parameters, jsi::HostFunctionType function) {
+    target.setProperty(runtime, name, jsi::Function::createFromHostFunction(
+        runtime, jsi::PropNameID::forAscii(runtime, name), parameters, std::move(function)));
+}
 
 } // namespace
 
@@ -70,19 +118,33 @@ void InstallBindings(jsi::Runtime &runtime) {
         return;
     }
 
+    jsi::Object bindings(runtime);
+    generated::InstallBindings(runtime, bindings);
+
+    Define(runtime, bindings, "getVersion", 0, GetVersion);
+    Define(runtime, bindings, "smokeTest", 0, SmokeTest);
+    Define(runtime, bindings, "disposeHandle", 1, DisposeHandle);
+    Define(runtime, bindings, "isHandleDisposed", 1, IsHandleDisposed);
+    Define(runtime, bindings, "handleEquals", 2, HandleEquals);
+#ifndef NDEBUG
+    Define(runtime, bindings, "testCreateProbe", 0, CreateProbe);
+    Define(runtime, bindings, "testGetProbeReleaseCount", 0, GetProbeReleaseCount);
+    Define(runtime, bindings, "testCollectGarbage", 0, CollectGarbage);
+#endif
+
+    jsi::Object objectConstructor = global.getPropertyAsObject(runtime, "Object");
+    objectConstructor.getPropertyAsFunction(runtime, "freeze").call(runtime, bindings);
+
     // Read-only and non-configurable, so that app code cannot replace or delete the bindings that
     // the library holds on to. Not enumerable, to keep `global` free of an internal name.
     jsi::Object descriptor(runtime);
-    descriptor.setProperty(runtime, "value",
-        jsi::Object::createFromHostObject(runtime, std::make_shared<Bindings>()));
+    descriptor.setProperty(runtime, "value", std::move(bindings));
     descriptor.setProperty(runtime, "writable", false);
     descriptor.setProperty(runtime, "configurable", false);
     descriptor.setProperty(runtime, "enumerable", false);
 
-    jsi::Function defineProperty = runtime.global()
-        .getPropertyAsObject(runtime, "Object")
-        .getPropertyAsFunction(runtime, "defineProperty");
-    defineProperty.call(runtime, global, jsi::String::createFromAscii(runtime, kBindingsName), descriptor);
+    objectConstructor.getPropertyAsFunction(runtime, "defineProperty")
+        .call(runtime, global, jsi::String::createFromAscii(runtime, kBindingsName), descriptor);
 }
 
 } // namespace tehreer

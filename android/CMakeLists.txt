@@ -23,10 +23,10 @@ add_subdirectory("${TEHREER_ROOT}/Libraries/TehreerCore" Tehreer)
 
 find_package(ReactAndroid REQUIRED CONFIG)
 
-add_library(tehreer_module STATIC
-    "${TEHREER_ROOT}/cpp/TehreerModule.cpp"
-    "${TEHREER_ROOT}/cpp/runtime/TehreerBindings.cpp"
-)
+# Everything under cpp/ (runtime and generated glue), so a new file needs no edit here.
+file(GLOB_RECURSE TEHREER_SOURCES CONFIGURE_DEPENDS "${TEHREER_ROOT}/cpp/*.cpp")
+
+add_library(tehreer_module STATIC ${TEHREER_SOURCES})
 
 target_include_directories(tehreer_module PUBLIC "${TEHREER_ROOT}/cpp")
 

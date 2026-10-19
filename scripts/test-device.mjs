@@ -1,7 +1,9 @@
 // Builds the example app, runs it on the booted iOS simulator or Android emulator, and checks the
 // line that App.tsx logs. Usage: node scripts/test-device.mjs <ios|android>
 //
-// The spike's device test is one line: `TEHREER_RESULT version=<Core version> smokeTest=true`.
+// The example app runs its suites and logs the failures (`TEHREER_FAIL <test>: <message>`), then one
+// result line: `TEHREER_RESULT version=<Core version> smokeTest=true handles=<passed>/<total>`. The
+// run passes when nothing failed and every test passed.
 // Prerequisites: scripts/fetch-deps, `npm install` in the root and in example/, `pod install` in
 // example/ios for iOS, ANDROID_HOME for Android, a booted simulator or emulator.
 import { spawn, spawnSync } from "node:child_process";
@@ -22,7 +24,7 @@ const header = readFileSync(
 );
 const version = /#define\s+TEHREER_VERSION_STRING\s+"([^"]+)"/.exec(header)?.[1];
 if (!version) throw new Error("TEHREER_VERSION_STRING not found in TRVersion.h");
-const expected = `TEHREER_RESULT version=${version} smokeTest=true`;
+const expected = new RegExp(`^TEHREER_RESULT version=${version.replaceAll(".", "\\.")} smokeTest=true handles=(\\d+)/(\\d+)$`);
 const timeoutMs = 90_000;
 
 function run(command, args, options = {}) {
@@ -49,7 +51,10 @@ function waitForResult(loggerCommand, loggerArgs, launch) {
     logger.stdout.on("data", (chunk) => {
       buffered += chunk.toString();
       const match = /TEHREER_RESULT [^\r\n]*/.exec(buffered);
-      if (match) finish(undefined, match[0].trim());
+      if (match) {
+        const failures = [...buffered.matchAll(/TEHREER_FAIL [^\r\n]*/g)].map((failure) => failure[0].trim());
+        finish(undefined, { line: match[0].trim(), failures });
+      }
     });
     logger.on("error", finish);
 
@@ -172,10 +177,12 @@ if (platform !== "ios" && platform !== "android") {
 }
 
 try {
-  const line = await (platform === "ios" ? ios() : android());
+  const { line, failures } = await (platform === "ios" ? ios() : android());
+  for (const failure of failures) console.log(failure);
   console.log(line);
-  if (line !== expected) {
-    console.error(`expected: ${expected}`);
+  const match = expected.exec(line);
+  if (!match || failures.length > 0 || match[1] !== match[2] || match[1] === "0") {
+    console.error(`expected: ${expected} with every test passed`);
     process.exit(1);
   }
   console.log(`${platform}: passed`);

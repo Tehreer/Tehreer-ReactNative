@@ -1,5 +1,4 @@
-import { findNativeBindings } from "./internal/NativeBindings.js";
-import type { NativeBindings } from "./internal/NativeBindings.js";
+import { findNativeBindings, getNativeBindings } from "./internal/NativeBindings.js";
 import NativeTehreer from "./specs/NativeTehreer.js";
 
 /**
@@ -17,16 +16,6 @@ export function initialize(): void {
   if (!NativeTehreer?.install() || findNativeBindings() === undefined) {
     throw new Error("Tehreer native bindings could not be installed.");
   }
-}
-
-/** @internal */
-export function getNativeBindings(): NativeBindings {
-  const bindings = findNativeBindings();
-  if (bindings === undefined) {
-    throw new Error("Tehreer is not initialized. Call initialize() first.");
-  }
-
-  return bindings;
 }
 
 /**

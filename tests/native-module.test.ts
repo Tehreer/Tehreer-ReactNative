@@ -48,15 +48,3 @@ test("the global property of the host object agrees between TypeScript and C++",
   assert.ok(typescript?.[1]);
   assert.equal(cpp?.[1], typescript[1]);
 });
-
-test("every binding of the TypeScript interface is exposed by the C++ host object", () => {
-  const interfaceBody = /interface NativeBindings \{([\s\S]*?)\n\}/.exec(read("src/internal/NativeBindings.ts"));
-  const names = [...(interfaceBody?.[1] ?? "").matchAll(/^\s+(\w+)\(/gm)].map((match) => match[1]);
-  const cpp = read("cpp/runtime/TehreerBindings.cpp");
-
-  assert.deepEqual(names, ["getVersion", "smokeTest"]);
-  for (const name of names) {
-    assert.ok(cpp.includes(`key == "${name}"`), `${name} is not handled by Bindings::get`);
-    assert.ok(cpp.includes(`forAscii(runtime, "${name}")`), `${name} is not listed in getPropertyNames`);
-  }
-});
