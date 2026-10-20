@@ -13,6 +13,17 @@ export { ShapingEngine } from "./sfnt/ShapingEngine.js";
 export type { ShapingTypeface } from "./sfnt/ShapingEngine.js";
 export { ShapingResult } from "./sfnt/ShapingResult.js";
 
+export { BaseDirection } from "./unicode/BaseDirection.js";
+export { BidiAlgorithm } from "./unicode/BidiAlgorithm.js";
+export { BidiLine } from "./unicode/BidiLine.js";
+export { BidiPair } from "./unicode/BidiPair.js";
+export { BidiParagraph } from "./unicode/BidiParagraph.js";
+export { BidiRun } from "./unicode/BidiRun.js";
+export { CodePoint } from "./unicode/CodePoint.js";
+export { BidiClass, GeneralCategory, Script } from "./unicode/enums.js";
+export { ScriptClassifier } from "./unicode/ScriptClassifier.js";
+export { ScriptRun } from "./unicode/ScriptRun.js";
+
 export { List } from "./collections/List.js";
 export type { NumberList, PointList } from "./collections/List.js";
 export type { Float, Int32, NumberKind, UInt16, UInt32, UInt8 } from "./collections/NumberKind.js";

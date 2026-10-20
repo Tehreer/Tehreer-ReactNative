@@ -1,6 +1,7 @@
 #include "StructCodecs.h"
 
 #include "Errors.h"
+#include "SheenBidiBindings.h"
 
 #include <vector>
 
@@ -175,7 +176,10 @@ const generated::StructCodec *FindStructCodec(const std::string &name) {
             return &codec;
         }
     }
-    return name == kAttributeCodec.name ? &kAttributeCodec : nullptr;
+    if (name == kAttributeCodec.name) {
+        return &kAttributeCodec;
+    }
+    return name == SheenBidiRunCodec().name ? &SheenBidiRunCodec() : nullptr;
 }
 
 std::vector<std::string> StructCodecNames() {
@@ -184,6 +188,7 @@ std::vector<std::string> StructCodecNames() {
         names.push_back(codec.name);
     }
     names.push_back(kAttributeCodec.name);
+    names.push_back(SheenBidiRunCodec().name);
     return names;
 }
 

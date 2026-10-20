@@ -1,5 +1,6 @@
 import type { NativeFunctions } from "./NativeFunctions.js";
 import type { Handle, PointerView, TRReplacementRoom } from "./NativeFunctions.js";
+import type { SheenBidiFunctions } from "./SheenBidiFunctions.js";
 
 /**
  * The JavaScript side of a replacement. Core calls `computeRoom` while it shapes text and lays out
@@ -12,8 +13,11 @@ export interface ReplacementHandler {
   computeRoom?: (layoutWidth: number) => TRReplacementRoom;
 }
 
-/** What the native module installs on `global`: the functions of Core and the handle functions. */
-export interface NativeBindings extends NativeFunctions {
+/**
+ * What the native module installs on `global`: the functions of Core, those of SheenBidi's classic
+ * API (`SheenBidiFunctions.ts`) and the handle functions.
+ */
+export interface NativeBindings extends NativeFunctions, SheenBidiFunctions {
   /** Returns `TEHREER_VERSION_STRING` of Core. */
   getVersion(): string;
   /** Creates and releases a Core object, to prove that Core is linked and callable. */

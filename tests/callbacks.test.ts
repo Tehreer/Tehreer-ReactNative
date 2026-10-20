@@ -14,6 +14,7 @@ const root = join(import.meta.dirname, "..");
 const read = (path: string) => readFileSync(join(root, path), "utf8");
 const coreHeaders = join(root, "Libraries/TehreerCore/Headers");
 const jsiHeaders = join(root, "node_modules/react-native/ReactCommon/jsi");
+const sheenBidiHeaders = join(root, "Libraries/Dependencies/SheenBidi/Headers");
 
 /** The body of the function that starts at `signature`, up to the closing brace in the first column. */
 function bodyOf(text: string, signature: string): string {
@@ -151,11 +152,12 @@ const compiler = findCompiler();
 const skip = !compiler ? NO_COMPILER
   : !existsSync(join(jsiHeaders, "jsi/jsi.h")) ? "react-native is not installed (node_modules/react-native/ReactCommon/jsi)"
     : !existsSync(join(coreHeaders, "Tehreer")) ? "the Core submodule is not initialised (git submodule update --init)"
-      : false;
+      : !existsSync(join(sheenBidiHeaders, "SheenBidi")) ? "SheenBidi is not fetched (npm run setup)"
+        : false;
 
 for (const [label, defines] of [["debug", []], ["release", ["NDEBUG"]]] as const) {
   test(`the runtime and the generated bindings compile as C++20 against the real JSI (${label})`, { skip }, async () => {
-    const includes = [jsiHeaders, coreHeaders, join(root, "cpp")];
+    const includes = [jsiHeaders, coreHeaders, sheenBidiHeaders, join(root, "cpp")];
     // TehreerModule.cpp needs the headers that codegen writes into an app, so it is left out.
     const files = [
       ...readdirSync(join(root, "cpp/runtime")).filter((name) => name.endsWith(".cpp")).map((name) => join(root, "cpp/runtime", name)),

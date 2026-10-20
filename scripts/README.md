@@ -88,7 +88,25 @@ A name in `EXCLUDED`, `MANUAL` or `BOUNDS` that no header declares stops the gen
 
 ## SheenBidi
 
-The parser and the plan take the public macro, the name prefix and the boolean type as options, so they read SheenBidi's `SB_PUBLIC` headers, but **SheenBidi bindings are not generated yet.** The classic headers are not part of this checkout (they are fetched by `scripts/fetch-deps`), and their `SBCodepointSequence` holds a raw string buffer, which needs a decision about how text reaches the `unicode` package. The generator stops on it instead of guessing (`tests/generatorModel.test.ts` covers this). That decision belongs to the issue that adds the `unicode` package.
+The parser and the plan take the public macro, the name prefix and the boolean type as options, so they read SheenBidi's `SB_PUBLIC` headers, but **the generator does not produce the SheenBidi bindings.** An `SBCodepointSequence` holds a raw pointer into a string, and SheenBidi keeps that pointer inside the algorithm, the paragraphs and lines made from it, and the locators; the generator stops on such a struct (`tests/generatorModel.test.ts`) instead of guessing. The classic API is bound by hand in `cpp/runtime/SheenBidiBindings.cpp`, in the way `TRReplacementCreate` is, and typed in `src/internal/SheenBidiFunctions.ts`.
+
+How the text reaches SheenBidi: a JavaScript `string` is copied to UTF-16 in native memory (`BidiText`, immutable, shared). Every handle (`Owner`) holds a share of it, so a paragraph or a line that was made from an algorithm keeps the text after the algorithm's handle is disposed, a script locator holds the text it was loaded with, and a mirror locator holds the text of the line it was loaded with (JavaScript never passes a `stringBuffer`). The copy is freed with the last share, on whatever thread that is. Debug builds expose `testGetBidiTextCount()`, the number of copies alive, for the device tests.
+
+`scripts/generator/sheenbidi.mjs` is the contract: the classic headers, the functions that are not bound with the reason (the five `Release` functions), and the headers that are not part of the classic API (`SBAllocator.h` and the experimental text API). `tests/sheenbidi.test.ts` compares it with the headers in `Libraries/Dependencies/SheenBidi` (skipped when `npm run setup` has not run), the table of bindings in the C++ and the declarations in TypeScript, so a function that a SheenBidi update adds fails the test until it is bound or listed.
+
+Differences from the Core bindings: a codepoint sequence is a string (UTF-16 only), `SBMirrorLocatorLoadLine` takes no string buffer, the agents of the locators are returned as copies (`SBScriptLocatorGetAgent`, `SBMirrorLocatorGetAgent`), and `SBLineGetRunsPtr` is a `PointerView` of `SBRun`, which the runtime reads with its own codec (`SheenBidiRunCodec`, listed by `FindStructCodec`). A level (`SBLevel`) above 125 that is not one of the two default directions is a `RangeError`, where SheenBidi would take it for a default.
+
+### Unicode enums
+
+`generate-unicode-enums.mjs` (a port of Tehreer-Web's) writes `src/unicode/enums.ts` (`BidiClass`, `GeneralCategory`, `Script` as constant objects with the values of SheenBidi's headers) from `SBBidiType.h`, `SBGeneralCategory.h` and `SBScript.h`:
+
+```bash
+npm run generate:unicode         # write src/unicode/enums.ts
+npm run generate:unicode:check   # exit 1 if it differs from a generation
+node scripts/generate-unicode-enums.mjs --sheenbidi <SheenBidi directory>
+```
+
+The printing is in `generator/unicodeEnums.mjs`. The file is checked in, and `tests/unicodeEnums.test.ts` fails when it is stale (skipped without the fetched sources). A header that changes shape (no constants, a repeated name or value) stops the generator.
 
 ## Compile check
 
@@ -105,4 +123,4 @@ The parser and the plan take the public macro, the name prefix and the boolean t
 - The parser drops preprocessor lines without evaluating them, so a `TR_PUBLIC`
   declaration inside `#if 0` (or any conditional) is still bound. No Core header
   does this today; if one starts to, the parser must learn to reject it.
-- SheenBidi bindings are not generated yet (see the PR description).
+- The SheenBidi bindings are written by hand (see the SheenBidi section), so the generator does not notice a change of SheenBidi's headers; `tests/sheenbidi.test.ts` does.

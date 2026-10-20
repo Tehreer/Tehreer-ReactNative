@@ -64,6 +64,8 @@ const structs: Record<string, unknown> = {
   TROpenTypeFeature: { tag: 0xffffffff, value: 0x80000000 },
   TRReplacementRoom: { ascent: 12, descent: 3.5, extent: 100 },
   TRAttribute: { type: 2, value: 16 },
+  // SheenBidi's run of a line, which the codec of cpp/runtime/SheenBidiBindings.cpp reads.
+  SBRun: { offset: 5, length: 7, level: 3 },
 };
 
 // The type of every attribute that Core defines, with a value of the kind it takes. The handle kinds

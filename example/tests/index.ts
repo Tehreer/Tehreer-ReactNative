@@ -4,6 +4,7 @@ import { callbackTestCount, runCallbackTests } from '../../tests/device/Callback
 import { listTestCount, runListTests } from '../../tests/device/ListTests';
 import { runStructTests, structTestCount } from '../../tests/device/StructTests';
 import { runShapingTests, shapingTestCount } from './ShapingTests';
+import { runUnicodeTests, unicodeTestCount } from './UnicodeTests';
 import { fontBytes } from './fontData';
 import { NativeObject } from '../../src/internal/NativeObject';
 import { adopt } from '../../src/internal/Adopt';
@@ -61,6 +62,13 @@ export const suites: readonly Suite[] = [
     run: (bindings) => {
       const result = runShapingTests(bindings);
       return { passed: result.passed, total: shapingTestCount, failures: result.failures };
+    },
+  },
+  {
+    name: 'unicode',
+    run: (bindings) => {
+      const result = runUnicodeTests(bindings);
+      return { passed: result.passed, total: unicodeTestCount, failures: result.failures };
     },
   },
 ];
