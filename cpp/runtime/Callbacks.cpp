@@ -30,6 +30,17 @@ void RecordCallbackError(jsi::Runtime &runtime, std::exception_ptr error) noexce
 
 namespace marshal {
 
+void BeginCall() noexcept {
+    if (gPending.error) {
+        gPending.error = nullptr;
+        gPending.runtime = nullptr;
+    }
+}
+
+void DrainRetiredHandlers(jsi::Runtime &rt) {
+    runtime::HandlerTable::Shared().Drain(rt);
+}
+
 bool HasCallbackError(jsi::Runtime &rt) {
     return gPending.error != nullptr && gPending.runtime == &rt;
 }

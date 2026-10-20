@@ -1,6 +1,6 @@
 import type { PointerView } from "../internal/NativeFunctions.js";
 import type { NativeObject } from "../internal/NativeObject.js";
-import { CoreMemory } from "./CoreMemory.js";
+import { CoreMemory, type MemorySource } from "./CoreMemory.js";
 import { List, type NumberList, type PointList } from "./List.js";
 import { typedArrayConstructors, type NumberArray, type NumberKind, type TypedArrayConstructor } from "./NumberKind.js";
 
@@ -33,10 +33,12 @@ function notNumbers(kind: string): TypeError {
 function numberReader(kind: NumberKind, acceptsPointerWidth: boolean): ElementReader<number> {
   const constructor = typedArrayConstructors[kind] as unknown as TypedArrayConstructor<NumberArray>;
 
-  // How many numbers of the kind one element takes, and which of them is the value.
-  const layout = (memory: CoreMemory) => {
-    const array = memory.numbers(constructor);
-    const stride = memory.length === 0 ? 1 : array.length / memory.length;
+  // How many numbers of the kind one element takes, and which of them is the value. Made once for
+  // a whole read, so that a range does not pay for it again on each element.
+  const layout = (memory: CoreMemory, toIndex: number) => {
+    const { array, length } = memory.numbers(constructor);
+    CoreMemory.requireElements(length, toIndex);
+    const stride = length === 0 ? 1 : array.length / length;
     if (stride !== 1 && !(acceptsPointerWidth && stride === 2)) {
       throw notNumbers(kind);
     }
@@ -45,11 +47,19 @@ function numberReader(kind: NumberKind, acceptsPointerWidth: boolean): ElementRe
 
   return {
     get(memory, index) {
-      const { array, stride, low } = layout(memory);
+      const { array, stride, low } = layout(memory, index + 1);
       return array[index * stride + low] as number;
     },
+    range(memory, fromIndex, toIndex) {
+      const { array, stride, low } = layout(memory, toIndex);
+      const numbers = new Array<number>(toIndex - fromIndex);
+      for (let index = 0; index < numbers.length; index++) {
+        numbers[index] = array[(fromIndex + index) * stride + low] as number;
+      }
+      return numbers;
+    },
     copy(memory, fromIndex, toIndex) {
-      const { array, stride, low } = layout(memory);
+      const { array, stride, low } = layout(memory, toIndex);
       const count = toIndex - fromIndex;
       const copy = new constructor(new ArrayBuffer(count * constructor.BYTES_PER_ELEMENT));
       if (stride === 1) {
@@ -67,17 +77,27 @@ function numberReader(kind: NumberKind, acceptsPointerWidth: boolean): ElementRe
 // The points of Core are pairs of floats, which are read from the same buffer as numbers.
 const pointReader: ElementReader<{ readonly x: number; readonly y: number }> = {
   get(memory, index) {
-    const array = pairs(memory);
+    const array = pairs(memory, index + 1);
     return { x: array[index * 2] as number, y: array[index * 2 + 1] as number };
   },
+  range(memory, fromIndex, toIndex) {
+    const array = pairs(memory, toIndex);
+    const points = new Array<{ readonly x: number; readonly y: number }>(toIndex - fromIndex);
+    for (let index = 0; index < points.length; index++) {
+      const at = (fromIndex + index) * 2;
+      points[index] = { x: array[at] as number, y: array[at + 1] as number };
+    }
+    return points;
+  },
   copy(memory, fromIndex, toIndex) {
-    return pairs(memory).slice(fromIndex * 2, toIndex * 2);
+    return pairs(memory, toIndex).slice(fromIndex * 2, toIndex * 2);
   },
 };
 
-function pairs(memory: CoreMemory): Float32Array {
-  const array = memory.numbers(Float32Array);
-  if (array.length !== memory.length * 2) {
+function pairs(memory: CoreMemory, toIndex: number): Float32Array {
+  const { array, length } = memory.numbers(Float32Array);
+  CoreMemory.requireElements(length, toIndex);
+  if (array.length !== length * 2) {
     throw new TypeError("The elements of this memory are not points.");
   }
   return array;
@@ -95,7 +115,9 @@ const structReader: ElementReader<unknown> = {
  * for, and are never converted in advance: making a list, or a slice of one, does not touch the
  * memory at all. A slice reads the same memory as the list it was cut from.
  *
- * The owner keeps the memory valid, so every read checks that it is not disposed.
+ * The owner keeps the memory valid, so every read checks that it is not disposed. For an owner
+ * that Core lets change, nothing about the memory is kept between reads (see `CoreMemory`), which
+ * is why a list over one is made with a `refresh` function.
  *
  * @internal
  */
@@ -125,6 +147,7 @@ export class CoreList<T> extends List<T> {
   }
 
   override toArray(): T[] {
+    // One range read where the reader has it, so the checks of a read are paid once, not per element.
     if (this.#reader.range === undefined) {
       return super.toArray();
     }
@@ -168,8 +191,9 @@ export function coreNumbers<K extends NumberKind>(
   pointer: PointerView<string> | undefined,
   length: number,
   kind: K,
+  refresh?: MemorySource,
 ): NumberList<K> {
-  return new CoreList(new CoreMemory(owner, pointer, length), numberReader(kind, false)) as unknown as NumberList<K>;
+  return new CoreList(new CoreMemory(owner, pointer, length, refresh), numberReader(kind, false)) as unknown as NumberList<K>;
 }
 
 /**
@@ -180,13 +204,23 @@ export function coreNumbers<K extends NumberKind>(
  *
  * @internal
  */
-export function coreIndices(owner: NativeObject<string>, pointer: PointerView<string> | undefined, length: number): NumberList<"UInt32"> {
-  return new CoreList(new CoreMemory(owner, pointer, length), numberReader("UInt32", true)) as unknown as NumberList<"UInt32">;
+export function coreIndices(
+  owner: NativeObject<string>,
+  pointer: PointerView<string> | undefined,
+  length: number,
+  refresh?: MemorySource,
+): NumberList<"UInt32"> {
+  return new CoreList(new CoreMemory(owner, pointer, length, refresh), numberReader("UInt32", true)) as unknown as NumberList<"UInt32">;
 }
 
 /** Makes a list of the points of an array of Core. Nothing is read. @internal */
-export function corePoints(owner: NativeObject<string>, pointer: PointerView<string> | undefined, length: number): PointList {
-  return new CoreList(new CoreMemory(owner, pointer, length), pointReader) as unknown as PointList;
+export function corePoints(
+  owner: NativeObject<string>,
+  pointer: PointerView<string> | undefined,
+  length: number,
+  refresh?: MemorySource,
+): PointList {
+  return new CoreList(new CoreMemory(owner, pointer, length, refresh), pointReader) as unknown as PointList;
 }
 
 /**
@@ -196,6 +230,11 @@ export function corePoints(owner: NativeObject<string>, pointer: PointerView<str
  *
  * @internal
  */
-export function coreStructs<T>(owner: NativeObject<string>, pointer: PointerView<string> | undefined, length: number): List<T> {
-  return new CoreList(new CoreMemory(owner, pointer, length), structReader as ElementReader<T>);
+export function coreStructs<T>(
+  owner: NativeObject<string>,
+  pointer: PointerView<string> | undefined,
+  length: number,
+  refresh?: MemorySource,
+): List<T> {
+  return new CoreList(new CoreMemory(owner, pointer, length, refresh), structReader as ElementReader<T>);
 }

@@ -315,6 +315,8 @@ const tests: [string, (b: NativeBindings, options: CallbackTestOptions) => void]
   ["a replacement released on another thread queues its handler, and the JS thread destroys it", (b) => {
     const { count, retired, drain, releaseOnOtherThread } = hooks(b);
     drain();
+    // Made before the release: making one drains the queue too, which would hide what is tested.
+    const bystander = create(b, {});
     const before = count();
     const queued = retired();
 
@@ -323,15 +325,24 @@ const tests: [string, (b: NativeBindings, options: CallbackTestOptions) => void]
     check(b.isHandleDisposed(replacement), "the handle gave its reference away");
     check(count() === before, "the entry is gone from the table");
     check(retired() === queued + 1, "and waits to be destroyed here");
-    drain();
-    check(retired() === queued, "drained");
+    // Any binding drains the queue after its Core call, with no help from a test hook.
+    b.TRReplacementComputeRoom(bystander, 1);
+    check(retired() === queued, "a binding drained it");
+    b.disposeHandle(bystander);
+    const after = before - 1;
 
     // Using the table drains it too, so a program that creates replacements never piles them up.
     releaseOnOtherThread(create(b, {}));
     check(retired() === queued + 1, "queued again");
     b.disposeHandle(create(b, {}));
     check(retired() === queued, "creating a handler drained the queue");
-    check(count() === before, "nothing is left");
+    check(count() === after, "nothing is left");
+
+    // A handle that Core gave back on the JS thread (dispose, or a finalizer) is queued as well and
+    // destroyed by the same thread at the next drain, never inside the release itself.
+    const own = create(b, {});
+    b.disposeHandle(own);
+    check(retired() === queued && count() === after, "disposeHandle drains what its release queued");
   }],
 
   ["Core asking for a room on another thread gets none, and the handler does not run", (b) => {

@@ -29,18 +29,22 @@ interface FakePointer {
 
 class FakeOwner {
   disposed = false;
+  readonly mutable: boolean;
+  constructor(mutable = false) {
+    this.mutable = mutable;
+  }
   get nativeHandle(): object {
     if (this.disposed) {
       throw new Error("FakeOwner is already disposed.");
     }
-    return {};
+    return { mutable: this.mutable };
   }
 }
 
 const calls = { buffers: 0, structReads: 0, alignments: [] as number[] };
 
-function owner(): FakeOwner & NativeObject<string> {
-  return new FakeOwner() as unknown as FakeOwner & NativeObject<string>;
+function owner(mutable = false): FakeOwner & NativeObject<string> {
+  return new FakeOwner(mutable) as unknown as FakeOwner & NativeObject<string>;
 }
 
 function pointer(memory: ArrayBuffer, structs?: unknown[]): never {
@@ -68,6 +72,7 @@ before(async () => {
   IndexedList = ((await import(pathToFileURL(join(scratch, "collections/IndexedList.js")).href)) as Module).IndexedList;
 
   (globalThis as Record<string, unknown>)["__tehreer"] = {
+    isHandleMutable: (handle: { mutable: boolean }) => handle.mutable,
     // Like the native function: a buffer over the memory itself (so a change shows), and the
     // refusals that it makes.
     createPointerBuffer(view: FakePointer, count: number, alignment: number) {
@@ -380,4 +385,103 @@ test("a list of structs asks the native side for them, in one call for toArray",
   holder.disposed = true;
   assert.throws(() => list.get(0), /already disposed/);
   assert.throws(() => list.toArray(), /already disposed/);
+});
+
+// ---- lists over the memory of an object that Core lets change ----
+
+// What a setter of Core does to a getter's array: the block is freed and another one is made. The
+// fake poisons the old one, so a read through a kept buffer is seen.
+class ChangingMemory {
+  refreshes = 0;
+  memory: ArrayBuffer;
+
+  constructor(values: number[]) {
+    this.memory = numbers(values, Uint16Array);
+  }
+
+  replace(values: number[]): void {
+    new Uint8Array(this.memory).fill(0xdd);
+    this.memory = numbers(values, Uint16Array);
+  }
+
+  get length(): number {
+    return this.memory.byteLength / 2;
+  }
+
+  refresh = () => {
+    this.refreshes++;
+    return { pointer: pointer(this.memory), length: this.length };
+  };
+}
+
+test("a list over a mutable owner asks Core again on every read and keeps no pointer, buffer or length", () => {
+  const source = new ChangingMemory([1, 2, 3]);
+  const list = lists.coreNumbers(owner(true), pointer(source.memory), 3, "UInt16", source.refresh);
+
+  assert.equal(source.refreshes, 0, "making a list asks nothing");
+  assert.equal(list.get(0), 1);
+  assert.equal(list.get(0), 1);
+  assert.equal(source.refreshes, 2);
+  assert.equal(reads(() => list.get(1)).buffers, 1, "a buffer is made for each read, none is kept");
+
+  // The setter freed the block and made another one, with the same number of elements.
+  source.replace([7, 8, 9]);
+  assert.equal(list.get(0), 7, "not the stale block, which is poisoned");
+  assert.deepEqual([...list], [7, 8, 9]);
+  assert.deepEqual([...list.toTypedArray()], [7, 8, 9]);
+
+  // Fewer elements now: the list was made for three.
+  source.replace([5]);
+  assert.equal(list.get(0), 5);
+  assert.throws(() => list.get(2), RangeError);
+  assert.throws(() => list.toArray(), RangeError);
+  assert.throws(() => list.toTypedArray(), RangeError);
+
+  // More elements are not shown: the list keeps the length it was made with.
+  source.replace([1, 2, 3, 4]);
+  assert.equal(list.length, 3);
+  assert.deepEqual(list.toArray(), [1, 2, 3]);
+});
+
+test("a mutable owner whose list has no way to ask Core again is refused, not read", () => {
+  const list = lists.coreNumbers(owner(true), pointer(numbers([1, 2], Uint16Array)), 2, "UInt16");
+  assert.equal(list.length, 2, "making it reads nothing");
+  assert.throws(() => list.get(0), /cannot be read without asking Core again/);
+  assert.throws(() => lists.corePoints(owner(true), pointer(numbers([1, 2], Float32Array)), 1).toArray(), /asking Core again/);
+  assert.throws(() => lists.coreStructs(owner(true), pointer(new ArrayBuffer(8), [{}]), 1).get(0), /asking Core again/);
+});
+
+test("points and structs over a mutable owner are asked again too, and memory that went away is an error", () => {
+  let current: { pointer: never | undefined; length: number } = { pointer: undefined, length: 0 };
+  const holder = owner(true);
+  const list = lists.corePoints(holder, pointer(numbers([0, 0, 0, 0], Float32Array)), 2, () => current);
+
+  // The list was made for two points, but Core has none now.
+  assert.throws(() => list.get(0), RangeError);
+
+  current = { pointer: pointer(numbers([1, 2, 3, 4], Float32Array)), length: 2 };
+  assert.deepEqual(list.toArray(), [{ x: 1, y: 2 }, { x: 3, y: 4 }]);
+
+  const structs = [{ tag: 1 }, { tag: 2 }];
+  let have = structs;
+  const structList = lists.coreStructs<{ tag: number }>(holder, pointer(new ArrayBuffer(8), structs), 2, () => ({ pointer: pointer(new ArrayBuffer(8), have), length: have.length }));
+  assert.deepEqual(structList.toArray(), structs);
+  have = [{ tag: 9 }];
+  assert.throws(() => structList.get(1), RangeError);
+  assert.deepEqual(structList.get(0), { tag: 9 });
+
+  holder.disposed = true;
+  assert.throws(() => structList.get(0), /already disposed/);
+});
+
+test("numbers and points are converted in one pass by toArray, not asked per element", () => {
+  const source = new ChangingMemory([1, 2, 3, 4]);
+  const list = lists.coreNumbers(owner(true), pointer(source.memory), 4, "UInt16", source.refresh);
+  assert.deepEqual(list.toArray(), [1, 2, 3, 4]);
+  assert.equal(source.refreshes, 1, "one ask for the whole list");
+  assert.deepEqual(list.slice(1, 3).toArray(), [2, 3]);
+  assert.equal(source.refreshes, 2);
+
+  const points = lists.corePoints(owner(true), pointer(numbers([0, 0, 0, 0], Float32Array)), 2, () => ({ pointer: pointer(numbers([1, 2, 3, 4], Float32Array)), length: 2 }));
+  assert.deepEqual(points.toArray(), [{ x: 1, y: 2 }, { x: 3, y: 4 }]);
 });

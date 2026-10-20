@@ -8,7 +8,9 @@
 
 #include <atomic>
 #include <cstddef>
+#include <cstdlib>
 #include <cstring>
+#include <new>
 #include <memory>
 #include <thread>
 #include <utility>
@@ -26,14 +28,47 @@ void Define(jsi::Runtime &runtime, jsi::Object &target, const char *name, unsign
         runtime, jsi::PropNameID::forAscii(runtime, name), parameters, std::move(function)));
 }
 
-// A block of memory with a reference count of its own, standing in for an object of Core that owns
-// memory: it is freed when the last reference is released, whichever thread that is.
+// An object with a reference count of its own, standing in for an object of Core that owns memory:
+// it is freed when the last reference is released, whichever thread that is. The memory is a block
+// of its own that a mutable probe can free and replace while the object lives, as a setter of Core
+// does (`TRShapingEngineSetOpenTypeFeatures` frees the array that an earlier getter pointed into);
+// the old block is filled with 0xDD first so that a read through a stale pointer shows it.
 struct MemoryBlock {
     static constexpr size_t kCapacity = 256;
+    static constexpr unsigned char kPoison = 0xDD;
 
     std::atomic<int> references{1};
     size_t size = 0;
-    alignas(16) unsigned char data[kCapacity];
+    unsigned char *data = nullptr;
+
+    // malloc is aligned for any scalar, which the alignment tests rely on.
+    void Assign(const unsigned char *bytes, size_t length) {
+        size_t capacity = length < 16 ? 16 : length;
+        auto *fresh = static_cast<unsigned char *>(std::malloc(capacity));
+        if (fresh == nullptr) {
+            throw std::bad_alloc();
+        }
+        std::memset(fresh, 0, capacity);
+        std::memcpy(fresh, bytes, length);
+
+        Free();
+        data = fresh;
+        size = length;
+        capacity_ = capacity;
+    }
+
+    void Free() {
+        if (data != nullptr) {
+            std::memset(data, kPoison, capacity_);
+            std::free(data);
+            data = nullptr;
+        }
+    }
+
+    ~MemoryBlock() { Free(); }
+
+private:
+    size_t capacity_ = 0;
 };
 
 std::atomic<int> gBlocksAlive{0};
@@ -92,15 +127,18 @@ jsi::Value CreateMemoryProbe(jsi::Runtime &rt, const jsi::Value &, const jsi::Va
         runtime::FailRange(rt, kFunction, "bytes", "is bigger than a block");
     }
 
+    // Mutable only when asked, as only some objects of Core can change what they own. A list over a
+    // mutable owner must not keep a pointer or a length (see CoreMemory).
+    const jsi::Value &mutableFlag = marshal::ArgAt(args, count, 1);
+    bool isMutable = !mutableFlag.isUndefined() && marshal::ToBoolean(rt, mutableFlag, kFunction, "mutable");
+
     auto *block = new MemoryBlock();
-    block->size = bytes.size;
-    std::memset(block->data, 0, sizeof(block->data));
-    std::memcpy(block->data, bytes.data, bytes.size);
     gBlocksAlive.fetch_add(1);
 
     // Until the handle exists the block is ours to release.
     try {
-        auto handle = std::make_shared<HandleObject>(block, kProbeGroup, true, &ReleaseBlock, &RetainBlock);
+        block->Assign(bytes.data, bytes.size);
+        auto handle = std::make_shared<HandleObject>(block, kProbeGroup, isMutable, &ReleaseBlock, &RetainBlock);
         return jsi::Value(jsi::Object::createFromHostObject(rt, std::move(handle)));
     } catch (...) {
         ReleaseBlock(block);
@@ -121,7 +159,27 @@ jsi::Value GetMemoryProbeView(jsi::Runtime &rt, const jsi::Value &, const jsi::V
     TRUInteger elementSize = marshal::ToIndex(rt, marshal::ArgAt(args, count, 2), kFunction, "elementSize");
     size_t offset = RequireOffset(rt, marshal::ArgAt(args, count, 3), kFunction, block->size);
 
-    return marshal::MakePointerView(rt, block->data + offset, name.c_str(), elementSize, marshal::ArgAt(args, count, 0));
+    // A zero size has no elements; the functions that read a view refuse it by name.
+    size_t elements = elementSize == 0 ? 0 : (block->size - offset) / elementSize;
+
+    return marshal::MakePointerView(rt, block->data + offset, name.c_str(), elementSize, elements, marshal::ArgAt(args, count, 0));
+}
+
+// Frees the memory of a mutable probe and gives it new bytes (of any length) elsewhere, while the
+// object lives: what a setter of Core does to the array that a getter pointed into.
+jsi::Value ReplaceMemoryProbe(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
+    constexpr const char *kFunction = "testReplaceMemoryProbe";
+    MemoryBlock *block = RequireBlock(rt, marshal::ArgAt(args, count, 0), kFunction, "probe");
+    if (!AsHandleObject(rt, marshal::ArgAt(args, count, 0))->isMutable()) {
+        marshal::Fail(rt, kFunction, "probe", "is not mutable");
+    }
+    Bytes bytes = ReadBytes(rt, marshal::ArgAt(args, count, 1), kFunction, "bytes");
+    if (bytes.size > MemoryBlock::kCapacity) {
+        runtime::FailRange(rt, kFunction, "bytes", "is bigger than a block");
+    }
+
+    block->Assign(bytes.data, bytes.size);
+    return jsi::Value::undefined();
 }
 
 // Changes the memory that a view shows, to see that a list reads it when it is asked and keeps no copy.
@@ -165,7 +223,8 @@ jsi::Value DropPointerBufferOnOtherThread(jsi::Runtime &rt, const jsi::Value &, 
 } // namespace
 
 void InstallPointerTestHooks(jsi::Runtime &runtime, jsi::Object &target) {
-    Define(runtime, target, "testCreateMemoryProbe", 1, CreateMemoryProbe);
+    Define(runtime, target, "testReplaceMemoryProbe", 2, ReplaceMemoryProbe);
+    Define(runtime, target, "testCreateMemoryProbe", 2, CreateMemoryProbe);
     Define(runtime, target, "testGetMemoryProbeView", 4, GetMemoryProbeView);
     Define(runtime, target, "testWriteMemoryProbe", 3, WriteMemoryProbe);
     Define(runtime, target, "testGetMemoryProbeReferences", 1, GetMemoryProbeReferences);

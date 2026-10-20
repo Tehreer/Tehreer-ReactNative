@@ -20,7 +20,11 @@ namespace tehreer {
  *
  * The bytes belong to Core, which documents them as immutable: nothing in JavaScript may write to
  * them. An `ArrayBuffer` cannot be made read-only, so this holds because the library never gives
- * the buffer out: the TypeScript lists read it and copy (`toTypedArray`).
+ * the buffer out: the TypeScript lists read it and copy (`toTypedArray`). The size of a buffer is
+ * bounded by the count that the view recorded, never by an argument alone.
+ *
+ * The reference keeps the Core object alive, not an array that a setter of a mutable object frees
+ * while it lives; a list over a mutable owner therefore never keeps a buffer (see `CoreMemory`).
  */
 class RetainedMemory final : public facebook::jsi::MutableBuffer {
 public:

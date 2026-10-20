@@ -44,21 +44,34 @@ HandlerTable::Key HandlerTable::Add(jsi::Runtime &runtime, jsi::Object handler) 
     Drain(runtime);
 
     auto object = std::make_shared<jsi::Object>(std::move(handler));
+    Key key = 0;
 
-    std::lock_guard<std::mutex> lock(_mutex);
-    auto scope = _scopes.find(&runtime);
-    if (scope == _scopes.end() || scope->second->thread != std::this_thread::get_id()) {
-        throw jsi::JSError(runtime, "Tehreer is not installed on this runtime or thread.");
+    {
+        std::lock_guard<std::mutex> lock(_mutex);
+        auto scope = _scopes.find(&runtime);
+        if (scope != _scopes.end() && scope->second->thread == std::this_thread::get_id()) {
+            do {
+                key = _nextKey++;
+                // A key is a pointer for Core, so it may wrap on a 32-bit target but must never be 0 or taken.
+            } while (key == 0 || _entries.count(key) != 0);
+
+            _entries.emplace(key, Entry{ scope->second, std::move(object) });
+        }
     }
 
-    Key key;
-    do {
-        key = _nextKey++;
-        // A key is a pointer for Core, so it may wrap on a 32-bit target but must never be 0 or taken.
-    } while (key == 0 || _entries.count(key) != 0);
-
-    _entries.emplace(key, Entry{ scope->second, std::move(object) });
+    // Thrown with the lock released: making the error can allocate and collect garbage, which can
+    // run a finalizer on this thread that ends in `Remove`, and that would wait for a lock we hold.
+    if (key == 0) {
+        throw jsi::JSError(runtime, "Tehreer is not installed on this runtime or thread.");
+    }
     return key;
+}
+
+std::vector<std::shared_ptr<jsi::Object>> HandlerTable::TakeRetired(Scope &scope) {
+    std::vector<std::shared_ptr<jsi::Object>> retired;
+    retired.swap(scope.retired);
+    _retiredCount.fetch_sub(retired.size(), std::memory_order_relaxed);
+    return retired;
 }
 
 HandlerTable::Target HandlerTable::Find(Key key) {
@@ -79,47 +92,49 @@ HandlerTable::Target HandlerTable::Find(Key key) {
 
         target.runtime = scope.runtime;
         target.handler = entry->second.handler;
-        retired.swap(scope.retired);
+        retired = TakeRetired(scope);
     }
 
-    // The thread of the runtime destroys them, outside the lock.
+    // The thread of the runtime destroys them, outside the lock, when `retired` goes out of scope.
     return target;
 }
 
 void HandlerTable::Remove(Key key) noexcept {
     try {
-        std::shared_ptr<jsi::Object> local;
-
-        {
-            std::lock_guard<std::mutex> lock(_mutex);
-            auto entry = _entries.find(key);
-            if (entry == _entries.end()) {
-                return;
-            }
-
-            Entry removed = std::move(entry->second);
-            _entries.erase(entry);
-
-            if (removed.scope->thread == std::this_thread::get_id()) {
-                local = std::move(removed.handler);
-            } else {
-                removed.scope->retired.push_back(std::move(removed.handler));
-            }
+        std::lock_guard<std::mutex> lock(_mutex);
+        auto entry = _entries.find(key);
+        if (entry == _entries.end()) {
+            return;
         }
+
+        // Always queued, also on the thread of the runtime: this runs inside the finalizer of an
+        // object of Core, which the engine can run during a collection, and destroying a
+        // `jsi::Object` there is not something JSI promises to be safe. The thread of the runtime
+        // destroys it at the next `Drain`, which every binding does (see `DrainRetiredHandlers`).
+        Entry removed = std::move(entry->second);
+        _entries.erase(entry);
+
+        removed.scope->retired.push_back(std::move(removed.handler));
+        _retiredCount.fetch_add(1, std::memory_order_relaxed);
     } catch (...) {
-        // A failed lock leaves the entry in place, which is a leak of one handler and not a crash
-        // inside Core's release.
+        // A failed lock or allocation leaves the entry in place, which is a leak of one handler and
+        // not a crash inside Core's release.
     }
 }
 
 void HandlerTable::Drain(jsi::Runtime &runtime) {
+    // Every binding calls this, so the common case must cost no lock.
+    if (_retiredCount.load(std::memory_order_relaxed) == 0) {
+        return;
+    }
+
     std::vector<std::shared_ptr<jsi::Object>> retired;
 
     {
         std::lock_guard<std::mutex> lock(_mutex);
         auto scope = _scopes.find(&runtime);
         if (scope != _scopes.end() && scope->second->thread == std::this_thread::get_id()) {
-            retired.swap(scope->second->retired);
+            retired = TakeRetired(*scope->second);
         }
     }
 }
@@ -152,10 +167,9 @@ void HandlerTable::Detach(const std::shared_ptr<Scope> &scope) {
                 ++entry;
             }
         }
-        for (auto &object : scope->retired) {
+        for (auto &object : TakeRetired(*scope)) {
             doomed.push_back(std::move(object));
         }
-        scope->retired.clear();
 
         // A new runtime may live at the same address, so only this scope's own mapping goes.
         auto mapped = _scopes.find(scope->runtime);

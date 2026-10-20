@@ -72,11 +72,11 @@ function same(a: unknown, b: unknown): boolean {
 }
 
 type Bindings = Required<Pick<NativeBindings,
-  "testCreateMemoryProbe" | "testGetMemoryProbeView" | "testWriteMemoryProbe" | "testGetMemoryProbeReferences" |
+  "testCreateMemoryProbe" | "testReplaceMemoryProbe" | "testGetMemoryProbeView" | "testWriteMemoryProbe" | "testGetMemoryProbeReferences" |
   "testGetMemoryBlockCount" | "testDropPointerBufferOnOtherThread" | "testCollectGarbage">> & NativeBindings;
 
 function hooks(b: NativeBindings): Bindings {
-  const missing = ["testCreateMemoryProbe", "testGetMemoryProbeView", "testWriteMemoryProbe", "testGetMemoryProbeReferences",
+  const missing = ["testCreateMemoryProbe", "testReplaceMemoryProbe", "testGetMemoryProbeView", "testWriteMemoryProbe", "testGetMemoryProbeReferences",
     "testGetMemoryBlockCount", "testDropPointerBufferOnOtherThread", "testCollectGarbage"]
     .filter((name) => (b as unknown as Record<string, unknown>)[name] === undefined);
   if (missing.length > 0) {
@@ -108,9 +108,9 @@ interface Probe {
   view(element: string, elementSize: number, byteOffset?: number): PointerView<string>;
 }
 
-function makeProbe(b: Bindings, lib: ListLibrary, bytes: ArrayBufferView): Probe {
+function makeProbe(b: Bindings, lib: ListLibrary, bytes: ArrayBufferView, mutable = false): Probe {
   const Owner = ownerClass(lib);
-  const owner = new Owner(lib.adopt, b.testCreateMemoryProbe(bytes));
+  const owner = new Owner(lib.adopt, b.testCreateMemoryProbe(bytes, mutable));
   return {
     owner,
     view: (element, elementSize, byteOffset) => b.testGetMemoryProbeView(owner.nativeHandle, element, elementSize, byteOffset),
@@ -276,6 +276,91 @@ const tests: [string, (b: Bindings, lib: ListLibrary, options: ListTestOptions) 
     expectThrows(() => b.readPointerStructs(view, 2, 0, 1), /already disposed/);
   }],
 
+  ["a count above what Core has for the pointer is refused, whatever JavaScript passes", (b, lib) => {
+    const probe = makeProbe(b, lib, u16(1, 2, 3));
+    const view = probe.view("TRGlyphID", 2);
+    check(b.createPointerBuffer(view, 3, 2).byteLength === 6, "the count that Core gave is accepted");
+    expectThrows(() => b.createPointerBuffer(view, 4, 2), /more than the pointer has/, "RangeError");
+    expectThrows(() => b.createPointerBuffer(view, 1e9, 1), /more than the pointer has/, "RangeError");
+    expectThrows(() => b.createPointerBuffer(view, 0xffffffff, 2), /more than the pointer has/, "RangeError");
+
+    // The same for structs, which read from the pointer element by element.
+    const pairs = makeProbe(b, lib, f32(1, 2, 3, 4));
+    const pairView = pairs.view("TRPoint", 8);
+    check(b.readPointerStructs(pairView, 2, 0, 2).length === 2, "the count that Core gave is accepted for structs");
+    expectThrows(() => b.readPointerStructs(pairView, 3, 0, 3), /more than the pointer has/, "RangeError");
+    expectThrows(() => b.readPointerStructs(pairView, 1e9, 0, 5), /more than the pointer has/, "RangeError");
+    probe.owner.dispose();
+    pairs.owner.dispose();
+  }],
+
+  ["a list over a mutable owner reads what Core has now: a freed and replaced block is never read", (b, lib) => {
+    const baseline = b.testGetMemoryBlockCount();
+    const probe = makeProbe(b, lib, u16(1, 2, 3), true);
+    const handle = probe.owner.nativeHandle;
+    check(b.isHandleMutable(handle), "the probe is a mutable owner");
+
+    // What a wrapper does: the getter and the count again, on every read.
+    const refresh = () => {
+      const view = b.testGetMemoryProbeView(probe.owner.nativeHandle, "TRGlyphID", 2);
+      return { pointer: view, length: (view as unknown as { count: number }).count };
+    };
+    const list = lib.coreNumbers(probe.owner, probe.view("TRGlyphID", 2), 3, "UInt16", refresh);
+    check(list.get(1) === 2 && same([...list], [1, 2, 3]), "reads the memory");
+
+    // The block is freed (and filled with 0xDD first) and another one made, as a setter of Core does,
+    // while the owner lives and the first read's buffer may still be alive.
+    b.testReplaceMemoryProbe(handle, u16(7, 8, 9));
+    check(list.get(1) === 8, `reads the new block, not the freed one: ${list.get(1)}`);
+    check(same(list.toArray(), [7, 8, 9]) && same([...list.toTypedArray()], [7, 8, 9]), "every way of reading sees it");
+
+    b.testReplaceMemoryProbe(handle, u16(5));
+    check(list.get(0) === 5, "a smaller block");
+    expectThrows(() => list.get(2), /fewer than the list was made for/, "RangeError");
+    expectThrows(() => list.toArray(), /fewer than the list was made for/, "RangeError");
+
+    // Nothing was kept: after the buffers of the reads are collected the one block is all that is left.
+    probe.owner.dispose();
+    collect(b);
+    check(b.testGetMemoryBlockCount() === baseline, `no block is kept: ${b.testGetMemoryBlockCount() - baseline} left`);
+  }],
+
+  ["a mutable owner cannot be read through a list that cannot ask Core again", (b, lib) => {
+    const probe = makeProbe(b, lib, u16(1, 2), true);
+    const list = lib.coreNumbers(probe.owner, probe.view("TRGlyphID", 2), 2, "UInt16");
+    check(list.length === 2, "making it reads nothing");
+    expectThrows(() => list.get(0), /without asking Core again/);
+    check(!b.isHandleMutable(makeProbe(b, lib, u16(1)).owner.nativeHandle), "a probe is immutable unless it is made mutable");
+    probe.owner.dispose();
+  }],
+
+  ["a list over the features of a shaping engine follows the engine when its features are set again", (b, lib) => {
+    const engine = b.TRShapingEngineCreate();
+    check(engine !== undefined, "no shaping engine");
+    const Owner = ownerClass(lib);
+    const owner = new Owner(lib.adopt, engine as Handle<"TRShapingEngine">);
+    const handle = owner.nativeHandle;
+    check(b.isHandleMutable(handle), "a shaping engine is mutable");
+
+    const first = [{ tag: 0x6c696761, value: 1 }, { tag: 0x6b65726e, value: 0 }, { tag: 0x73616c74, value: 2 }];
+    check(b.TRShapingEngineSetOpenTypeFeatures(handle, first, first.length), "the features are set");
+    const refresh = () => ({ pointer: b.TRShapingEngineGetOpenTypeFeaturesPtr(handle), length: b.TRShapingEngineGetOpenTypeFeatureCount(handle) });
+    const initial = refresh();
+    const list = lib.coreStructs<{ tag: number; value: number }>(owner, initial.pointer, initial.length, refresh);
+    check(same(list.toArray(), first), "the features are read");
+
+    // Core frees the array that the first read used and makes another one.
+    const second = [{ tag: 0x63617365, value: 1 }, { tag: 0x6c6f636c, value: 1 }, { tag: 0x6d6b6d6b, value: 1 }];
+    check(b.TRShapingEngineSetOpenTypeFeatures(handle, second, second.length), "the features are set again");
+    check(same(list.toArray(), second) && same(list.get(2), second[2]), "the list shows the new features");
+
+    check(b.TRShapingEngineSetOpenTypeFeatures(handle, [second[0] as { tag: number; value: number }], 1), "one feature");
+    expectThrows(() => list.get(2), /fewer than the list was made for/, "RangeError");
+    check(b.TRShapingEngineSetOpenTypeFeatures(handle, undefined, 0), "none");
+    expectThrows(() => list.get(0), /fewer than the list was made for/, "RangeError");
+    owner.dispose();
+  }],
+
   ["a pointer that is not aligned for the numbers, or an argument that is not valid, is refused", (b, lib) => {
     const probe = makeProbe(b, lib, new Uint8Array(32));
     expectThrows(() => b.createPointerBuffer(probe.view("TRGlyphID", 2, 1), 2, 2), /not aligned/, "RangeError");
@@ -303,7 +388,7 @@ const tests: [string, (b: Bindings, lib: ListLibrary, options: ListTestOptions) 
   ["a view tells its element but never its address", (b, lib) => {
     const probe = makeProbe(b, lib, u16(1));
     const view = probe.view("TRGlyphID", 2) as unknown as Record<string, unknown>;
-    check(view["element"] === "TRGlyphID" && view["elementSize"] === 2, "the element and its size");
+    check(view["element"] === "TRGlyphID" && view["elementSize"] === 2 && view["count"] === 1, "the element, its size and its count");
     check(view["address"] === undefined && view["owner"] === undefined, "nothing else can be read");
     probe.owner.dispose();
   }],

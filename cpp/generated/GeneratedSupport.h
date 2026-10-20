@@ -177,10 +177,11 @@ jsi::Object ToObject(jsi::Runtime &rt, const jsi::Value &value, const char *func
 jsi::Array ToArray(jsi::Runtime &rt, const jsi::Value &value, const char *function, const char *parameter);
 
 /**
- * A pointer into memory that `owner` keeps alive, with the name and the size of its elements.
- * The count is asked from Core separately. `NULL` becomes undefined.
+ * A pointer into memory of `owner`, with the name and the size of its elements and how many
+ * there are (the count function of Core that is paired with the getter, see POINTER_COUNTS): the
+ * runtime never reads more than that. `NULL` becomes undefined.
  */
-jsi::Value MakePointerView(jsi::Runtime &rt, const void *address, const char *element, size_t elementSize, const jsi::Value &owner);
+jsi::Value MakePointerView(jsi::Runtime &rt, const void *address, const char *element, size_t elementSize, size_t count, const jsi::Value &owner);
 /** The address of an opaque pointer, as a number (an application token such as `userData`). */
 jsi::Value FromToken(jsi::Runtime &rt, const void *pointer);
 /** The opposite: a non-negative integer number becomes the opaque pointer it was made from. */
@@ -224,7 +225,22 @@ struct Collector {
 bool HasCallbackError(jsi::Runtime &rt);
 /** Throws the remembered error, the very value the handler threw, and forgets it. */
 [[noreturn]] void ThrowCallbackError(jsi::Runtime &rt);
+/**
+ * The first thing a binding does: forgets an error that was remembered but never thrown (a Core
+ * call that did not go through a binding), so that it cannot surface from an unrelated call.
+ * Nothing legitimate is lost: after a handler failed no handler runs again during that Core call,
+ * so no binding can start between the failure and its rethrow.
+ */
+void BeginCall() noexcept;
+/**
+ * Destroys the handlers that were removed since the runtime's thread last looked (an object of Core
+ * can end on any thread, and only this thread may destroy a JavaScript value). It is a read of one
+ * atomic when there is nothing to do, and runs with every rethrow check so that handlers do not
+ * wait for the next replacement to be made.
+ */
+void DrainRetiredHandlers(jsi::Runtime &rt);
 inline void RethrowCallbackError(jsi::Runtime &rt) {
+    DrainRetiredHandlers(rt);
     if (HasCallbackError(rt)) {
         ThrowCallbackError(rt);
     }

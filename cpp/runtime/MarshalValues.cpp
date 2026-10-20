@@ -314,7 +314,7 @@ jsi::Array ToArray(jsi::Runtime &rt, const jsi::Value &value, const char *functi
     Fail(rt, function, parameter, "must be an array");
 }
 
-jsi::Value MakePointerView(jsi::Runtime &rt, const void *address, const char *element, size_t elementSize, const jsi::Value &owner) {
+jsi::Value MakePointerView(jsi::Runtime &rt, const void *address, const char *element, size_t elementSize, size_t count, const jsi::Value &owner) {
     if (address == nullptr) {
         return jsi::Value::undefined();
     }
@@ -326,7 +326,7 @@ jsi::Value MakePointerView(jsi::Runtime &rt, const void *address, const char *el
         Fail(rt, "MakePointerView", "owner", "is not a Tehreer handle");
     }
 
-    auto view = std::make_shared<PointerViewObject>(address, element, elementSize, std::move(handle));
+    auto view = std::make_shared<PointerViewObject>(address, element, elementSize, count, std::move(handle));
     return jsi::Value(jsi::Object::createFromHostObject(rt, std::move(view)));
 }
 

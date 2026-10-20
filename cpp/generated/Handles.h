@@ -164,6 +164,7 @@ template <> struct HandleTraits<TRTypesetterRef> {
  * caller owns: the reference is released first, so a failed callback leaks nothing.
  */
 template <class Ref> inline void RethrowCallbackError(jsi::Runtime &rt, Ref owned) {
+    DrainRetiredHandlers(rt);
     if (HasCallbackError(rt)) {
         if (owned != nullptr) {
             HandleTraits<Ref>::Release(owned);

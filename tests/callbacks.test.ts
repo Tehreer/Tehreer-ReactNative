@@ -49,10 +49,11 @@ test("a finalizer only drops a table entry and touches no JavaScript", () => {
   assert.match(finalize, /HandlerTable::Shared\(\)\.Remove\(/);
   assert.doesNotMatch(finalize, /jsi::|getProperty|call|rt\b/);
 
-  // Remove may run on any thread: a handler removed off the runtime's thread is queued, not destroyed.
+  // Remove may run on any thread, inside an engine finalizer: a handler is always queued, never
+  // destroyed there, whichever thread it is (the behaviour is run by tests/handlerTable.test.ts).
   const table = read("cpp/runtime/HandlerTable.cpp");
   const remove = bodyOf(table, "void HandlerTable::Remove(");
-  assert.match(remove, /removed\.scope->thread == std::this_thread::get_id\(\)/);
+  assert.doesNotMatch(remove, /this_thread/);
   assert.match(remove, /retired\.push_back/);
   // And a handler is found only on its runtime's thread.
   assert.match(bodyOf(table, "HandlerTable::Target HandlerTable::Find("), /scope\.thread != std::this_thread::get_id\(\)/);
@@ -100,7 +101,7 @@ test("the functions that keep callbacks are bound by hand, and only they use the
   // no callback, so they must not reach for the table.
   const sources = readdirSync(join(root, "cpp/runtime")).filter((name) => name.endsWith(".cpp"));
   const users = sources.filter((name) => /HandlerTable::Shared\(\)/.test(read(`cpp/runtime/${name}`))).sort();
-  assert.deepEqual(users, ["CallbackTestHooks.cpp", "HandlerTable.cpp", "ReplacementBindings.cpp", "TehreerBindings.cpp"]);
+  assert.deepEqual(users, ["CallbackTestHooks.cpp", "Callbacks.cpp", "HandlerTable.cpp", "ReplacementBindings.cpp", "TehreerBindings.cpp"]);
 
   // The Core header agrees: the only callbacks that are kept after the call are the replacement's.
   const header = read("Libraries/TehreerCore/Headers/Tehreer/TRReplacement.h");
@@ -118,6 +119,8 @@ test("every generated binding looks for a callback error right after Core return
       bindings++;
       const [, binding, body] = match as unknown as [string, string, string];
       const lines = (body as string).split("\n");
+      // A leftover error that nothing threw must not surface from this call.
+      assert.equal(lines[1], "    marshal::BeginCall();", `${binding}: does not forget a stale callback error first`);
       const call = lines.findIndex((line) => new RegExp(`^ {4}(auto result = )?${binding}\\(`).test(line));
       assert.ok(call >= 0, `${binding}: the call to Core was not found`);
 

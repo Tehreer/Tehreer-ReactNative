@@ -30,16 +30,18 @@ namespace {
 
 jsi::Value BindTRAttributeListGetItem(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRAttributeListGetItem";
+    marshal::BeginCall();
     TRUInteger a_index = marshal::ToIndex(rt, marshal::ArgAt(args, count, 1), kFunction, "index");
     TRAttributeListRef a_list = marshal::ToHandle<TRAttributeListRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "list", false);
 
     auto result = TRAttributeListGetItem(a_list, a_index);
     marshal::RethrowCallbackError(rt);
-    return marshal::MakePointerView(rt, result, "TRAttribute", sizeof(TRAttribute), marshal::ArgAt(args, count, 0));
+    return marshal::MakePointerView(rt, result, "TRAttribute", sizeof(TRAttribute), static_cast<size_t>(1), marshal::ArgAt(args, count, 0));
 }
 
 jsi::Value BindTRAttributeListGetCount(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRAttributeListGetCount";
+    marshal::BeginCall();
     TRAttributeListRef a_list = marshal::ToHandle<TRAttributeListRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "list", false);
 
     auto result = TRAttributeListGetCount(a_list);
@@ -49,6 +51,7 @@ jsi::Value BindTRAttributeListGetCount(jsi::Runtime &rt, const jsi::Value &, con
 
 jsi::Value BindTRAttributeListRetain(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRAttributeListRetain";
+    marshal::BeginCall();
     TRAttributeListRef a_list = marshal::ToHandle<TRAttributeListRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "list", false);
 
     auto result = TRAttributeListRetain(a_list);

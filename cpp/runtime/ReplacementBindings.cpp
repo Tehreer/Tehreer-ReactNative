@@ -46,6 +46,7 @@ void Finalize(void *userData) noexcept {
 
 jsi::Value BindReplacementCreate(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     constexpr const char *kFunction = "TRReplacementCreate";
+    marshal::BeginCall();
 
     // All the conversions come first, so a bad argument leaves nothing behind.
     jsi::Object handler = marshal::ToObject(rt, marshal::ArgAt(args, count, 0), kFunction, "handler");

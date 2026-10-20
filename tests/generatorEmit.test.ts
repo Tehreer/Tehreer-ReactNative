@@ -14,6 +14,7 @@ const sample = generate(url("./fixtures/sample/Tehreer"), {
   manual: new Set(),
   bounds: {},
   scalarOuts: { TRSampleGetDistance: ["distance"] },
+  pointerCounts: { TRSampleGetAdvancesPtr: "3" },
   skipIncludes: [],
 });
 
@@ -84,7 +85,7 @@ test("a buffer that may be NULL is checked only when present, any other always",
        #endif`,
     );
     writeFileSync(join(directory, "TRSample.h"), header);
-    const text = generate(directory, { excluded: new Set(), manual: new Set(), bounds: {}, scalarOuts: { TRSampleGetDistance: ["distance"] }, skipIncludes: [] }).cpp.get("TRSampleBindings.cpp") ?? "";
+    const text = generate(directory, { excluded: new Set(), manual: new Set(), bounds: {}, scalarOuts: { TRSampleGetDistance: ["distance"] }, pointerCounts: { TRSampleGetAdvancesPtr: "3" }, skipIncludes: [] }).cpp.get("TRSampleBindings.cpp") ?? "";
 
     // Without a guard, so an empty array or buffer with a count above zero is rejected.
     assert.match(text, /\n {4}marshal::RequireCapacity\(rt, kFunction, "advances"/);
@@ -126,7 +127,7 @@ test("an invalid encoding is left to Core, and a mutable type is told from a con
       TR_PUBLIC void TRPairRelease(TRPairRef pair);
       TR_PUBLIC void TRPairClear(TRMutablePairRef pair);
     `);
-    const files = generate(directory, { excluded: new Set(), manual: new Set(), bounds: {}, scalarOuts: {}, skipIncludes: [] }).cpp;
+    const files = generate(directory, { excluded: new Set(), manual: new Set(), bounds: {}, scalarOuts: {}, pointerCounts: {}, skipIncludes: [] }).cpp;
     const handles = files.get("Handles.h") ?? "";
     assert.match(handles, /HandleTraits<TRPairRef> \{[^}]*kGroup = "TRPair";\s*static constexpr bool kMutable = false;/);
     assert.match(handles, /HandleTraits<TRMutablePairRef> \{[^}]*kGroup = "TRPair";\s*static constexpr bool kMutable = true;/);
@@ -164,6 +165,7 @@ test("the typed declarations say what each function takes and gives", () => {
   assert.match(ts, /TRSampleSetOrigin\(sample: Handle<"TRSample">, origin: TRPoint\): void;/);
   assert.match(ts, /TRSampleGetDistance\(sample: Handle<"TRSample">, index: number\): number \| undefined;/);
   assert.match(ts, /TRSampleSetText\(sample: Handle<"TRSample">, string: ArrayBuffer \| ArrayBufferView \| undefined, length: number, encoding: number\): boolean;/);
+  assert.match(cpp("TRSampleBindings.cpp"), /MakePointerView\(rt, result, "TRFloat", sizeof\(TRFloat\), static_cast<size_t>\(3\), marshal::ArgAt\(args, count, 0\)\)/);
   assert.match(ts, /TRSampleGetAdvancesPtr\(sample: Handle<"TRSample">\): PointerView<"TRFloat"> \| undefined;/);
   assert.match(ts, /TRSampleEnumerate\(sample: Handle<"TRSample">, index: number, length: number\): \{ index: number; origin: TRPoint \}\[\] \| undefined;/);
   assert.match(ts, /export interface TRPoint \{\s*x: number;\s*y: number;\s*\}/);
@@ -172,7 +174,7 @@ test("the typed declarations say what each function takes and gives", () => {
 });
 
 test("the output is the same on every run", () => {
-  const again = generate(url("./fixtures/sample/Tehreer"), { excluded: new Set(), manual: new Set(), bounds: {}, scalarOuts: { TRSampleGetDistance: ["distance"] }, skipIncludes: [] });
+  const again = generate(url("./fixtures/sample/Tehreer"), { excluded: new Set(), manual: new Set(), bounds: {}, scalarOuts: { TRSampleGetDistance: ["distance"] }, pointerCounts: { TRSampleGetAdvancesPtr: "3" }, skipIncludes: [] });
   assert.deepEqual([...again.cpp], [...sample.cpp]);
   assert.equal(again.ts, sample.ts);
 });

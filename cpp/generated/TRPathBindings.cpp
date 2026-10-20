@@ -139,6 +139,7 @@ void CollectTRPathEnumerate_close(void *userData, TRBoolean *stop) {
 
 jsi::Value BindTRPathEnumerate(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRPathEnumerate";
+    marshal::BeginCall();
     TRAffineTransform v_transform = {};
     const TRAffineTransform *a_transform = nullptr;
     if (!marshal::IsNullish(marshal::ArgAt(args, count, 1))) {
@@ -165,6 +166,7 @@ jsi::Value BindTRPathEnumerate(jsi::Runtime &rt, const jsi::Value &, const jsi::
 
 jsi::Value BindTRPathRetain(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRPathRetain";
+    marshal::BeginCall();
     TRPathRef a_path = marshal::ToHandle<TRPathRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "path", false);
 
     auto result = TRPathRetain(a_path);

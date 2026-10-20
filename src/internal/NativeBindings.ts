@@ -26,6 +26,12 @@ export interface NativeBindings extends NativeFunctions {
   /** Tells whether `disposeHandle` has been called on the handle, or its reference was released. */
   isHandleDisposed(handle: Handle<string>): boolean;
   /**
+   * Tells whether Core lets the object change after it is made (a `TRMutable*` or a renderer, a
+   * shaping engine, ...). Throws if the handle is disposed. What such an object owns can be freed by
+   * a setter while it lives, so a pointer into it must not be kept.
+   */
+  isHandleMutable(handle: Handle<string>): boolean;
+  /**
    * Tells if both handles hold a reference to the same object of Core. Throws if either is disposed.
    * (Two handles are never the same JavaScript object, even for one Core object.)
    */
@@ -53,7 +59,8 @@ export interface NativeBindings extends NativeFunctions {
    *   needs (its `BYTES_PER_ELEMENT`). A typed array does not check the address, only its offset.
    * @throws Error if the owner of the pointer is disposed ("already disposed"), or `pointer` is not
    *   one that Core gave.
-   * @throws RangeError if the address is not a multiple of `alignment`, or the count is too large.
+   * @throws RangeError if the address is not a multiple of `alignment`, or the count is more than
+   *   the pointer has (the count of Core that the getter was paired with, recorded in the view).
    */
   createPointerBuffer(pointer: PointerView<string>, count: number, alignment: number): ArrayBuffer;
   /**
@@ -108,12 +115,21 @@ export interface NativeBindings extends NativeFunctions {
   /**
    * A handle for an object that owns `bytes` (at most 256) in memory of its own, and counts its
    * references like an object of Core does (it can be retained, and is freed with the last one).
-   * Stands in for a getter of Core that returns a pointer, with no font.
+   * Stands in for a getter of Core that returns a pointer, with no font. `mutable` (default false)
+   * makes the handle one of an object that can change, whose memory {@link testReplaceMemoryProbe}
+   * can free and replace.
    */
-  testCreateMemoryProbe?(bytes: ArrayBuffer | ArrayBufferView): Handle<"TRMemoryProbe">;
+  testCreateMemoryProbe?(bytes: ArrayBuffer | ArrayBufferView, mutable?: boolean): Handle<"TRMemoryProbe">;
+  /**
+   * Frees the memory of a mutable probe and gives it `bytes` (at most 256, any length) in a new
+   * block, while the probe lives, as a setter of Core does. The old block is overwritten with 0xDD
+   * before it is freed, so a pointer or a buffer that was kept shows it.
+   */
+  testReplaceMemoryProbe?(probe: Handle<"TRMemoryProbe">, bytes: ArrayBuffer | ArrayBufferView): void;
   /**
    * The pointer that a `*Ptr()` getter would return for the probe: its memory `byteOffset` bytes in,
-   * with the name and the size of its elements (`"TRPoint"`, 8).
+   * with the name and the size of its elements (`"TRPoint"`, 8). Its count is what is left of the
+   * block after `byteOffset`, in whole elements.
    */
   testGetMemoryProbeView?(probe: Handle<"TRMemoryProbe">, element: string, elementSize: number, byteOffset?: number): PointerView<string>;
   /** Overwrites the memory of the probe, which a pointer into it shows at once. */

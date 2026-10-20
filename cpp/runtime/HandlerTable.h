@@ -2,6 +2,7 @@
 
 #include <jsi/jsi.h>
 
+#include <atomic>
 #include <cstddef>
 #include <cstdint>
 #include <memory>
@@ -21,8 +22,10 @@ namespace tehreer::runtime {
  * what Core and JSI allow:
  *
  * - `Remove` can run on any thread (the last release of an object of Core can) and must not touch
- *   JavaScript. A handler removed from another thread is moved to a queue of its runtime and
- *   destroyed the next time that runtime's thread uses the table, or when the runtime goes away.
+ *   JavaScript. A removed handler is always moved to a queue of its runtime, also on the runtime's
+ *   own thread (that call can be inside an engine finalizer), and destroyed by that thread the next
+ *   time it uses the table: every binding drains after its Core call, and `disposeHandle` does too.
+ *   The rest is destroyed when the runtime goes away.
  * - A handler is only looked up on the thread of its runtime; `Find` finds nothing elsewhere, since
  *   JSI runtimes are not thread safe.
  * - When the runtime is torn down its entries are destroyed from the destructor of the `HostObject`
@@ -63,12 +66,15 @@ public:
     /** Forgets the handler. Safe on any thread, for any key (also one that is gone), and idempotent. */
     void Remove(Key key) noexcept;
 
-    /** Destroys the handlers that other threads removed. Must run on the thread of the runtime. */
+    /**
+     * Destroys the handlers that were removed and queued. Must run on the thread of the runtime; on
+     * another thread it does nothing. Costs one atomic read when nothing is queued.
+     */
     void Drain(facebook::jsi::Runtime &runtime);
 
     /** The handlers that are stored. */
     size_t Count() const;
-    /** The handlers that were removed from another thread and are not destroyed yet. */
+    /** The handlers that were removed and are not destroyed yet. */
     size_t RetiredCount() const;
 
     HandlerTable(const HandlerTable &) = delete;
@@ -90,11 +96,15 @@ private:
     class Lifetime;
 
     void Detach(const std::shared_ptr<Scope> &scope);
+    /** Takes what other threads removed from the scope. The lock must be held; the result is destroyed outside it. */
+    std::vector<std::shared_ptr<facebook::jsi::Object>> TakeRetired(Scope &scope);
 
     mutable std::mutex _mutex;
     std::unordered_map<Key, Entry> _entries;
     std::unordered_map<facebook::jsi::Runtime *, std::shared_ptr<Scope>> _scopes;
     Key _nextKey = 1;
+    // How many handlers wait in the queues of all scopes, so that `Drain` can return without a lock.
+    std::atomic<size_t> _retiredCount{0};
 };
 
 /** The pointer that Core carries for a key, and back. */

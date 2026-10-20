@@ -30,6 +30,7 @@ namespace {
 
 jsi::Value BindTRGlyphImageGetFormat(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRGlyphImageGetFormat";
+    marshal::BeginCall();
     TRGlyphImageRef a_image = marshal::ToHandle<TRGlyphImageRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "image", false);
 
     auto result = TRGlyphImageGetFormat(a_image);
@@ -39,6 +40,7 @@ jsi::Value BindTRGlyphImageGetFormat(jsi::Runtime &rt, const jsi::Value &, const
 
 jsi::Value BindTRGlyphImageGetLeft(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRGlyphImageGetLeft";
+    marshal::BeginCall();
     TRGlyphImageRef a_image = marshal::ToHandle<TRGlyphImageRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "image", false);
 
     auto result = TRGlyphImageGetLeft(a_image);
@@ -48,6 +50,7 @@ jsi::Value BindTRGlyphImageGetLeft(jsi::Runtime &rt, const jsi::Value &, const j
 
 jsi::Value BindTRGlyphImageGetTop(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRGlyphImageGetTop";
+    marshal::BeginCall();
     TRGlyphImageRef a_image = marshal::ToHandle<TRGlyphImageRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "image", false);
 
     auto result = TRGlyphImageGetTop(a_image);
@@ -57,6 +60,7 @@ jsi::Value BindTRGlyphImageGetTop(jsi::Runtime &rt, const jsi::Value &, const js
 
 jsi::Value BindTRGlyphImageGetWidth(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRGlyphImageGetWidth";
+    marshal::BeginCall();
     TRGlyphImageRef a_image = marshal::ToHandle<TRGlyphImageRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "image", false);
 
     auto result = TRGlyphImageGetWidth(a_image);
@@ -66,6 +70,7 @@ jsi::Value BindTRGlyphImageGetWidth(jsi::Runtime &rt, const jsi::Value &, const 
 
 jsi::Value BindTRGlyphImageGetHeight(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRGlyphImageGetHeight";
+    marshal::BeginCall();
     TRGlyphImageRef a_image = marshal::ToHandle<TRGlyphImageRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "image", false);
 
     auto result = TRGlyphImageGetHeight(a_image);
@@ -75,15 +80,17 @@ jsi::Value BindTRGlyphImageGetHeight(jsi::Runtime &rt, const jsi::Value &, const
 
 jsi::Value BindTRGlyphImageGetPixelsPtr(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRGlyphImageGetPixelsPtr";
+    marshal::BeginCall();
     TRGlyphImageRef a_image = marshal::ToHandle<TRGlyphImageRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "image", false);
 
     auto result = TRGlyphImageGetPixelsPtr(a_image);
     marshal::RethrowCallbackError(rt);
-    return marshal::MakePointerView(rt, result, "TRUInt8", sizeof(TRUInt8), marshal::ArgAt(args, count, 0));
+    return marshal::MakePointerView(rt, result, "TRUInt8", sizeof(TRUInt8), static_cast<size_t>(TRGlyphImageGetByteCount(a_image)), marshal::ArgAt(args, count, 0));
 }
 
 jsi::Value BindTRGlyphImageGetByteCount(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRGlyphImageGetByteCount";
+    marshal::BeginCall();
     TRGlyphImageRef a_image = marshal::ToHandle<TRGlyphImageRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "image", false);
 
     auto result = TRGlyphImageGetByteCount(a_image);
@@ -93,6 +100,7 @@ jsi::Value BindTRGlyphImageGetByteCount(jsi::Runtime &rt, const jsi::Value &, co
 
 jsi::Value BindTRGlyphImageRetain(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRGlyphImageRetain";
+    marshal::BeginCall();
     TRGlyphImageRef a_image = marshal::ToHandle<TRGlyphImageRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "image", false);
 
     auto result = TRGlyphImageRetain(a_image);

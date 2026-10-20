@@ -30,6 +30,7 @@ namespace {
 
 jsi::Value BindTRFontFeaturesCreate(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRFontFeaturesCreate";
+    marshal::BeginCall();
     std::vector<TROpenTypeFeature> v_features;
     size_t n_features = 0;
     const TROpenTypeFeature *a_features = nullptr;
@@ -55,15 +56,17 @@ jsi::Value BindTRFontFeaturesCreate(jsi::Runtime &rt, const jsi::Value &, const 
 
 jsi::Value BindTRFontFeaturesGetItemsPtr(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRFontFeaturesGetItemsPtr";
+    marshal::BeginCall();
     TRFontFeaturesRef a_features = marshal::ToHandle<TRFontFeaturesRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "features", false);
 
     auto result = TRFontFeaturesGetItemsPtr(a_features);
     marshal::RethrowCallbackError(rt);
-    return marshal::MakePointerView(rt, result, "TROpenTypeFeature", sizeof(TROpenTypeFeature), marshal::ArgAt(args, count, 0));
+    return marshal::MakePointerView(rt, result, "TROpenTypeFeature", sizeof(TROpenTypeFeature), static_cast<size_t>(TRFontFeaturesGetCount(a_features)), marshal::ArgAt(args, count, 0));
 }
 
 jsi::Value BindTRFontFeaturesGetCount(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRFontFeaturesGetCount";
+    marshal::BeginCall();
     TRFontFeaturesRef a_features = marshal::ToHandle<TRFontFeaturesRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "features", false);
 
     auto result = TRFontFeaturesGetCount(a_features);
@@ -73,6 +76,7 @@ jsi::Value BindTRFontFeaturesGetCount(jsi::Runtime &rt, const jsi::Value &, cons
 
 jsi::Value BindTRFontFeaturesRetain(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRFontFeaturesRetain";
+    marshal::BeginCall();
     TRFontFeaturesRef a_features = marshal::ToHandle<TRFontFeaturesRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "features", false);
 
     auto result = TRFontFeaturesRetain(a_features);

@@ -32,6 +32,12 @@
     static_assert(sizeof(Real) == sizeof(Mirror), #Real ": the size" TEHREER_STALE); \
     static_assert(alignof(Real) == alignof(Mirror), #Real ": the alignment" TEHREER_STALE)
 
+// A scalar typedef must stay the type that the header names and have the width its members were
+// laid out with.
+#define TEHREER_CHECK_SCALAR(Real, Base, Width) \
+    static_assert(std::is_same<Real, Base>::value, #Real ": the type" TEHREER_STALE); \
+    static_assert(sizeof(Real) == (Width), #Real ": the width" TEHREER_STALE)
+
 // offsetof is only defined for a standard-layout type.
 #define TEHREER_CHECK_STRUCT(Real, Mirror) \
     TEHREER_CHECK_UNION(Real, Mirror); \
@@ -48,6 +54,37 @@
 namespace tehreer {
 namespace generated {
 namespace layouts {
+
+TEHREER_CHECK_SCALAR(TRAttributeType, uint32_t, 4);
+TEHREER_CHECK_SCALAR(TRTextAlignment, uint32_t, 4);
+TEHREER_CHECK_SCALAR(TRInt8, int8_t, 1);
+TEHREER_CHECK_SCALAR(TRInt16, int16_t, 2);
+TEHREER_CHECK_SCALAR(TRInt32, int32_t, 4);
+TEHREER_CHECK_SCALAR(TRUInt8, uint8_t, 1);
+TEHREER_CHECK_SCALAR(TRUInt16, uint16_t, 2);
+TEHREER_CHECK_SCALAR(TRUInt32, uint32_t, 4);
+TEHREER_CHECK_SCALAR(TRInteger, intptr_t, sizeof(void *));
+TEHREER_CHECK_SCALAR(TRUInteger, uintptr_t, sizeof(void *));
+TEHREER_CHECK_SCALAR(TRFloat, float, 4);
+TEHREER_CHECK_SCALAR(TRBoolean, uint8_t, 1);
+TEHREER_CHECK_SCALAR(TRTag, uint32_t, 4);
+TEHREER_CHECK_SCALAR(TRGlyphID, uint16_t, 2);
+TEHREER_CHECK_SCALAR(TRColor, uint32_t, 4);
+TEHREER_CHECK_SCALAR(TRDrawStyle, uint32_t, 4);
+TEHREER_CHECK_SCALAR(TRVerticalAlignment, uint32_t, 4);
+TEHREER_CHECK_SCALAR(TRGlyphImageFormat, uint32_t, 4);
+TEHREER_CHECK_SCALAR(TRStrokeCap, uint32_t, 4);
+TEHREER_CHECK_SCALAR(TRStrokeJoin, uint32_t, 4);
+TEHREER_CHECK_SCALAR(TRGlyphImageKind, uint32_t, 4);
+TEHREER_CHECK_SCALAR(TRReplacementKind, uint32_t, 4);
+TEHREER_CHECK_SCALAR(TRWritingDirection, uint32_t, 4);
+TEHREER_CHECK_SCALAR(TRShapingOrder, uint32_t, 4);
+TEHREER_CHECK_SCALAR(TRStringEncoding, uint32_t, 4);
+TEHREER_CHECK_SCALAR(TRWeight, uint32_t, 4);
+TEHREER_CHECK_SCALAR(TRWidth, uint32_t, 4);
+TEHREER_CHECK_SCALAR(TRSlope, uint32_t, 4);
+TEHREER_CHECK_SCALAR(TRBreakMode, uint32_t, 4);
+TEHREER_CHECK_SCALAR(TRTruncationPlace, uint32_t, 4);
 
 union TRAttributeValueLayout {
     TRTypefaceRef typeface;
@@ -280,6 +317,7 @@ TEHREER_CHECK_MEMBER(TRPredefinedPalette, TRPredefinedPaletteLayout, flags);
 #undef TEHREER_CHECK_MEMBER
 #undef TEHREER_CHECK_UNION_MEMBER
 #undef TEHREER_CHECK_STRUCT
+#undef TEHREER_CHECK_SCALAR
 #undef TEHREER_CHECK_UNION
 #undef TEHREER_STALE
 

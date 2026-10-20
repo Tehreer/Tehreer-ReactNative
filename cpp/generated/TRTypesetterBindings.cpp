@@ -30,6 +30,7 @@ namespace {
 
 jsi::Value BindTRTypesetterGetCodeUnitCount(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRTypesetterGetCodeUnitCount";
+    marshal::BeginCall();
     TRTypesetterRef a_typesetter = marshal::ToHandle<TRTypesetterRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "typesetter", false);
 
     auto result = TRTypesetterGetCodeUnitCount(a_typesetter);
@@ -39,6 +40,7 @@ jsi::Value BindTRTypesetterGetCodeUnitCount(jsi::Runtime &rt, const jsi::Value &
 
 jsi::Value BindTRTypesetterSuggestForwardBreak(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRTypesetterSuggestForwardBreak";
+    marshal::BeginCall();
     TRUInteger a_index = marshal::ToIndex(rt, marshal::ArgAt(args, count, 1), kFunction, "index");
     TRUInteger a_length = marshal::ToIndex(rt, marshal::ArgAt(args, count, 2), kFunction, "length");
     TRFloat a_extent = marshal::ToNumber<TRFloat>(rt, marshal::ArgAt(args, count, 3), kFunction, "extent");
@@ -52,6 +54,7 @@ jsi::Value BindTRTypesetterSuggestForwardBreak(jsi::Runtime &rt, const jsi::Valu
 
 jsi::Value BindTRTypesetterSuggestBackwardBreak(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRTypesetterSuggestBackwardBreak";
+    marshal::BeginCall();
     TRUInteger a_index = marshal::ToIndex(rt, marshal::ArgAt(args, count, 1), kFunction, "index");
     TRUInteger a_length = marshal::ToIndex(rt, marshal::ArgAt(args, count, 2), kFunction, "length");
     TRFloat a_extent = marshal::ToNumber<TRFloat>(rt, marshal::ArgAt(args, count, 3), kFunction, "extent");
@@ -65,6 +68,7 @@ jsi::Value BindTRTypesetterSuggestBackwardBreak(jsi::Runtime &rt, const jsi::Val
 
 jsi::Value BindTRTypesetterCreateSimpleLine(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRTypesetterCreateSimpleLine";
+    marshal::BeginCall();
     TRUInteger a_index = marshal::ToIndex(rt, marshal::ArgAt(args, count, 1), kFunction, "index");
     TRUInteger a_length = marshal::ToIndex(rt, marshal::ArgAt(args, count, 2), kFunction, "length");
     TRFloat a_layoutWidth = marshal::ToNumber<TRFloat>(rt, marshal::ArgAt(args, count, 3), kFunction, "layoutWidth");
@@ -77,6 +81,7 @@ jsi::Value BindTRTypesetterCreateSimpleLine(jsi::Runtime &rt, const jsi::Value &
 
 jsi::Value BindTRTypesetterCreateTruncationToken(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRTypesetterCreateTruncationToken";
+    marshal::BeginCall();
     TRUInteger a_index = marshal::ToIndex(rt, marshal::ArgAt(args, count, 1), kFunction, "index");
     TRUInteger a_length = marshal::ToIndex(rt, marshal::ArgAt(args, count, 2), kFunction, "length");
     TRTruncationPlace a_truncationPlace = marshal::ToNumber<TRTruncationPlace>(rt, marshal::ArgAt(args, count, 3), kFunction, "truncationPlace");
@@ -96,6 +101,7 @@ jsi::Value BindTRTypesetterCreateTruncationToken(jsi::Runtime &rt, const jsi::Va
 
 jsi::Value BindTRTypesetterCreateTruncatedLine(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRTypesetterCreateTruncatedLine";
+    marshal::BeginCall();
     TRUInteger a_index = marshal::ToIndex(rt, marshal::ArgAt(args, count, 1), kFunction, "index");
     TRUInteger a_length = marshal::ToIndex(rt, marshal::ArgAt(args, count, 2), kFunction, "length");
     TRFloat a_extent = marshal::ToNumber<TRFloat>(rt, marshal::ArgAt(args, count, 3), kFunction, "extent");
@@ -111,6 +117,7 @@ jsi::Value BindTRTypesetterCreateTruncatedLine(jsi::Runtime &rt, const jsi::Valu
 
 jsi::Value BindTRTypesetterCreateJustifiedLine(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRTypesetterCreateJustifiedLine";
+    marshal::BeginCall();
     TRUInteger a_index = marshal::ToIndex(rt, marshal::ArgAt(args, count, 1), kFunction, "index");
     TRUInteger a_length = marshal::ToIndex(rt, marshal::ArgAt(args, count, 2), kFunction, "length");
     TRFloat a_justificationFactor = marshal::ToNumber<TRFloat>(rt, marshal::ArgAt(args, count, 3), kFunction, "justificationFactor");
@@ -124,6 +131,7 @@ jsi::Value BindTRTypesetterCreateJustifiedLine(jsi::Runtime &rt, const jsi::Valu
 
 jsi::Value BindTRTypesetterRetain(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRTypesetterRetain";
+    marshal::BeginCall();
     TRTypesetterRef a_typesetter = marshal::ToHandle<TRTypesetterRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "typesetter", false);
 
     auto result = TRTypesetterRetain(a_typesetter);

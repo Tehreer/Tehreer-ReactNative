@@ -7,8 +7,8 @@ namespace tehreer {
 
 namespace jsi = facebook::jsi;
 
-PointerViewObject::PointerViewObject(const void *address, std::string element, size_t elementSize, std::shared_ptr<HandleObject> owner)
-    : _address(address), _element(std::move(element)), _elementSize(elementSize), _owner(std::move(owner)) {
+PointerViewObject::PointerViewObject(const void *address, std::string element, size_t elementSize, size_t count, std::shared_ptr<HandleObject> owner)
+    : _address(address), _element(std::move(element)), _elementSize(elementSize), _count(count), _owner(std::move(owner)) {
 }
 
 jsi::Value PointerViewObject::get(jsi::Runtime &rt, const jsi::PropNameID &name) {
@@ -19,6 +19,9 @@ jsi::Value PointerViewObject::get(jsi::Runtime &rt, const jsi::PropNameID &name)
     if (key == "elementSize") {
         return jsi::Value(static_cast<double>(_elementSize));
     }
+    if (key == "count") {
+        return jsi::Value(static_cast<double>(_count));
+    }
     return jsi::Value::undefined();
 }
 
@@ -26,6 +29,7 @@ std::vector<jsi::PropNameID> PointerViewObject::getPropertyNames(jsi::Runtime &r
     std::vector<jsi::PropNameID> names;
     names.push_back(jsi::PropNameID::forAscii(rt, "element"));
     names.push_back(jsi::PropNameID::forAscii(rt, "elementSize"));
+    names.push_back(jsi::PropNameID::forAscii(rt, "count"));
     return names;
 }
 

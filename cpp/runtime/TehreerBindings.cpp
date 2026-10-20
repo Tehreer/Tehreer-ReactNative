@@ -62,7 +62,20 @@ std::shared_ptr<HandleObject> RequireHandle(jsi::Runtime &runtime, const jsi::Va
 // JavaScript to give the reference back early. It is idempotent.
 jsi::Value DisposeHandle(jsi::Runtime &runtime, const jsi::Value &, const jsi::Value *args, size_t count) {
     RequireHandle(runtime, args, count, 0, "disposeHandle", "handle")->Dispose();
+    // The last release of a replacement ends its handler, which the table only queues (it can be
+    // called from any thread); this is the JS thread, so the handler is destroyed here.
+    runtime::HandlerTable::Shared().Drain(runtime);
     return jsi::Value::undefined();
+}
+
+// Whether Core lets the object change after it is made. What a mutable object owns can be freed by
+// a setter while the object lives, so a list over it must ask Core again on every read.
+jsi::Value IsHandleMutable(jsi::Runtime &runtime, const jsi::Value &, const jsi::Value *args, size_t count) {
+    auto handle = RequireHandle(runtime, args, count, 0, "isHandleMutable", "handle");
+    if (handle->isDisposed()) {
+        marshal::Fail(runtime, "isHandleMutable", "handle", "is already disposed");
+    }
+    return jsi::Value(handle->isMutable());
 }
 
 jsi::Value IsHandleDisposed(jsi::Runtime &runtime, const jsi::Value &, const jsi::Value *args, size_t count) {
@@ -219,6 +232,7 @@ void InstallBindings(jsi::Runtime &runtime) {
     Define(runtime, bindings, "smokeTest", 0, SmokeTest);
     Define(runtime, bindings, "disposeHandle", 1, DisposeHandle);
     Define(runtime, bindings, "isHandleDisposed", 1, IsHandleDisposed);
+    Define(runtime, bindings, "isHandleMutable", 1, IsHandleMutable);
     Define(runtime, bindings, "handleEquals", 2, HandleEquals);
 #ifndef NDEBUG
     Define(runtime, bindings, "testCreateProbe", 0, CreateProbe);

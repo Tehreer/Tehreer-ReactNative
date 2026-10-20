@@ -31,7 +31,7 @@ The generator only deletes files in `cpp/generated` that carry the marker, so a 
 | `generator/parser.mjs` | Reads one header: typedefs, structs, unions, function pointer types, public functions and their Doxygen `@param` texts. Throws `ParseError` on a public declaration it cannot read. |
 | `generator/model.mjs` | Turns declarations into a binding plan and decides what can be expressed. Throws `GeneratorError` naming the function and the type. |
 | `generator/emitCpp.mjs`, `generator/emitTs.mjs` | Print the plan. They make no decisions. |
-| `generator/config.mjs` | What the headers do not say: `EXCLUDED`, `MANUAL`, `BOUNDS`. |
+| `generator/config.mjs` | What the headers do not say: `EXCLUDED`, `MANUAL`, `BOUNDS`, `SCALAR_OUTS`, `POINTER_COUNTS`. |
 | `generator/generate.mjs`, `generator/files.mjs` | Header directory to files; writing and checking them. |
 
 `*.d.mts` files next to them type the modules for the TypeScript tests.
@@ -48,9 +48,11 @@ The generated glue converts arguments, calls one `TR*` function and converts the
 | struct by value (`TRPoint`, `TRRect`, ...) | object with the member names |
 | `const char *`, `const TRStringView *` | `string` |
 | `const void *` / `const T *` with a count | `ArrayBuffer` or typed array, checked against the count; array of structs: array of objects |
-| `const T *` returned by a getter | `PointerView<"T">` (an opaque host object: address, element and owner; its length is the matching count function; `src/collections` reads it) |
+| `const T *` returned by a getter | `PointerView<"T">` (an opaque host object: address, element, owner and the element count that `POINTER_COUNTS` names for the getter, which the runtime never lets a read exceed; `src/collections` reads it) |
 | `T *` that Core fills in | not a parameter; part of the result |
 | enumeration with a callback | the collected items, as an array |
+
+A getter that returns a pointer into Core memory needs an entry in `POINTER_COUNTS` (`{ TRTypefaceGetNamedStylesPtr: "TRTypefaceGetNamedStyleCount({typeface})" }`): the expression is evaluated after the getter and recorded in the `PointerView`. The generator stops for a getter without one, for an entry that names no function or parameter, and for one that is not a pointer getter, so a new getter cannot be bound without saying how long its array is.
 
 A function that returns `TRBoolean` and fills in values gives `undefined` for `TRFalse`. One that returns anything else and fills in values gives `{ result, ...values }`.
 
@@ -60,7 +62,7 @@ A function that returns `TRBoolean` and fills in values gives `undefined` for `T
 
 A collecting callback is given the address of a `marshal::Collector` on the stack as its `userData`. That is an exception to the rule of the skill (section 4) that `userData` is a key into a handler table, and it is safe because the enumeration is synchronous and Core keeps no callback after the call returns. Callbacks that Core keeps and calls later (`TRReplacementCreate`, bound by hand in `cpp/runtime/ReplacementBindings.cpp`) use the handler table, and run a handler that the app wrote, which can throw.
 
-**Every binding checks for such an error.** Right after the Core call (before any result is converted) the generated code calls `marshal::RethrowCallbackError(rt)`, which throws the error that a trampoline of the runtime recorded and does nothing otherwise. A function that returns a reference the caller owns (`Create`, `Copy`, `Retain`) calls `RethrowCallbackError(rt, result)`, which releases that reference first so a failed callback leaks nothing. `GeneratedSupport.h` declares `HasCallbackError` and `ThrowCallbackError`, which `cpp/runtime/Callbacks.cpp` defines; `tests/callbacks.test.ts` requires the call after the call to Core in every binding.
+**Every binding checks for such an error.** Right after the Core call (before any result is converted) the generated code calls `marshal::RethrowCallbackError(rt)`, which throws the error that a trampoline of the runtime recorded and does nothing otherwise. A function that returns a reference the caller owns (`Create`, `Copy`, `Retain`) calls `RethrowCallbackError(rt, result)`, which releases that reference first so a failed callback leaks nothing. `GeneratedSupport.h` declares `HasCallbackError` and `ThrowCallbackError`, which `cpp/runtime/Callbacks.cpp` defines; `tests/callbacks.test.ts` requires the call after the call to Core in every binding, and `marshal::BeginCall()` as the first statement of every binding (it forgets an error that was recorded but never thrown, so a stale one cannot surface from an unrelated call). `RethrowCallbackError` also lets the runtime destroy the handlers that were queued (`DrainRetiredHandlers`).
 
 **Handles remember mutability.** A handle made from a `const` reference type (`TRTextRef`) is refused where a non-const type (`TRMutableTextRef`) is expected, so an object Core documents as immutable is never mutated; a mutable handle is accepted for both.
 
@@ -69,6 +71,8 @@ A collecting callback is given the address of a `marshal::Collector` on the stac
 ## Struct layouts
 
 `Layouts.h` has, for every struct and union that a Core header declares (not only the ones that are converted: the draw callbacks, the attributes and what a typeface lists are read by native code too), a second declaration of it printed from the parsed header, and `static_assert`s that compare the two: `sizeof`, `alignof`, that the struct is standard layout, the type of every member (`std::is_same` of `decltype`) and `offsetof` of every member of a struct. A header that moves, retypes, adds, removes or renames a member without `npm run generate` stops the compiler, and the generated glue and the runtime read members by name, so they never depend on an offset. `Structs.h` includes it, so every file of the glue is checked. The generator, not a hand-written file, owns these descriptions so that a stale one cannot exist; `cpp/runtime/StructCodecs.cpp` adds only the conversion that cannot be printed (`TRAttribute`, whose union member depends on `type`) and relies on the same checks. TypeScript has no offsets.
+
+**What the checks cannot see.** The mirror is printed from the parsed header, so it proves that the header and the generated code agree, and that the compiler lays the real struct out as the mirror: sizes, alignments, member types and offsets. It does not see (1) tail padding: a member added after the last one, into padding, changes no offset and no size; (2) a union member smaller than the largest, which changes neither; (3) a change below the typedef of a member. For (3) `Layouts.h` also has `TEHREER_CHECK_SCALAR(Name, base, width)` for every scalar typedef (`TRFloat`, `TRUInt16`, `TRGlyphID`, `TRUInteger`, ...): the typedef must still be the fundamental type the header names, with the width the members were laid out with (`sizeof(void *)` for the pointer-sized ones). (1) and (2) are not detected; Core's own tests are where a struct change is expected to be caught.
 
 `tests/structLayouts.test.ts` compiles `Layouts.h` against copies of Core's headers that are edited the way a change of Core could (a member added, retyped, swapped, renamed, a union that grows, a callback whose signature changes) and requires each to fail.
 

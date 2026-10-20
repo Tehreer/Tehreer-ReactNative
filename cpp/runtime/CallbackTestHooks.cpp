@@ -65,6 +65,7 @@ struct EntryGuard {
 
 jsi::Value Enumerate(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     constexpr const char *kFunction = "testEnumerate";
+    marshal::BeginCall();
     jsi::Object handler = marshal::ToObject(rt, marshal::ArgAt(args, count, 0), kFunction, "handler");
     TRUInt32 items = marshal::ToNumber<TRUInt32>(rt, marshal::ArgAt(args, count, 1), kFunction, "count");
     const jsi::Value &honors = marshal::ArgAt(args, count, 2);
@@ -110,6 +111,7 @@ jsi::Value ReleaseOnOtherThread(jsi::Runtime &rt, const jsi::Value &, const jsi:
 // Core may ask for a room from any thread; the handler must not run there.
 jsi::Value ComputeRoomOnOtherThread(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     constexpr const char *kFunction = "testComputeRoomOnOtherThread";
+    marshal::BeginCall();
     TRFloat width = marshal::ToNumber<TRFloat>(rt, marshal::ArgAt(args, count, 1), kFunction, "layoutWidth");
     TRReplacementRef replacement = marshal::ToHandle<TRReplacementRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "handle", false);
 

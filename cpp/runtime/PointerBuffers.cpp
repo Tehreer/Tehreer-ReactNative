@@ -47,6 +47,14 @@ void RequireFits(jsi::Runtime &rt, const char *function, size_t count, size_t el
     }
 }
 
+// `count` is what JavaScript asks for; the view knows how many elements Core has, which no argument
+// can raise, so a count that is too large cannot read past the memory of the owner.
+void RequireWithinView(jsi::Runtime &rt, const char *function, const PointerViewObject &view, size_t count) {
+    if (count > view.count()) {
+        runtime::FailRange(rt, function, "count", "is more than the pointer has");
+    }
+}
+
 // The ArrayBuffer for nothing: no memory is involved, so no owner is kept.
 jsi::Value EmptyBuffer(jsi::Runtime &rt) {
     return rt.global().getPropertyAsFunction(rt, "ArrayBuffer").callAsConstructor(rt, 0);
@@ -91,6 +99,7 @@ jsi::Value ReadPointerStructs(jsi::Runtime &rt, const jsi::Value &, const jsi::V
         marshal::Fail(rt, kFunction, "pointer", "has elements that are not the size of the struct");
     }
     RequireFits(rt, kFunction, length, codec->size);
+    RequireWithinView(rt, kFunction, *view, length);
     if (fromIndex > toIndex || toIndex > length) {
         runtime::FailRange(rt, kFunction, "toIndex", "is not a range within the count");
     }
@@ -134,6 +143,7 @@ std::shared_ptr<RetainedMemory> RetainMemory(jsi::Runtime &rt, const PointerView
         marshal::Fail(rt, function, "pointer", "is already disposed");
     }
     RequireFits(rt, function, count, view.elementSize());
+    RequireWithinView(rt, function, view, count);
     if (reinterpret_cast<uintptr_t>(view.address()) % alignment != 0) {
         runtime::FailRange(rt, function, "pointer", "is not aligned for the elements that were asked for");
     }

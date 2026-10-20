@@ -30,6 +30,7 @@ namespace {
 
 jsi::Value BindTRTypefaceGetWeight(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRTypefaceGetWeight";
+    marshal::BeginCall();
     TRTypefaceRef a_typeface = marshal::ToHandle<TRTypefaceRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "typeface", false);
 
     auto result = TRTypefaceGetWeight(a_typeface);
@@ -39,6 +40,7 @@ jsi::Value BindTRTypefaceGetWeight(jsi::Runtime &rt, const jsi::Value &, const j
 
 jsi::Value BindTRTypefaceGetWidth(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRTypefaceGetWidth";
+    marshal::BeginCall();
     TRTypefaceRef a_typeface = marshal::ToHandle<TRTypefaceRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "typeface", false);
 
     auto result = TRTypefaceGetWidth(a_typeface);
@@ -48,6 +50,7 @@ jsi::Value BindTRTypefaceGetWidth(jsi::Runtime &rt, const jsi::Value &, const js
 
 jsi::Value BindTRTypefaceGetSlope(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRTypefaceGetSlope";
+    marshal::BeginCall();
     TRTypefaceRef a_typeface = marshal::ToHandle<TRTypefaceRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "typeface", false);
 
     auto result = TRTypefaceGetSlope(a_typeface);
@@ -57,6 +60,7 @@ jsi::Value BindTRTypefaceGetSlope(jsi::Runtime &rt, const jsi::Value &, const js
 
 jsi::Value BindTRTypefaceGetUnitsPerEM(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRTypefaceGetUnitsPerEM";
+    marshal::BeginCall();
     TRTypefaceRef a_typeface = marshal::ToHandle<TRTypefaceRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "typeface", false);
 
     auto result = TRTypefaceGetUnitsPerEM(a_typeface);
@@ -66,6 +70,7 @@ jsi::Value BindTRTypefaceGetUnitsPerEM(jsi::Runtime &rt, const jsi::Value &, con
 
 jsi::Value BindTRTypefaceGetAscent(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRTypefaceGetAscent";
+    marshal::BeginCall();
     TRTypefaceRef a_typeface = marshal::ToHandle<TRTypefaceRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "typeface", false);
 
     auto result = TRTypefaceGetAscent(a_typeface);
@@ -75,6 +80,7 @@ jsi::Value BindTRTypefaceGetAscent(jsi::Runtime &rt, const jsi::Value &, const j
 
 jsi::Value BindTRTypefaceGetDescent(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRTypefaceGetDescent";
+    marshal::BeginCall();
     TRTypefaceRef a_typeface = marshal::ToHandle<TRTypefaceRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "typeface", false);
 
     auto result = TRTypefaceGetDescent(a_typeface);
@@ -84,6 +90,7 @@ jsi::Value BindTRTypefaceGetDescent(jsi::Runtime &rt, const jsi::Value &, const 
 
 jsi::Value BindTRTypefaceGetLeading(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRTypefaceGetLeading";
+    marshal::BeginCall();
     TRTypefaceRef a_typeface = marshal::ToHandle<TRTypefaceRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "typeface", false);
 
     auto result = TRTypefaceGetLeading(a_typeface);
@@ -93,6 +100,7 @@ jsi::Value BindTRTypefaceGetLeading(jsi::Runtime &rt, const jsi::Value &, const 
 
 jsi::Value BindTRTypefaceGetGlyphCount(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRTypefaceGetGlyphCount";
+    marshal::BeginCall();
     TRTypefaceRef a_typeface = marshal::ToHandle<TRTypefaceRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "typeface", false);
 
     auto result = TRTypefaceGetGlyphCount(a_typeface);
@@ -102,6 +110,7 @@ jsi::Value BindTRTypefaceGetGlyphCount(jsi::Runtime &rt, const jsi::Value &, con
 
 jsi::Value BindTRTypefaceIsVariable(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRTypefaceIsVariable";
+    marshal::BeginCall();
     TRTypefaceRef a_typeface = marshal::ToHandle<TRTypefaceRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "typeface", false);
 
     auto result = TRTypefaceIsVariable(a_typeface);
@@ -111,15 +120,17 @@ jsi::Value BindTRTypefaceIsVariable(jsi::Runtime &rt, const jsi::Value &, const 
 
 jsi::Value BindTRTypefaceGetVariationAxesPtr(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRTypefaceGetVariationAxesPtr";
+    marshal::BeginCall();
     TRTypefaceRef a_typeface = marshal::ToHandle<TRTypefaceRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "typeface", false);
 
     auto result = TRTypefaceGetVariationAxesPtr(a_typeface);
     marshal::RethrowCallbackError(rt);
-    return marshal::MakePointerView(rt, result, "TRVariationAxis", sizeof(TRVariationAxis), marshal::ArgAt(args, count, 0));
+    return marshal::MakePointerView(rt, result, "TRVariationAxis", sizeof(TRVariationAxis), static_cast<size_t>(TRTypefaceGetVariationAxisCount(a_typeface)), marshal::ArgAt(args, count, 0));
 }
 
 jsi::Value BindTRTypefaceGetVariationAxisCount(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRTypefaceGetVariationAxisCount";
+    marshal::BeginCall();
     TRTypefaceRef a_typeface = marshal::ToHandle<TRTypefaceRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "typeface", false);
 
     auto result = TRTypefaceGetVariationAxisCount(a_typeface);
@@ -129,15 +140,17 @@ jsi::Value BindTRTypefaceGetVariationAxisCount(jsi::Runtime &rt, const jsi::Valu
 
 jsi::Value BindTRTypefaceGetNamedStylesPtr(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRTypefaceGetNamedStylesPtr";
+    marshal::BeginCall();
     TRTypefaceRef a_typeface = marshal::ToHandle<TRTypefaceRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "typeface", false);
 
     auto result = TRTypefaceGetNamedStylesPtr(a_typeface);
     marshal::RethrowCallbackError(rt);
-    return marshal::MakePointerView(rt, result, "TRNamedStyle", sizeof(TRNamedStyle), marshal::ArgAt(args, count, 0));
+    return marshal::MakePointerView(rt, result, "TRNamedStyle", sizeof(TRNamedStyle), static_cast<size_t>(TRTypefaceGetNamedStyleCount(a_typeface)), marshal::ArgAt(args, count, 0));
 }
 
 jsi::Value BindTRTypefaceGetNamedStyleCount(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRTypefaceGetNamedStyleCount";
+    marshal::BeginCall();
     TRTypefaceRef a_typeface = marshal::ToHandle<TRTypefaceRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "typeface", false);
 
     auto result = TRTypefaceGetNamedStyleCount(a_typeface);
@@ -147,15 +160,17 @@ jsi::Value BindTRTypefaceGetNamedStyleCount(jsi::Runtime &rt, const jsi::Value &
 
 jsi::Value BindTRTypefaceGetPaletteEntriesPtr(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRTypefaceGetPaletteEntriesPtr";
+    marshal::BeginCall();
     TRTypefaceRef a_typeface = marshal::ToHandle<TRTypefaceRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "typeface", false);
 
     auto result = TRTypefaceGetPaletteEntriesPtr(a_typeface);
     marshal::RethrowCallbackError(rt);
-    return marshal::MakePointerView(rt, result, "TRPaletteEntry", sizeof(TRPaletteEntry), marshal::ArgAt(args, count, 0));
+    return marshal::MakePointerView(rt, result, "TRPaletteEntry", sizeof(TRPaletteEntry), static_cast<size_t>(TRTypefaceGetPaletteEntryCount(a_typeface)), marshal::ArgAt(args, count, 0));
 }
 
 jsi::Value BindTRTypefaceGetPaletteEntryCount(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRTypefaceGetPaletteEntryCount";
+    marshal::BeginCall();
     TRTypefaceRef a_typeface = marshal::ToHandle<TRTypefaceRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "typeface", false);
 
     auto result = TRTypefaceGetPaletteEntryCount(a_typeface);
@@ -165,15 +180,17 @@ jsi::Value BindTRTypefaceGetPaletteEntryCount(jsi::Runtime &rt, const jsi::Value
 
 jsi::Value BindTRTypefaceGetPredefinedPalettesPtr(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRTypefaceGetPredefinedPalettesPtr";
+    marshal::BeginCall();
     TRTypefaceRef a_typeface = marshal::ToHandle<TRTypefaceRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "typeface", false);
 
     auto result = TRTypefaceGetPredefinedPalettesPtr(a_typeface);
     marshal::RethrowCallbackError(rt);
-    return marshal::MakePointerView(rt, result, "TRPredefinedPalette", sizeof(TRPredefinedPalette), marshal::ArgAt(args, count, 0));
+    return marshal::MakePointerView(rt, result, "TRPredefinedPalette", sizeof(TRPredefinedPalette), static_cast<size_t>(TRTypefaceGetPredefinedPaletteCount(a_typeface)), marshal::ArgAt(args, count, 0));
 }
 
 jsi::Value BindTRTypefaceGetPredefinedPaletteCount(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRTypefaceGetPredefinedPaletteCount";
+    marshal::BeginCall();
     TRTypefaceRef a_typeface = marshal::ToHandle<TRTypefaceRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "typeface", false);
 
     auto result = TRTypefaceGetPredefinedPaletteCount(a_typeface);
@@ -183,6 +200,7 @@ jsi::Value BindTRTypefaceGetPredefinedPaletteCount(jsi::Runtime &rt, const jsi::
 
 jsi::Value BindTRTypefaceIsScalable(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRTypefaceIsScalable";
+    marshal::BeginCall();
     TRTypefaceRef a_typeface = marshal::ToHandle<TRTypefaceRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "typeface", false);
 
     auto result = TRTypefaceIsScalable(a_typeface);
@@ -192,15 +210,17 @@ jsi::Value BindTRTypefaceIsScalable(jsi::Runtime &rt, const jsi::Value &, const 
 
 jsi::Value BindTRTypefaceGetBitmapStrikesPtr(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRTypefaceGetBitmapStrikesPtr";
+    marshal::BeginCall();
     TRTypefaceRef a_typeface = marshal::ToHandle<TRTypefaceRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "typeface", false);
 
     auto result = TRTypefaceGetBitmapStrikesPtr(a_typeface);
     marshal::RethrowCallbackError(rt);
-    return marshal::MakePointerView(rt, result, "TRBitmapStrike", sizeof(TRBitmapStrike), marshal::ArgAt(args, count, 0));
+    return marshal::MakePointerView(rt, result, "TRBitmapStrike", sizeof(TRBitmapStrike), static_cast<size_t>(TRTypefaceGetBitmapStrikeCount(a_typeface)), marshal::ArgAt(args, count, 0));
 }
 
 jsi::Value BindTRTypefaceGetBitmapStrikeCount(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRTypefaceGetBitmapStrikeCount";
+    marshal::BeginCall();
     TRTypefaceRef a_typeface = marshal::ToHandle<TRTypefaceRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "typeface", false);
 
     auto result = TRTypefaceGetBitmapStrikeCount(a_typeface);
@@ -210,24 +230,27 @@ jsi::Value BindTRTypefaceGetBitmapStrikeCount(jsi::Runtime &rt, const jsi::Value
 
 jsi::Value BindTRTypefaceGetVariationCoordinatesPtr(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRTypefaceGetVariationCoordinatesPtr";
+    marshal::BeginCall();
     TRTypefaceRef a_typeface = marshal::ToHandle<TRTypefaceRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "typeface", false);
 
     auto result = TRTypefaceGetVariationCoordinatesPtr(a_typeface);
     marshal::RethrowCallbackError(rt);
-    return marshal::MakePointerView(rt, result, "TRFloat", sizeof(TRFloat), marshal::ArgAt(args, count, 0));
+    return marshal::MakePointerView(rt, result, "TRFloat", sizeof(TRFloat), static_cast<size_t>(TRTypefaceGetVariationAxisCount(a_typeface)), marshal::ArgAt(args, count, 0));
 }
 
 jsi::Value BindTRTypefaceGetAssociatedColorsPtr(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRTypefaceGetAssociatedColorsPtr";
+    marshal::BeginCall();
     TRTypefaceRef a_typeface = marshal::ToHandle<TRTypefaceRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "typeface", false);
 
     auto result = TRTypefaceGetAssociatedColorsPtr(a_typeface);
     marshal::RethrowCallbackError(rt);
-    return marshal::MakePointerView(rt, result, "TRColor", sizeof(TRColor), marshal::ArgAt(args, count, 0));
+    return marshal::MakePointerView(rt, result, "TRColor", sizeof(TRColor), static_cast<size_t>(TRTypefaceGetPaletteEntryCount(a_typeface)), marshal::ArgAt(args, count, 0));
 }
 
 jsi::Value BindTRTypefaceCreateWithVariation(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRTypefaceCreateWithVariation";
+    marshal::BeginCall();
     TRUInteger a_count = marshal::ToIndex(rt, marshal::ArgAt(args, count, 2), kFunction, "count");
     TRTypefaceRef a_typeface = marshal::ToHandle<TRTypefaceRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "typeface", false);
     marshal::ConstBuffer a_coordinates = marshal::ToConstBuffer(rt, marshal::ArgAt(args, count, 1), kFunction, "coordinates", true);
@@ -243,6 +266,7 @@ jsi::Value BindTRTypefaceCreateWithVariation(jsi::Runtime &rt, const jsi::Value 
 
 jsi::Value BindTRTypefaceCreateWithColors(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRTypefaceCreateWithColors";
+    marshal::BeginCall();
     TRUInteger a_count = marshal::ToIndex(rt, marshal::ArgAt(args, count, 2), kFunction, "count");
     TRTypefaceRef a_typeface = marshal::ToHandle<TRTypefaceRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "typeface", false);
     marshal::ConstBuffer a_colors = marshal::ToConstBuffer(rt, marshal::ArgAt(args, count, 1), kFunction, "colors", true);
@@ -258,6 +282,7 @@ jsi::Value BindTRTypefaceCreateWithColors(jsi::Runtime &rt, const jsi::Value &, 
 
 jsi::Value BindTRTypefaceGetFamilyName(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRTypefaceGetFamilyName";
+    marshal::BeginCall();
     TRTypefaceRef a_typeface = marshal::ToHandle<TRTypefaceRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "typeface", false);
 
     auto result = TRTypefaceGetFamilyName(a_typeface);
@@ -267,6 +292,7 @@ jsi::Value BindTRTypefaceGetFamilyName(jsi::Runtime &rt, const jsi::Value &, con
 
 jsi::Value BindTRTypefaceGetStyleName(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRTypefaceGetStyleName";
+    marshal::BeginCall();
     TRTypefaceRef a_typeface = marshal::ToHandle<TRTypefaceRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "typeface", false);
 
     auto result = TRTypefaceGetStyleName(a_typeface);
@@ -276,6 +302,7 @@ jsi::Value BindTRTypefaceGetStyleName(jsi::Runtime &rt, const jsi::Value &, cons
 
 jsi::Value BindTRTypefaceGetFullName(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRTypefaceGetFullName";
+    marshal::BeginCall();
     TRTypefaceRef a_typeface = marshal::ToHandle<TRTypefaceRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "typeface", false);
 
     auto result = TRTypefaceGetFullName(a_typeface);
@@ -285,6 +312,7 @@ jsi::Value BindTRTypefaceGetFullName(jsi::Runtime &rt, const jsi::Value &, const
 
 jsi::Value BindTRTypefaceGetBoundingBox(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRTypefaceGetBoundingBox";
+    marshal::BeginCall();
     TRTypefaceRef a_typeface = marshal::ToHandle<TRTypefaceRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "typeface", false);
 
     auto result = TRTypefaceGetBoundingBox(a_typeface);
@@ -294,6 +322,7 @@ jsi::Value BindTRTypefaceGetBoundingBox(jsi::Runtime &rt, const jsi::Value &, co
 
 jsi::Value BindTRTypefaceGetUnderlinePosition(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRTypefaceGetUnderlinePosition";
+    marshal::BeginCall();
     TRTypefaceRef a_typeface = marshal::ToHandle<TRTypefaceRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "typeface", false);
 
     auto result = TRTypefaceGetUnderlinePosition(a_typeface);
@@ -303,6 +332,7 @@ jsi::Value BindTRTypefaceGetUnderlinePosition(jsi::Runtime &rt, const jsi::Value
 
 jsi::Value BindTRTypefaceGetUnderlineThickness(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRTypefaceGetUnderlineThickness";
+    marshal::BeginCall();
     TRTypefaceRef a_typeface = marshal::ToHandle<TRTypefaceRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "typeface", false);
 
     auto result = TRTypefaceGetUnderlineThickness(a_typeface);
@@ -312,6 +342,7 @@ jsi::Value BindTRTypefaceGetUnderlineThickness(jsi::Runtime &rt, const jsi::Valu
 
 jsi::Value BindTRTypefaceGetStrikeoutPosition(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRTypefaceGetStrikeoutPosition";
+    marshal::BeginCall();
     TRTypefaceRef a_typeface = marshal::ToHandle<TRTypefaceRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "typeface", false);
 
     auto result = TRTypefaceGetStrikeoutPosition(a_typeface);
@@ -321,6 +352,7 @@ jsi::Value BindTRTypefaceGetStrikeoutPosition(jsi::Runtime &rt, const jsi::Value
 
 jsi::Value BindTRTypefaceGetStrikeoutThickness(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRTypefaceGetStrikeoutThickness";
+    marshal::BeginCall();
     TRTypefaceRef a_typeface = marshal::ToHandle<TRTypefaceRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "typeface", false);
 
     auto result = TRTypefaceGetStrikeoutThickness(a_typeface);
@@ -330,6 +362,7 @@ jsi::Value BindTRTypefaceGetStrikeoutThickness(jsi::Runtime &rt, const jsi::Valu
 
 jsi::Value BindTRTypefaceGetGlyphID(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRTypefaceGetGlyphID";
+    marshal::BeginCall();
     TRUInt32 a_codePoint = marshal::ToNumber<TRUInt32>(rt, marshal::ArgAt(args, count, 1), kFunction, "codePoint");
     TRTypefaceRef a_typeface = marshal::ToHandle<TRTypefaceRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "typeface", false);
 
@@ -340,6 +373,7 @@ jsi::Value BindTRTypefaceGetGlyphID(jsi::Runtime &rt, const jsi::Value &, const 
 
 jsi::Value BindTRTypefaceGetVariantGlyphID(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRTypefaceGetVariantGlyphID";
+    marshal::BeginCall();
     TRUInt32 a_codePoint = marshal::ToNumber<TRUInt32>(rt, marshal::ArgAt(args, count, 1), kFunction, "codePoint");
     TRUInt32 a_variantSelector = marshal::ToNumber<TRUInt32>(rt, marshal::ArgAt(args, count, 2), kFunction, "variantSelector");
     TRTypefaceRef a_typeface = marshal::ToHandle<TRTypefaceRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "typeface", false);
@@ -351,6 +385,7 @@ jsi::Value BindTRTypefaceGetVariantGlyphID(jsi::Runtime &rt, const jsi::Value &,
 
 jsi::Value BindTRTypefaceGetGlyphAdvance(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRTypefaceGetGlyphAdvance";
+    marshal::BeginCall();
     TRGlyphID a_glyphID = marshal::ToNumber<TRGlyphID>(rt, marshal::ArgAt(args, count, 1), kFunction, "glyphID");
     TRFloat a_typeSize = marshal::ToNumber<TRFloat>(rt, marshal::ArgAt(args, count, 2), kFunction, "typeSize");
     TRBoolean a_isVertical = (marshal::ToBoolean(rt, marshal::ArgAt(args, count, 3), kFunction, "isVertical") ? TRTrue : TRFalse);
@@ -363,6 +398,7 @@ jsi::Value BindTRTypefaceGetGlyphAdvance(jsi::Runtime &rt, const jsi::Value &, c
 
 jsi::Value BindTRTypefaceCreateGlyphPath(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRTypefaceCreateGlyphPath";
+    marshal::BeginCall();
     TRGlyphID a_glyphID = marshal::ToNumber<TRGlyphID>(rt, marshal::ArgAt(args, count, 1), kFunction, "glyphID");
     TRFloat a_typeSize = marshal::ToNumber<TRFloat>(rt, marshal::ArgAt(args, count, 2), kFunction, "typeSize");
     TRTypefaceRef a_typeface = marshal::ToHandle<TRTypefaceRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "typeface", false);
@@ -374,6 +410,7 @@ jsi::Value BindTRTypefaceCreateGlyphPath(jsi::Runtime &rt, const jsi::Value &, c
 
 jsi::Value BindTRTypefaceGetTableSize(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRTypefaceGetTableSize";
+    marshal::BeginCall();
     TRTag a_tag = marshal::ToNumber<TRTag>(rt, marshal::ArgAt(args, count, 1), kFunction, "tag");
     TRTypefaceRef a_typeface = marshal::ToHandle<TRTypefaceRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "typeface", false);
 
@@ -384,6 +421,7 @@ jsi::Value BindTRTypefaceGetTableSize(jsi::Runtime &rt, const jsi::Value &, cons
 
 jsi::Value BindTRTypefaceGetTableData(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRTypefaceGetTableData";
+    marshal::BeginCall();
     TRTag a_tag = marshal::ToNumber<TRTag>(rt, marshal::ArgAt(args, count, 1), kFunction, "tag");
     TRUInteger a_offset = marshal::ToIndex(rt, marshal::ArgAt(args, count, 2), kFunction, "offset");
     TRUInteger a_capacity = marshal::ToIndex(rt, marshal::ArgAt(args, count, 4), kFunction, "capacity");
@@ -401,6 +439,7 @@ jsi::Value BindTRTypefaceGetTableData(jsi::Runtime &rt, const jsi::Value &, cons
 
 jsi::Value BindTRTypefaceGetGlyphName(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRTypefaceGetGlyphName";
+    marshal::BeginCall();
     TRGlyphID a_glyphID = marshal::ToNumber<TRGlyphID>(rt, marshal::ArgAt(args, count, 1), kFunction, "glyphID");
     TRUInteger a_capacity = marshal::ToIndex(rt, marshal::ArgAt(args, count, 3), kFunction, "capacity");
     TRTypefaceRef a_typeface = marshal::ToHandle<TRTypefaceRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "typeface", false);
@@ -417,6 +456,7 @@ jsi::Value BindTRTypefaceGetGlyphName(jsi::Runtime &rt, const jsi::Value &, cons
 
 jsi::Value BindTRTypefaceRetain(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRTypefaceRetain";
+    marshal::BeginCall();
     TRTypefaceRef a_typeface = marshal::ToHandle<TRTypefaceRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "typeface", false);
 
     auto result = TRTypefaceRetain(a_typeface);
