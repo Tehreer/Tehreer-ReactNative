@@ -55,16 +55,35 @@ function locateScripts(text: string): Uint8Array {
 
 /**
  * Resolves the script of each character of a text. It holds no native object: the locator that
- * finds the runs is used and disposed by the constructor.
+ * finds the runs is used and disposed by the constructor, so `dispose()` has nothing to release.
  */
 export class ScriptClassifier {
   /** The text that the classifier was made for. */
   readonly text: string;
   readonly #scripts: Uint8Array;
+  #isDisposed = false;
 
   constructor(text: string) {
     this.#scripts = locateScripts(text);
     this.text = text;
+  }
+
+  /** Tells whether `dispose()` has been called. It does not make the classifier unusable. */
+  get isDisposed(): boolean {
+    return this.#isDisposed;
+  }
+
+  /**
+   * Does nothing but remember that it was called, and can be called any number of times. Tehreer-Web's
+   * classifier owns native memory and has to be disposed; this one holds only JavaScript memory, so
+   * there is nothing to give back, but code ported from Web (and `using`) keeps working.
+   */
+  dispose(): void {
+    this.#isDisposed = true;
+  }
+
+  [Symbol.dispose](): void {
+    this.dispose();
   }
 
   /** The resolved script of each character of the text. */

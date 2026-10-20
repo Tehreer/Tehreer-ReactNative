@@ -87,8 +87,10 @@ test("the table of bindings is installed with the others, and the debug hook onl
 
   const cpp = read("cpp/runtime/SheenBidiBindings.cpp");
   const hook = cpp.indexOf('"testGetBidiTextCount"');
-  assert.ok(hook > cpp.indexOf("#ifndef NDEBUG"), "the hook is behind #ifndef NDEBUG");
-  assert.ok(cpp.indexOf("#ifndef NDEBUG") > cpp.indexOf("void InstallSheenBidiBindings("), "and after the bindings of every build");
+  const debugStart = cpp.lastIndexOf("#ifndef NDEBUG");
+  assert.ok(hook > debugStart, "the hook is behind #ifndef NDEBUG");
+  assert.ok(debugStart > cpp.indexOf("void InstallSheenBidiBindings("), "and after the bindings of every build");
+  assert.equal(cpp.split("gLiveTexts").length - 1, 4, "the counter is only used inside debug blocks");
   assert.equal(cpp.split('"testGetBidiTextCount"').length, 3);
   assert.ok(read("src/internal/SheenBidiFunctions.ts").includes("testGetBidiTextCount?()"));
 });

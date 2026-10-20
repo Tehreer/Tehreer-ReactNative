@@ -286,6 +286,25 @@ const tests: Test[] = [
     expectThrows(() => new FontFeatures(undefined as unknown as []), /./);
   }],
 
+  ['the features of an engine are read back from Core as they were set', (b) => {
+    const { engine, typeface } = makeEngine(b);
+    const features = [{ tag: tag('liga'), value: 1 }, { tag: tag('kern'), value: 0 }, { tag: tag('smcp'), value: 3 }];
+    engine.openTypeFeatures = features;
+
+    const handle = engine.nativeHandle;
+    const count = b.TRShapingEngineGetOpenTypeFeatureCount(handle);
+    check(count === 3, `Core has ${count} features`);
+    const view = b.TRShapingEngineGetOpenTypeFeaturesPtr(handle);
+    check(view !== undefined, 'Core gave no features');
+    const read = b.readPointerStructs(view as never, count, 0, count);
+    check(same(read as ArrayLike<unknown>, features), `Core has ${JSON.stringify(read)}`);
+
+    engine.openTypeFeatures = [];
+    check(b.TRShapingEngineGetOpenTypeFeatureCount(handle) === 0, 'no features after clearing');
+    engine.dispose();
+    typeface.dispose();
+  }],
+
   ['objects that are never disposed are collected without harm', (b) => {
     // Their finalizers release the references of Core on whatever thread the engine picks.
     for (let index = 0; index < 20; index++) {

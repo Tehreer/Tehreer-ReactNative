@@ -49,6 +49,9 @@ interface Run {
 
 interface Classifier {
   readonly text: string;
+  readonly isDisposed: boolean;
+  dispose(): void;
+  [Symbol.dispose](): void;
   readonly charScripts: { length: number; get(index: number): number; toArray(): number[]; slice(from?: number, to?: number): { toArray(): number[] } };
   readonly scriptRuns: Iterable<Run>;
   getScriptRuns(from: number, to: number): Iterable<Run>;
@@ -161,6 +164,22 @@ beforeEach(() => {
   (globalThis as Record<string, unknown>)["__tehreer"] = fake();
 });
 
+// Node 22 has no `using`, so what a test makes is disposed by a function that runs it, in reverse
+// order, whatever the outcome.
+function scoped(body: (own: <T extends Disposable>(object: T) => T) => void): void {
+  const owned: Disposable[] = [];
+  try {
+    body((object) => {
+      owned.push(object);
+      return object;
+    });
+  } finally {
+    for (const object of owned.reverse()) {
+      object[Symbol.dispose]();
+    }
+  }
+}
+
 const names = () => calls.map((call) => call.name);
 const live = () => made.filter((h) => !disposed.has(h));
 
@@ -171,8 +190,8 @@ test("an algorithm needs a text and Core's answer", () => {
   assert.deepEqual(names(), ["SBAlgorithmCreate"]);
 });
 
-test("ranges are checked before SheenBidi, which would clamp them", () => {
-  using algorithm = new lib.BidiAlgorithm("abcde");
+test("ranges are checked before SheenBidi, which would clamp them", () => scoped((own) => {
+  const algorithm = own(new lib.BidiAlgorithm("abcde"));
   for (const [from, to] of [[-1, 2], [0, 6], [2, 2], [3, 2], [0.5, 2], [0, Number.NaN]] as const) {
     assert.throws(() => algorithm.getParagraphBoundary(from, to), RangeError, `${from}..${to}`);
     assert.throws(() => algorithm.createParagraph(from, to, 0), RangeError, `${from}..${to}`);
@@ -182,10 +201,10 @@ test("ranges are checked before SheenBidi, which would clamp them", () => {
   // index + length go to SheenBidi, and the answer is a length that is added to the index.
   assert.equal(algorithm.getParagraphBoundary(1, 5), 4);
   assert.deepEqual(calls.at(-1)?.args.slice(1), [1, 4]);
-});
+}));
 
-test("a base is a direction or a level from 0 to 125", () => {
-  using algorithm = new lib.BidiAlgorithm("abcde");
+test("a base is a direction or a level from 0 to 125", () => scoped((own) => {
+  const algorithm = own(new lib.BidiAlgorithm("abcde"));
   const { BaseDirection } = lib;
   for (const base of [0, 1, 2, 125, BaseDirection["LeftToRight"], BaseDirection["DefaultLeftToRight"], BaseDirection["DefaultRightToLeft"]] as number[]) {
     algorithm.createParagraph(0, 5, base).dispose();
@@ -197,16 +216,16 @@ test("a base is a direction or a level from 0 to 125", () => {
   assert.equal(names().length, before);
   assert.equal(lib.BidiAlgorithm.MAX_LEVEL, 125);
   assert.deepEqual([BaseDirection["LeftToRight"], BaseDirection["RightToLeft"], BaseDirection["DefaultLeftToRight"], BaseDirection["DefaultRightToLeft"]], [0, 1, 0xfe, 0xfd]);
-});
+}));
 
-test("a paragraph that SheenBidi does not make is an error, not undefined", () => {
-  using algorithm = new lib.BidiAlgorithm("abcdefgh");
+test("a paragraph that SheenBidi does not make is an error, not undefined", () => scoped((own) => {
+  const algorithm = own(new lib.BidiAlgorithm("abcdefgh"));
   assert.throws(() => algorithm.createParagraph(0, 7, 0), /Could not create a bidi paragraph/);
-});
+}));
 
-test("a paragraph reads its properties and levels, and groups them into runs", () => {
-  using algorithm = new lib.BidiAlgorithm("abcde");
-  using paragraph = algorithm.createParagraph(0, 5, lib.BaseDirection["DefaultRightToLeft"] as number);
+test("a paragraph reads its properties and levels, and groups them into runs", () => scoped((own) => {
+  const algorithm = own(new lib.BidiAlgorithm("abcde"));
+  const paragraph = own(algorithm.createParagraph(0, 5, lib.BaseDirection["DefaultRightToLeft"] as number));
   assert.equal(paragraph.startIndex, 0);
   assert.equal(paragraph.endIndex, 5);
   assert.equal(paragraph.baseLevel, 1);
@@ -215,44 +234,44 @@ test("a paragraph reads its properties and levels, and groups them into runs", (
   assert.deepEqual(logical.map((run) => [run.startIndex, run.endIndex, run.embeddingLevel]), [[0, 2, 0], [2, 4, 1], [4, 5, 0]]);
   assert.deepEqual(logical.map((run) => run.isRightToLeft), [false, true, false]);
   assert.equal(algorithm.charBidiClasses.length, 5);
-});
+}));
 
-test("a line must be inside of its paragraph", () => {
-  using algorithm = new lib.BidiAlgorithm("ab\ncd");
-  using paragraph = algorithm.createParagraph(3, 5, 0);
+test("a line must be inside of its paragraph", () => scoped((own) => {
+  const algorithm = own(new lib.BidiAlgorithm("ab\ncd"));
+  const paragraph = own(algorithm.createParagraph(3, 5, 0));
   for (const [from, to] of [[2, 5], [3, 6], [4, 4], [4, 3], [3.5, 5]] as const) {
     assert.throws(() => paragraph.createLine(from, to), RangeError, `${from}..${to}`);
   }
   assert.ok(!names().includes("SBParagraphCreateLine"));
 
-  using line = paragraph.createLine(3, 5);
+  const line = own(paragraph.createLine(3, 5));
   assert.deepEqual(calls.at(-1)?.args.slice(1), [3, 2]);
   assert.equal(line.startIndex, 3);
   assert.equal(line.endIndex, 5);
-});
+}));
 
-test("the runs of a line are made when they are asked for, in the order SheenBidi gives", () => {
-  using algorithm = new lib.BidiAlgorithm("abcd");
-  using paragraph = algorithm.createParagraph(0, 4, 0);
-  using line = paragraph.createLine(0, 4);
+test("the runs of a line are made when they are asked for, in the order SheenBidi gives", () => scoped((own) => {
+  const algorithm = own(new lib.BidiAlgorithm("abcd"));
+  const paragraph = own(algorithm.createParagraph(0, 4, 0));
+  const line = own(paragraph.createLine(0, 4));
   const list = line.visualRuns;
   assert.equal(list.length, 2);
   assert.deepEqual(list.toArray().map((run) => [run.startIndex, run.endIndex, run.embeddingLevel]), [[2, 4, 1], [0, 2, 0]]);
   assert.throws(() => list.get(2), RangeError);
   assert.throws(() => list.get(-1), RangeError);
-});
+}));
 
-test("a line that SheenBidi does not make is an error", () => {
-  using algorithm = new lib.BidiAlgorithm("abcdefgh");
-  using paragraph = algorithm.createParagraph(0, 8, 0);
+test("a line that SheenBidi does not make is an error", () => scoped((own) => {
+  const algorithm = own(new lib.BidiAlgorithm("abcdefgh"));
+  const paragraph = own(algorithm.createParagraph(0, 8, 0));
   assert.throws(() => paragraph.createLine(0, 7), /Could not create a bidi line/);
-});
+}));
 
-test("mirroring pairs come from a locator that is always disposed", () => {
+test("mirroring pairs come from a locator that is always disposed", () => scoped((own) => {
   mirrors = [{ index: 4, mirror: 0x29, codepoint: 0x28 }, { index: 8, mirror: 0x28, codepoint: 0x29 }];
-  using algorithm = new lib.BidiAlgorithm("abcdefghi");
-  using paragraph = algorithm.createParagraph(0, 9, 1);
-  using line = paragraph.createLine(0, 9);
+  const algorithm = own(new lib.BidiAlgorithm("abcdefghi"));
+  const paragraph = own(algorithm.createParagraph(0, 9, 1));
+  const line = own(paragraph.createLine(0, 9));
 
   const pairs = [...line.mirroringPairs];
   assert.deepEqual(pairs.map((pair) => [pair.charIndex, pair.actualCodePoint, pair.pairingCodePoint]), [[4, 0x28, 0x29], [8, 0x29, 0x28]]);
@@ -267,7 +286,7 @@ test("mirroring pairs come from a locator that is always disposed", () => {
   assert.throws(() => [...line.mirroringPairs], /load failed/);
   assert.deepEqual(live().map((h) => h.kind).sort(), ["SBAlgorithm", "SBLine", "SBParagraph"]);
   assert.equal(made.filter((h) => h.kind === "SBMirrorLocator").length, 3);
-});
+}));
 
 test("the algorithm, the paragraph and the line are independent once made", () => {
   const algorithm = new lib.BidiAlgorithm("abcde");
@@ -299,13 +318,13 @@ test("lists of a disposed owner fail when they are read", () => {
   assert.throws(() => classes.toArray(), /already disposed/);
 });
 
-test("a paragraph and a line cannot be made by hand", () => {
+test("a paragraph and a line cannot be made by hand", () => scoped((own) => {
   const { BidiAlgorithm } = lib;
-  using algorithm = new BidiAlgorithm("abc");
-  using paragraph = algorithm.createParagraph(0, 3, 0);
+  const algorithm = own(new BidiAlgorithm("abc"));
+  const paragraph = own(algorithm.createParagraph(0, 3, 0));
   const Paragraph = paragraph.constructor as new (token: unknown, handle: unknown) => unknown;
   assert.throws(() => new Paragraph({}, {}), /made by a bidi algorithm/);
-});
+}));
 
 test("a classifier resolves scripts from the runs of the locator, and gives the locator back", () => {
   scriptRuns = [{ offset: 0, length: 4, script: 21 }, { offset: 4, length: 2, script: 4 }, { offset: 6, length: 1, script: 21 }];
@@ -320,6 +339,17 @@ test("a classifier resolves scripts from the runs of the locator, and gives the 
     assert.throws(() => classifier.getScriptRuns(from, to), RangeError, `${from}..${to}`);
   }
   assert.throws(() => classifier.charScripts.get(7), RangeError);
+  assert.deepEqual(live(), []);
+});
+
+test("a classifier can be disposed, any number of times, and stays readable", () => {
+  scriptRuns = [{ offset: 0, length: 2, script: 21 }];
+  const classifier = new lib.ScriptClassifier("ab");
+  assert.equal(classifier.isDisposed, false);
+  classifier.dispose();
+  classifier[Symbol.dispose]();
+  assert.equal(classifier.isDisposed, true);
+  assert.deepEqual(classifier.charScripts.toArray(), [21, 21]);
   assert.deepEqual(live(), []);
 });
 

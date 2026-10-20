@@ -57,7 +57,12 @@ export class ShapingEngine extends NativeObject<"TRShapingEngine"> {
     return getNativeBindings().TRShapingEngineGetLanguageTagForName(languageName) >>> 0;
   }
 
-  /** The typeface to shape with, or `undefined` for none, which makes shaping fail. */
+  /**
+   * The typeface to shape with, or `undefined` for none, which makes shaping fail. It is the object
+   * that was set, which the engine only keeps for the getter: Core retains its own reference, so
+   * the returned wrapper may be disposed while the engine keeps shaping with the typeface.
+   * `ShapingTypeface` is temporary, until the `Typeface` class of #15 replaces it.
+   */
   get typeface(): ShapingTypeface | undefined {
     return this.#typeface;
   }

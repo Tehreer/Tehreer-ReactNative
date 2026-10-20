@@ -33,8 +33,10 @@ constexpr const char *kLine = "SBLine";
 constexpr const char *kScriptLocator = "SBScriptLocator";
 constexpr const char *kMirrorLocator = "SBMirrorLocator";
 
+#ifndef NDEBUG
 // How many texts are alive, for the device tests of the buffer's lifetime (see the test hooks).
 std::atomic<int> gLiveTexts{0};
+#endif
 
 /**
  * The UTF-16 copy of a string that SheenBidi reads. SheenBidi does not own the buffer of its
@@ -44,8 +46,16 @@ std::atomic<int> gLiveTexts{0};
  * are released in and on whatever thread. The copy is immutable once made.
  */
 struct BidiText {
-    explicit BidiText(std::u16string text) : units(std::move(text)) { gLiveTexts.fetch_add(1); }
-    ~BidiText() { gLiveTexts.fetch_sub(1); }
+    explicit BidiText(std::u16string text) : units(std::move(text)) {
+#ifndef NDEBUG
+        gLiveTexts.fetch_add(1);
+#endif
+    }
+    ~BidiText() {
+#ifndef NDEBUG
+        gLiveTexts.fetch_sub(1);
+#endif
+    }
     BidiText(const BidiText &) = delete;
     BidiText &operator=(const BidiText &) = delete;
 
@@ -463,6 +473,11 @@ jsi::Value Decode(jsi::Runtime &rt, const jsi::Value *args, size_t count, const 
     marshal::ConstBuffer buffer = marshal::ToConstBuffer(rt, marshal::ArgAt(args, count, 0), function, "buffer", false);
 
     marshal::RequireCapacity(rt, function, "length", length, UnitSize, buffer.byteLength);
+    // SheenBidi answers an index outside of the buffer with an invalid code point, but a binding
+    // must not depend on that: the index is at most the length (the end is a valid position).
+    if (index > length) {
+        runtime::FailRange(rt, function, "index", "is beyond the length");
+    }
     if (reinterpret_cast<uintptr_t>(buffer.data) % alignof(Unit) != 0) {
         runtime::FailRange(rt, function, "buffer", "is not aligned to its code unit");
     }
@@ -493,6 +508,10 @@ template <SBCodepoint (*Read)(const SBCodepointSequence *, SBUInteger *)>
 jsi::Value GetCodepoint(jsi::Runtime &rt, const jsi::Value *args, size_t count, const char *function) {
     SBUInteger index = marshal::ToIndex(rt, marshal::ArgAt(args, count, 1), function, "stringIndex");
     TextPtr text = ToText(rt, marshal::ArgAt(args, count, 0), function, "text");
+
+    if (index > text->units.size()) {
+        runtime::FailRange(rt, function, "stringIndex", "is beyond the length of the text");
+    }
 
     SBCodepointSequence sequence = SequenceOf(*text);
     SBCodepoint codepoint = Read(&sequence, &index);

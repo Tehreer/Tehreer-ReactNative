@@ -450,7 +450,12 @@ const tests: [string, (b: NativeBindings) => void][] = [
     check(same(b.SBCodepointDecodePreviousFromUTF8(bytes, 4, 3), { result: 0x20ac, index: 0 }), 'and before it');
     check(b.SBCodepointDecodeNextFromUTF8(bytes, 2, 0).result === 0xfffd, 'a truncated sequence is faulty');
     check(b.SBCodepointDecodeNextFromUTF8(bytes, 4, 4).result === INVALID, 'the end is invalid');
-    check(b.SBCodepointDecodeNextFromUTF8(bytes, 4, -1).result === INVALID, 'TRInvalidIndex is out of bounds');
+    expectThrows(() => b.SBCodepointDecodeNextFromUTF8(bytes, 4, -1), /index/, 'RangeError');
+    expectThrows(() => b.SBCodepointDecodeNextFromUTF8(bytes, 4, 5), /index/, 'RangeError');
+    expectThrows(() => b.SBCodepointDecodePreviousFromUTF16(units('ab'), 2, 3), /index/, 'RangeError');
+    expectThrows(() => b.SBCodepointSequenceGetCodepointAt('ab', 3), /stringIndex/, 'RangeError');
+    expectThrows(() => b.SBCodepointSequenceGetCodepointBefore('ab', -1), /stringIndex/, 'RangeError');
+    check(b.SBCodepointDecodePreviousFromUTF8(bytes, 4, 4).result === 0x61, 'the end is a valid position to decode before');
 
     expectThrows(() => b.SBCodepointDecodeNextFromUTF8(bytes, 5, 0), /length/, 'RangeError');
     expectThrows(() => b.SBCodepointDecodeNextFromUTF8(bytes, -1, 0), /length/, 'RangeError');
