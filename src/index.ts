@@ -6,6 +6,23 @@ export type { AffineTransform, Point, Rect, Size } from "./geometry.js";
 export { DrawStyle, GlyphImageFormat, GlyphImageKind, StrokeCap, StrokeJoin, TypeSlope, TypeWeight, TypeWidth } from "./graphics/enums.js";
 export { BreakMode, ReplacementKind, TextAlignment, TruncationPlace, VerticalAlignment } from "./layout/enums.js";
 export { ShapingOrder, WritingDirection } from "./sfnt/enums.js";
+export { FontFeatures } from "./sfnt/FontFeatures.js";
+export type { OpenTypeFeature } from "./sfnt/OpenTypeFeature.js";
+export { SfntTag } from "./sfnt/SfntTag.js";
+export { ShapingEngine } from "./sfnt/ShapingEngine.js";
+export type { ShapingTypeface } from "./sfnt/ShapingEngine.js";
+export { ShapingResult } from "./sfnt/ShapingResult.js";
+
+export { BaseDirection } from "./unicode/BaseDirection.js";
+export { BidiAlgorithm } from "./unicode/BidiAlgorithm.js";
+export { BidiLine } from "./unicode/BidiLine.js";
+export { BidiPair } from "./unicode/BidiPair.js";
+export { BidiParagraph } from "./unicode/BidiParagraph.js";
+export { BidiRun } from "./unicode/BidiRun.js";
+export { CodePoint } from "./unicode/CodePoint.js";
+export { BidiClass, GeneralCategory, Script } from "./unicode/enums.js";
+export { ScriptClassifier } from "./unicode/ScriptClassifier.js";
+export { ScriptRun } from "./unicode/ScriptRun.js";
 
 export { List } from "./collections/List.js";
 export type { NumberList, PointList } from "./collections/List.js";

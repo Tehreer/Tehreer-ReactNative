@@ -32,6 +32,8 @@
     "test": "node --test \"tests/*.test.ts\"",
     "generate": "node scripts/generate-bindings.mjs",
     "generate:check": "node scripts/generate-bindings.mjs --check",
+    "generate:unicode": "node scripts/generate-unicode-enums.mjs",
+    "generate:unicode:check": "node scripts/generate-unicode-enums.mjs --check",
     "setup": "scripts/fetch-deps",
     "test:ios": "node scripts/test-device.mjs ios",
     "test:android": "node scripts/test-device.mjs android"

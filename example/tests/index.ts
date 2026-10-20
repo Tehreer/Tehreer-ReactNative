@@ -6,6 +6,8 @@ import { runStructTests, structTestCount } from '../../tests/device/StructTests'
 import { graphicsTestCount, runGraphicsTests } from './GraphicsTests';
 import { runTypefaceManagerTests, typefaceManagerTestCount } from './TypefaceManagerTests';
 import { pathTestCount, runPathTests } from './PathTests';
+import { runShapingTests, shapingTestCount } from './ShapingTests';
+import { runUnicodeTests, unicodeTestCount } from './UnicodeTests';
 import { fontBytes } from './fontData';
 import { NativeObject } from '../../src/internal/NativeObject';
 import { adopt } from '../../src/internal/Adopt';
@@ -77,6 +79,20 @@ export const suites: readonly Suite[] = [
     run: (bindings) => {
       const result = runPathTests(bindings);
       return { passed: result.passed, total: pathTestCount, failures: result.failures };
+    },
+  },
+  {
+    name: 'shaping',
+    run: (bindings) => {
+      const result = runShapingTests(bindings);
+      return { passed: result.passed, total: shapingTestCount, failures: result.failures };
+    },
+  },
+  {
+    name: 'unicode',
+    run: (bindings) => {
+      const result = runUnicodeTests(bindings);
+      return { passed: result.passed, total: unicodeTestCount, failures: result.failures };
     },
   },
 ];
