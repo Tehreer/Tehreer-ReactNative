@@ -4,7 +4,7 @@ import { IndexedList } from "../collections/IndexedList.js";
 import type { List, NumberList } from "../collections/List.js";
 import type { Float, UInt32 } from "../collections/NumberKind.js";
 import type { Color } from "../Color.js";
-import type { Rect } from "../geometry.js";
+import type { AffineTransform, Rect } from "../geometry.js";
 import { adopt } from "../internal/Adopt.js";
 import { getNativeBindings } from "../internal/NativeBindings.js";
 import type { Handle } from "../internal/NativeFunctions.js";
@@ -13,6 +13,7 @@ import type { BitmapStrike } from "./BitmapStrike.js";
 import type { ColorPalette } from "./ColorPalette.js";
 import type { TypeSlope, TypeWidth } from "./enums.js";
 import type { NamedStyle } from "./NamedStyle.js";
+import { Path } from "./Path.js";
 import type { VariationAxis } from "./VariationAxis.js";
 
 /** Flag of a variation axis that asks to hide it from user interfaces (`TRVariationAxisFlagHidden`). */
@@ -306,6 +307,22 @@ export class Typeface extends NativeObject<"TRTypeface"> {
    */
   getGlyphAdvance(glyphId: number, typeSize: number, isVertical = false): number {
     return getNativeBindings().TRTypefaceGetGlyphAdvance(this.nativeHandle, glyphId, typeSize, isVertical);
+  }
+
+  /**
+   * Makes the outline of a glyph. Its origin is the pen position on the baseline, and the y axis
+   * points downward. Core makes the outline and applies the transform; the native outline is
+   * released once it is copied.
+   *
+   * @param typeSize The size of the em square, which must be positive.
+   * @param transform An optional transform that Core applies to every point.
+   * @returns The outline, or `undefined` if the type size is not positive or the glyph has none.
+   * @throws RangeError if `glyphId` is not a glyph ID, `typeSize` is NaN, or the transform has a
+   *   member that is not a finite number.
+   */
+  getGlyphPath(glyphId: number, typeSize: number, transform?: AffineTransform): Path | undefined {
+    const created = getNativeBindings().TRTypefaceCreateGlyphPath(this.nativeHandle, glyphId, typeSize);
+    return created === undefined ? undefined : Path.takeNative(created, transform);
   }
 
   /**

@@ -5,6 +5,7 @@ import { listTestCount, runListTests } from '../../tests/device/ListTests';
 import { runStructTests, structTestCount } from '../../tests/device/StructTests';
 import { graphicsTestCount, runGraphicsTests } from './GraphicsTests';
 import { runTypefaceManagerTests, typefaceManagerTestCount } from './TypefaceManagerTests';
+import { pathTestCount, runPathTests } from './PathTests';
 import { fontBytes } from './fontData';
 import { NativeObject } from '../../src/internal/NativeObject';
 import { adopt } from '../../src/internal/Adopt';
@@ -69,6 +70,13 @@ export const suites: readonly Suite[] = [
     run: (bindings) => {
       const result = runTypefaceManagerTests(bindings);
       return { passed: result.passed, total: typefaceManagerTestCount, failures: result.failures };
+    },
+  },
+  {
+    name: 'path',
+    run: (bindings) => {
+      const result = runPathTests(bindings);
+      return { passed: result.passed, total: pathTestCount, failures: result.failures };
     },
   },
 ];
