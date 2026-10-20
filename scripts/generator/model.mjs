@@ -90,6 +90,8 @@ const stripRef = (name) => name.replace(/Ref$/, "");
  * @param {Record<string, Record<string, { count: string }>>} config.bounds The element count of a
  *   buffer that the signature cannot tell; `{name}` stands for a parameter.
  * @param {Record<string, string[]>} config.scalarOuts The mutable pointers that receive one value.
+ * @param {Record<string, string>} [config.pointerCounts] The element count behind each getter that
+ *   returns a pointer into Core memory; `{name}` stands for a parameter.
  * @param {Set<string>} [config.booleanTypes]
  */
 export function buildModel(headers, config) {
@@ -120,6 +122,20 @@ export function buildModel(headers, config) {
       if (!fn.params.some((p) => p.name === parameter)) {
         throw new GeneratorError(`${name}: has a scalar output "${parameter}", which is not a parameter`);
       }
+    }
+  }
+
+  const pointerCounts = config.pointerCounts ?? {};
+  for (const [name, expression] of Object.entries(pointerCounts)) {
+    const fn = known.get(name);
+    if (!fn) throw new GeneratorError(`${name}: has a pointer count but no header declares it`);
+    for (const [, parameter] of expression.matchAll(/\{(\w+)\}/g)) {
+      if (!fn.params.some((p) => p.name === parameter)) {
+        throw new GeneratorError(`${name}: the pointer count uses "${parameter}", which is not a parameter`);
+      }
+    }
+    for (const [, called] of expression.matchAll(/\b(TR\w+)\(/g)) {
+      if (!known.has(called)) throw new GeneratorError(`${name}: the pointer count calls ${called}, which no header declares`);
     }
   }
 
@@ -346,7 +362,9 @@ export function buildModel(headers, config) {
     if (!owner || owner.type.function || owner.type.pointer !== 0 || registry.resolve(owner.type.base, fn.name).kind !== "reference") {
       fail(where, "the pointer needs an owner, and the first parameter is not an object reference");
     }
-    return { k: "pointerView", element: pointee.c, pointee };
+    const count = pointerCounts[fn.name];
+    if (count === undefined) fail(where, "the number of elements behind the pointer is unknown: add the function to POINTER_COUNTS");
+    return { k: "pointerView", element: pointee.c, pointee, count };
   }
 
   /**
@@ -518,15 +536,41 @@ export function buildModel(headers, config) {
     }
   }
 
+  for (const name of Object.keys(pointerCounts)) {
+    if (bindings.find((b) => b.name === name)?.returns.k !== "pointerView") {
+      throw new GeneratorError(`${name}: has a pointer count but does not return a pointer into Core memory`);
+    }
+  }
+
   const unusedBounds = Object.entries(config.bounds).filter(([name]) => !bindings.some((b) => b.name === name));
   if (unusedBounds.length > 0) {
     throw new GeneratorError(`${unusedBounds[0][0]}: has bounds but is excluded or manual`);
   }
 
-  // Includes the structs that the headers declare, so the codecs can be checked against them.
+  // Every struct and union that the headers declare, not only the ones that are converted by value:
+  // native code reads the others (the draw callbacks, the attributes, what a typeface lists) too,
+  // and all of them have their layout checked at compile time.
+  const layouts = headers.flatMap((header) => header.parsed.typedefs)
+    .filter((typedef) => typedef.kind === "struct" || typedef.kind === "union");
+
+  // The scalar typedefs (TRFloat, TRUInt16, TRGlyphID, ...): their width decides the layout of every
+  // struct and array that holds them, and a struct check cannot see a typedef that changes under it.
+  const scalars = [];
+  for (const typedef of headers.flatMap((header) => header.parsed.typedefs)) {
+    if (typedef.kind !== "alias" || typedef.target.pointer !== 0 || typedef.target.tag) continue;
+
+    let base = typedef.target.base;
+    for (let next = registry.typedefs.get(base); next?.kind === "alias" && next.target.pointer === 0 && !next.target.tag; next = registry.typedefs.get(base)) {
+      base = next.target.base;
+    }
+    if (INTEGER_TYPES.has(base) || FLOAT_TYPES.has(base)) scalars.push({ name: typedef.name, base });
+  }
+
   return {
     bindings,
     structs: [...structs.values()],
+    layouts,
+    scalars,
     refs,
     files: [...new Set(headers.map((header) => header.file))],
     excluded: [...config.excluded],

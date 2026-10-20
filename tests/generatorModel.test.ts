@@ -169,10 +169,24 @@ test("a parameter that the documentation allows to be NULL is nullable", () => {
   assert.equal(plan.params[1]?.nullable, true);
 });
 
-test("a pointer into Core memory needs its owner as the first parameter", () => {
-  const plan = binding("TR_PUBLIC const TRFloat *TRThingGetAdvancesPtr(TRThingRef thing);", "TRThingGetAdvancesPtr");
+const ADVANCES = { pointerCounts: { TRThingGetAdvancesPtr: "TRThingGetCount({thing})" } };
+const ADVANCES_DECLARATIONS = `
+  TR_PUBLIC const TRFloat *TRThingGetAdvancesPtr(TRThingRef thing);
+  TR_PUBLIC TRUInteger TRThingGetCount(TRThingRef thing);
+`;
+
+test("a pointer into Core memory needs its owner as the first parameter and a count", () => {
+  const plan = binding(ADVANCES_DECLARATIONS, "TRThingGetAdvancesPtr", ADVANCES);
   assert.equal(plan.returns.k, "pointerView");
   assert.equal(plan.returns["element"], "TRFloat");
+  assert.equal(plan.returns["count"], "TRThingGetCount({thing})");
+
+  // A getter without a count would leave the runtime nothing to check a read against.
+  assert.match(failure(ADVANCES_DECLARATIONS), /TRThingGetAdvancesPtr.*POINTER_COUNTS/);
+  assert.match(failure(ADVANCES_DECLARATIONS, { pointerCounts: { ...ADVANCES.pointerCounts, TRGone: "1" } }), /TRGone.*pointer count/);
+  assert.match(failure(ADVANCES_DECLARATIONS, { pointerCounts: { TRThingGetAdvancesPtr: "TRThingGetCount({other})" } }), /"other".*not a parameter/);
+  assert.match(failure(ADVANCES_DECLARATIONS, { pointerCounts: { TRThingGetAdvancesPtr: "TRThingGetNothing({thing})" } }), /TRThingGetNothing/);
+  assert.match(failure(ADVANCES_DECLARATIONS, { pointerCounts: { ...ADVANCES.pointerCounts, TRThingGetCount: "1" } }), /TRThingGetCount.*does not return a pointer/);
 
   const message = failure("TR_PUBLIC const TRFloat *TRThingGetDefaultsPtr(TRUInteger index);");
   assert.match(message, /TRThingGetDefaultsPtr/);

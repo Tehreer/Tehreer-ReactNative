@@ -46,7 +46,7 @@ test("the runtime instantiates ToNumber and FromNumber for every type the genera
 
 test("the runtime defines every function that GeneratedSupport.h declares without a body", () => {
   const header = read("cpp/generated/GeneratedSupport.h");
-  const sources = ["Errors", "MarshalHandles", "MarshalValues"].map((name) => read(`cpp/runtime/${name}.cpp`)).join("\n");
+  const sources = ["Callbacks", "Errors", "MarshalHandles", "MarshalValues"].map((name) => read(`cpp/runtime/${name}.cpp`)).join("\n");
   const declared = [...header.matchAll(/^(?:\[\[noreturn\]\] )?[\w:<>&\s*]+?[\s&*](\w+)\([^)]*\);$/gm)].map((match) => match[1] as string);
 
   assert.ok(declared.includes("ToConstBuffer"));
@@ -59,20 +59,40 @@ test("the runtime defines every function that GeneratedSupport.h declares withou
 
 test("the handle functions and the debug hooks agree between TypeScript and C++", () => {
   const typescript = read("src/internal/NativeBindings.ts");
-  const cpp = read("cpp/runtime/TehreerBindings.cpp");
+  const cpp = ["TehreerBindings", "ReplacementBindings", "CallbackTestHooks", "PointerBuffers", "PointerTestHooks"].map((name) => read(`cpp/runtime/${name}.cpp`)).join("\n");
   const names = [...typescript.matchAll(/^ {2}(\w+)\??\(/gm)].map((match) => match[1] as string);
 
   assert.deepEqual(names, [
-    "getVersion", "smokeTest", "disposeHandle", "isHandleDisposed", "handleEquals",
-    "testCreateProbe", "testGetProbeReleaseCount", "testCollectGarbage",
+    "getVersion", "smokeTest", "disposeHandle", "isHandleDisposed", "isHandleMutable", "handleEquals", "TRReplacementCreate",
+    "createPointerBuffer", "readPointerStructs",
+    "testCreateProbe", "testGetProbeReleaseCount", "testCollectGarbage", "testRoundTripStruct", "testGetStructNames",
+    "testGetHandlerCount", "testGetRetiredHandlerCount", "testDrainHandlers", "testReleaseOnOtherThread",
+    "testComputeRoomOnOtherThread", "testEnumerate",
+    "testCreateMemoryProbe", "testReplaceMemoryProbe", "testGetMemoryProbeView", "testWriteMemoryProbe", "testGetMemoryProbeReferences",
+    "testGetMemoryBlockCount", "testDropPointerBufferOnOtherThread",
   ]);
   for (const name of names) {
-    assert.ok(cpp.includes(`"${name}"`), `${name} is not installed by cpp/runtime/TehreerBindings.cpp`);
+    assert.ok(cpp.includes(`"${name}"`), `${name} is not installed by cpp/runtime`);
   }
 
-  // The hooks must not exist in release builds.
-  const hooks = cpp.slice(cpp.indexOf('#ifndef NDEBUG\n    Define'), cpp.indexOf("#endif", cpp.indexOf('#ifndef NDEBUG\n    Define')));
-  for (const name of names.filter((n) => n.startsWith("test"))) {
-    assert.ok(hooks.includes(`"${name}"`), `${name} is not behind #ifndef NDEBUG`);
+  // The hooks must not exist in release builds: the ones of TehreerBindings.cpp are behind
+  // #ifndef NDEBUG, and the files of the callback and pointer hooks are empty without the debug build.
+  const bindings = read("cpp/runtime/TehreerBindings.cpp");
+  const start = bindings.indexOf('#ifndef NDEBUG\n    Define');
+  const hooks = bindings.slice(start, bindings.indexOf("#endif", start));
+  const hookFiles = ["CallbackTestHooks", "PointerTestHooks"].map((name) => read(`cpp/runtime/${name}.cpp`));
+  const inDebugFile = (file: string, name: string) => file.includes(`"${name}"`) && file.indexOf("#ifndef NDEBUG") < file.indexOf(`"${name}"`)
+    && file.trimEnd().endsWith("#endif");
+  const debugOnly = (name: string) => hooks.includes(`"${name}"`) || hookFiles.some((file) => inDebugFile(file, name));
+
+  assert.ok(hooks.includes("InstallCallbackTestHooks(runtime, bindings)"));
+  assert.ok(hooks.includes("InstallPointerTestHooks(runtime, bindings)"));
+  // The two bindings that lists need are in every build, and so are not in the debug block.
+  for (const name of ["createPointerBuffer", "readPointerStructs"]) {
+    assert.ok(!hooks.includes(`"${name}"`) && read("cpp/runtime/PointerBuffers.cpp").includes(`"${name}"`));
   }
+  for (const name of names.filter((n) => n.startsWith("test"))) {
+    assert.ok(debugOnly(name), `${name} is not behind #ifndef NDEBUG`);
+  }
+  assert.ok(!bindings.slice(bindings.indexOf("#endif", start)).includes('"test'), "a hook is installed after the debug block");
 });

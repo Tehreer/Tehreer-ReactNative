@@ -2,8 +2,8 @@
 
 namespace tehreer {
 
-HandleObject::HandleObject(void *ref, const char *group, bool isMutable, ReleaseFunction release)
-    : _ref(ref), _group(group), _isMutable(isMutable), _release(release) {
+HandleObject::HandleObject(void *ref, const char *group, bool isMutable, ReleaseFunction release, RetainFunction retain)
+    : _ref(ref), _group(group), _isMutable(isMutable), _release(release), _retain(retain) {
 }
 
 HandleObject::~HandleObject() {
@@ -17,6 +17,24 @@ void HandleObject::Dispose() {
 
     if (ref != nullptr) {
         _release(ref);
+    }
+}
+
+void *HandleObject::Take() {
+    void *ref = _ref;
+    _ref = nullptr;
+    return ref;
+}
+
+std::shared_ptr<HandleObject> HandleObject::Duplicate() const {
+    // The reference is added first and given back if the object cannot be made, as FromHandle does:
+    // until the new object exists nothing owns it.
+    _retain(_ref);
+    try {
+        return std::make_shared<HandleObject>(_ref, _group, _isMutable, _release, _retain);
+    } catch (...) {
+        _release(_ref);
+        throw;
     }
 }
 

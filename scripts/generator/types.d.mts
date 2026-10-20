@@ -76,6 +76,8 @@ export interface BindingPlan {
 export interface Model {
   bindings: BindingPlan[];
   structs: { name: string; members: { name: string; descriptor: Descriptor }[] }[];
+  layouts: { kind: "struct" | "union"; name: string; tag: string | null; members: Declaration[] }[];
+  scalars: { name: string; base: string }[];
   refs: { name: string; group: string; retain: string; release: string; const: boolean }[];
   files: string[];
   excluded: string[];
@@ -88,6 +90,7 @@ export interface ModelConfig {
   manual: Set<string>;
   bounds: Record<string, Record<string, { count: string }>>;
   scalarOuts: Record<string, string[]>;
+  pointerCounts?: Record<string, string>;
   booleanTypes?: Set<string>;
 }
 

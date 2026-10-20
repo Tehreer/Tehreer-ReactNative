@@ -1,8 +1,11 @@
 // A stand-in for the declarations of <jsi/jsi.h> that the generated bindings use, with the same
 // names and signatures as React Native's. It exists so that the generated C++ can be compiled
 // (-fsyntax-only) by a plain C++17 compiler before React Native's headers are part of the build;
-// nothing links against it and nothing here runs. Replace it with the real header once the
-// native build can supply it.
+// the generated glue is only checked, never linked. tests/handlerTable.test.ts is the one that
+// links and runs against it (the handler table and the callback error slot, which use a handful of
+// types): `Object` therefore tells a hook when it ends, so a test can see where and when a value of
+// the runtime is destroyed, and `HostObject` exists. The hook and the constructors that the harness
+// needs are defined by the harness; the real header replaces all of this in the native build.
 #pragma once
 
 #include <cstddef>
@@ -35,13 +38,46 @@ public:
     static String createFromAscii(Runtime &runtime, const char *ascii);
 };
 
+/** Called by the destructor of an `Object` that was made by `Object(Runtime &)` and not moved from. */
+void ObjectEnded(unsigned long id) noexcept;
+
+class HostObject {
+public:
+    virtual ~HostObject() = default;
+};
+
 class Object {
 public:
     explicit Object(Runtime &runtime);
+    Object(Object &&other) noexcept : _id(other._id) { other._id = 0; }
+    Object &operator=(Object &&other) noexcept {
+        if (this != &other) {
+            End();
+            _id = other._id;
+            other._id = 0;
+        }
+        return *this;
+    }
+    Object(const Object &) = delete;
+    Object &operator=(const Object &) = delete;
+    ~Object() { End(); }
+
+    /** Which object this is, 0 for one that was moved from. For the harness. */
+    unsigned long id() const { return _id; }
 
     template <typename T> void setProperty(Runtime &runtime, const char *name, T &&value) const;
     Value getProperty(Runtime &runtime, const char *name) const;
     Array asArray(Runtime &runtime) const &;
+
+private:
+    void End() noexcept {
+        if (_id != 0) {
+            ObjectEnded(_id);
+            _id = 0;
+        }
+    }
+
+    unsigned long _id = 0;
 };
 
 class Array : public Object {

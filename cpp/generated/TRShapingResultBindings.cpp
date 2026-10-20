@@ -30,70 +30,87 @@ namespace {
 
 jsi::Value BindTRShapingResultGetCodeUnitCount(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRShapingResultGetCodeUnitCount";
+    marshal::BeginCall();
     TRShapingResultRef a_result = marshal::ToHandle<TRShapingResultRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "result", false);
 
     auto result = TRShapingResultGetCodeUnitCount(a_result);
+    marshal::RethrowCallbackError(rt);
     return marshal::FromIndex(rt, result);
 }
 
 jsi::Value BindTRShapingResultIsBackward(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRShapingResultIsBackward";
+    marshal::BeginCall();
     TRShapingResultRef a_result = marshal::ToHandle<TRShapingResultRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "result", false);
 
     auto result = TRShapingResultIsBackward(a_result);
+    marshal::RethrowCallbackError(rt);
     return marshal::FromBoolean(result != 0);
 }
 
 jsi::Value BindTRShapingResultIsRTL(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRShapingResultIsRTL";
+    marshal::BeginCall();
     TRShapingResultRef a_result = marshal::ToHandle<TRShapingResultRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "result", false);
 
     auto result = TRShapingResultIsRTL(a_result);
+    marshal::RethrowCallbackError(rt);
     return marshal::FromBoolean(result != 0);
 }
 
 jsi::Value BindTRShapingResultGetGlyphCount(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRShapingResultGetGlyphCount";
+    marshal::BeginCall();
     TRShapingResultRef a_result = marshal::ToHandle<TRShapingResultRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "result", false);
 
     auto result = TRShapingResultGetGlyphCount(a_result);
+    marshal::RethrowCallbackError(rt);
     return marshal::FromIndex(rt, result);
 }
 
 jsi::Value BindTRShapingResultGetGlyphIDsPtr(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRShapingResultGetGlyphIDsPtr";
+    marshal::BeginCall();
     TRShapingResultRef a_result = marshal::ToHandle<TRShapingResultRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "result", false);
 
     auto result = TRShapingResultGetGlyphIDsPtr(a_result);
-    return marshal::MakePointerView(rt, result, "TRGlyphID", sizeof(TRGlyphID), marshal::ArgAt(args, count, 0));
+    marshal::RethrowCallbackError(rt);
+    return marshal::MakePointerView(rt, result, "TRGlyphID", sizeof(TRGlyphID), static_cast<size_t>(TRShapingResultGetGlyphCount(a_result)), marshal::ArgAt(args, count, 0));
 }
 
 jsi::Value BindTRShapingResultGetGlyphOffsetsPtr(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRShapingResultGetGlyphOffsetsPtr";
+    marshal::BeginCall();
     TRShapingResultRef a_result = marshal::ToHandle<TRShapingResultRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "result", false);
 
     auto result = TRShapingResultGetGlyphOffsetsPtr(a_result);
-    return marshal::MakePointerView(rt, result, "TRPoint", sizeof(TRPoint), marshal::ArgAt(args, count, 0));
+    marshal::RethrowCallbackError(rt);
+    return marshal::MakePointerView(rt, result, "TRPoint", sizeof(TRPoint), static_cast<size_t>(TRShapingResultGetGlyphCount(a_result)), marshal::ArgAt(args, count, 0));
 }
 
 jsi::Value BindTRShapingResultGetGlyphAdvancesPtr(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRShapingResultGetGlyphAdvancesPtr";
+    marshal::BeginCall();
     TRShapingResultRef a_result = marshal::ToHandle<TRShapingResultRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "result", false);
 
     auto result = TRShapingResultGetGlyphAdvancesPtr(a_result);
-    return marshal::MakePointerView(rt, result, "TRFloat", sizeof(TRFloat), marshal::ArgAt(args, count, 0));
+    marshal::RethrowCallbackError(rt);
+    return marshal::MakePointerView(rt, result, "TRFloat", sizeof(TRFloat), static_cast<size_t>(TRShapingResultGetGlyphCount(a_result)), marshal::ArgAt(args, count, 0));
 }
 
 jsi::Value BindTRShapingResultGetClusterMapPtr(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRShapingResultGetClusterMapPtr";
+    marshal::BeginCall();
     TRShapingResultRef a_result = marshal::ToHandle<TRShapingResultRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "result", false);
 
     auto result = TRShapingResultGetClusterMapPtr(a_result);
-    return marshal::MakePointerView(rt, result, "TRUInteger", sizeof(TRUInteger), marshal::ArgAt(args, count, 0));
+    marshal::RethrowCallbackError(rt);
+    return marshal::MakePointerView(rt, result, "TRUInteger", sizeof(TRUInteger), static_cast<size_t>(TRShapingResultGetCodeUnitCount(a_result)), marshal::ArgAt(args, count, 0));
 }
 
 jsi::Value BindTRShapingResultGetCaretEdges(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRShapingResultGetCaretEdges";
+    marshal::BeginCall();
     TRShapingResultRef a_result = marshal::ToHandle<TRShapingResultRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "result", false);
     marshal::ConstBuffer a_caretStops = marshal::ToConstBuffer(rt, marshal::ArgAt(args, count, 1), kFunction, "caretStops", true);
     marshal::MutableBuffer a_caretEdges = marshal::ToMutableBuffer(rt, marshal::ArgAt(args, count, 2), kFunction, "caretEdges", false);
@@ -104,14 +121,17 @@ jsi::Value BindTRShapingResultGetCaretEdges(jsi::Runtime &rt, const jsi::Value &
     marshal::RequireCapacity(rt, kFunction, "caretEdges", static_cast<size_t>(TRShapingResultGetCodeUnitCount(a_result) + 1), sizeof(TRFloat), a_caretEdges.byteLength);
 
     TRShapingResultGetCaretEdges(a_result, static_cast<const TRBoolean *>(a_caretStops.data), static_cast<TRFloat *>(a_caretEdges.data));
+    marshal::RethrowCallbackError(rt);
     return jsi::Value::undefined();
 }
 
 jsi::Value BindTRShapingResultRetain(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRShapingResultRetain";
+    marshal::BeginCall();
     TRShapingResultRef a_result = marshal::ToHandle<TRShapingResultRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "result", false);
 
     auto result = TRShapingResultRetain(a_result);
+    marshal::RethrowCallbackError(rt, result);
     return marshal::FromHandle<TRShapingResultRef>(rt, result, marshal::Ownership::Adopt);
 }
 

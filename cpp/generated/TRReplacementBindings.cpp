@@ -30,27 +30,33 @@ namespace {
 
 jsi::Value BindTRReplacementGetKind(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRReplacementGetKind";
+    marshal::BeginCall();
     TRReplacementRef a_replacement = marshal::ToHandle<TRReplacementRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "replacement", false);
 
     auto result = TRReplacementGetKind(a_replacement);
+    marshal::RethrowCallbackError(rt);
     return marshal::FromNumber<TRReplacementKind>(rt, result);
 }
 
 jsi::Value BindTRReplacementComputeRoom(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRReplacementComputeRoom";
+    marshal::BeginCall();
     TRFloat a_layoutWidth = marshal::ToNumber<TRFloat>(rt, marshal::ArgAt(args, count, 1), kFunction, "layoutWidth");
     TRReplacementRoom o_room = {};
     TRReplacementRef a_replacement = marshal::ToHandle<TRReplacementRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "replacement", false);
 
     TRReplacementComputeRoom(a_replacement, a_layoutWidth, &o_room);
+    marshal::RethrowCallbackError(rt);
     return TRReplacementRoomToJs(rt, o_room);
 }
 
 jsi::Value BindTRReplacementRetain(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRReplacementRetain";
+    marshal::BeginCall();
     TRReplacementRef a_replacement = marshal::ToHandle<TRReplacementRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "replacement", false);
 
     auto result = TRReplacementRetain(a_replacement);
+    marshal::RethrowCallbackError(rt, result);
     return marshal::FromHandle<TRReplacementRef>(rt, result, marshal::Ownership::Adopt);
 }
 

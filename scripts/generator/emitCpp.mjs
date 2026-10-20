@@ -83,7 +83,7 @@ function toJs(descriptor, value, extra = {}) {
     case "cstring": return `marshal::FromCString(rt, ${value})`;
     case "token": return `marshal::FromToken(rt, ${value})`;
     case "pointerView":
-      return `marshal::MakePointerView(rt, ${value}, "${descriptor.element}", sizeof(${descriptor.element}), marshal::ArgAt(args, count, 0))`;
+      return `marshal::MakePointerView(rt, ${value}, "${descriptor.element}", sizeof(${descriptor.element}), static_cast<size_t>(${expand(descriptor.count)}), marshal::ArgAt(args, count, 0))`;
     default: throw new Error(`toJs: ${descriptor.k}`);
   }
 }
@@ -231,12 +231,15 @@ jsi::Object ToObject(jsi::Runtime &rt, const jsi::Value &value, const char *func
 jsi::Array ToArray(jsi::Runtime &rt, const jsi::Value &value, const char *function, const char *parameter);
 
 /**
- * A pointer into memory that \`owner\` keeps alive, with the name and the size of its elements.
- * The count is asked from Core separately. \`NULL\` becomes undefined.
+ * A pointer into memory of \`owner\`, with the name and the size of its elements and how many
+ * there are (the count function of Core that is paired with the getter, see POINTER_COUNTS): the
+ * runtime never reads more than that. \`NULL\` becomes undefined.
  */
-jsi::Value MakePointerView(jsi::Runtime &rt, const void *address, const char *element, size_t elementSize, const jsi::Value &owner);
+jsi::Value MakePointerView(jsi::Runtime &rt, const void *address, const char *element, size_t elementSize, size_t count, const jsi::Value &owner);
 /** The address of an opaque pointer, as a number (an application token such as \`userData\`). */
 jsi::Value FromToken(jsi::Runtime &rt, const void *pointer);
+/** The opposite: a non-negative integer number becomes the opaque pointer it was made from. */
+const void *ToToken(jsi::Runtime &rt, const jsi::Value &value, const char *function, const char *parameter);
 
 /**
  * Receives what Core passes to the callbacks of an enumeration. Nothing re-enters JavaScript
@@ -266,6 +269,37 @@ struct Collector {
     }
 };
 
+/**
+ * Callbacks that Core keeps and calls later (a replacement's \`computeRoom\`) run JavaScript the
+ * app wrote, which can throw, and an exception must never unwind through the C frames of Core. The
+ * runtime's trampolines catch it and remember the first one; every binding asks for it right after
+ * the Core function returns and throws it from there. No JavaScript runs in between, so the
+ * checks cost one read of a thread-local.
+ */
+bool HasCallbackError(jsi::Runtime &rt);
+/** Throws the remembered error, the very value the handler threw, and forgets it. */
+[[noreturn]] void ThrowCallbackError(jsi::Runtime &rt);
+/**
+ * The first thing a binding does: forgets an error that was remembered but never thrown (a Core
+ * call that did not go through a binding), so that it cannot surface from an unrelated call.
+ * Nothing legitimate is lost: after a handler failed no handler runs again during that Core call,
+ * so no binding can start between the failure and its rethrow.
+ */
+void BeginCall() noexcept;
+/**
+ * Destroys the handlers that were removed since the runtime's thread last looked (an object of Core
+ * can end on any thread, and only this thread may destroy a JavaScript value). It is a read of one
+ * atomic when there is nothing to do, and runs with every rethrow check so that handlers do not
+ * wait for the next replacement to be made.
+ */
+void DrainRetiredHandlers(jsi::Runtime &rt);
+inline void RethrowCallbackError(jsi::Runtime &rt) {
+    DrainRetiredHandlers(rt);
+    if (HasCallbackError(rt)) {
+        ThrowCallbackError(rt);
+    }
+}
+
 } // namespace marshal
 } // namespace tehreer
 
@@ -290,6 +324,20 @@ namespace tehreer {
 namespace marshal {
 
 ${traits}
+
+/**
+ * The same as \`RethrowCallbackError(rt)\` for a Core function that returned a reference that the
+ * caller owns: the reference is released first, so a failed callback leaks nothing.
+ */
+template <class Ref> inline void RethrowCallbackError(jsi::Runtime &rt, Ref owned) {
+    DrainRetiredHandlers(rt);
+    if (HasCallbackError(rt)) {
+        if (owned != nullptr) {
+            HandleTraits<Ref>::Release(owned);
+        }
+        ThrowCallbackError(rt);
+    }
+}
 
 } // namespace marshal
 } // namespace tehreer
@@ -323,18 +371,136 @@ ${fromMembers}
 }`;
   }).join("\n\n");
 
+  // The table lets the runtime convert a struct that it only knows by name, such as an element of
+  // a pointer view or a value that a test passes in.
+  const table = model.structs.map((struct) => `    {
+        "${struct.name}", sizeof(${struct.name}),
+        [](jsi::Runtime &rt, const void *value) { return ${struct.name}ToJs(rt, *static_cast<const ${struct.name} *>(value)); },
+        [](jsi::Runtime &rt, const jsi::Value &value, const char *function, const std::string &parameter, void *out) {
+            *static_cast<${struct.name} *>(out) = ${struct.name}FromJs(rt, value, function, parameter);
+        },
+    },`).join("\n");
+
   return header(`#ifndef TEHREER_GENERATED_STRUCTS_H
 #define TEHREER_GENERATED_STRUCTS_H
 
 #include "GeneratedSupport.h"
+#include "Layouts.h"
 
 namespace tehreer {
 namespace generated {
 
 ${codecs}
 
+/** A struct that is converted by value, with its conversions erased to the struct's name. */
+struct StructCodec {
+    const char *name;
+    size_t size;
+    jsi::Value (*toJs)(jsi::Runtime &rt, const void *value);
+    /** Writes the whole struct; \`out\` points at \`size\` bytes that are suitably aligned. */
+    void (*fromJs)(jsi::Runtime &rt, const jsi::Value &value, const char *function, const std::string &parameter, void *out);
+};
+
+inline const StructCodec kStructCodecs[] = {
+${table}
+};
+
 } // namespace generated
 } // namespace tehreer
+
+#endif
+`);
+}
+
+/** Renders a member, which may be a function pointer, as the C declaration that Core's header has. */
+function memberDeclaration(member) {
+  if (!member.type.function) return declaration(member.type, member.name);
+  const { returns, params } = member.type.function;
+  return `${declaration(returns, "").trimEnd()} (*${member.name})(${params.map(memberDeclaration).join(", ") || "void"})`;
+}
+
+// A second description of every struct and union that a header declares, printed from the parsed
+// header, and compared with the real one at compile time. The conversions above and the runtime
+// read members by name, so a change that moves, retypes, adds or removes one has to fail the
+// build instead of reading the wrong bytes. A header that changes without a regeneration fails
+// here; one that is regenerated shows up in the diff of this file.
+// The width of the fundamental types that the scalar typedefs of Core name, in bytes; the pointer-sized
+// ones are compared with a pointer.
+const SCALAR_WIDTHS = {
+  int8_t: "1", uint8_t: "1", int16_t: "2", uint16_t: "2", int32_t: "4", uint32_t: "4", int64_t: "8", uint64_t: "8",
+  float: "4", double: "8", intptr_t: "sizeof(void *)", uintptr_t: "sizeof(void *)", size_t: "sizeof(void *)", ptrdiff_t: "sizeof(void *)",
+};
+
+function emitLayouts(model) {
+  const scalars = model.scalars.map((scalar) => {
+    const width = SCALAR_WIDTHS[scalar.base];
+    if (width === undefined) throw new Error(`${scalar.name}: the width of ${scalar.base} is not known`);
+    return `TEHREER_CHECK_SCALAR(${scalar.name}, ${scalar.base}, ${width});`;
+  });
+  const blocks = model.layouts.map((layout) => {
+    const mirror = `${layout.name}Layout`;
+    const check = layout.kind === "struct" ? "TEHREER_CHECK_STRUCT" : "TEHREER_CHECK_UNION";
+    const memberCheck = layout.kind === "struct" ? "TEHREER_CHECK_MEMBER" : "TEHREER_CHECK_UNION_MEMBER";
+    return [
+      `${layout.kind} ${mirror} {`,
+      ...layout.members.map((member) => `    ${memberDeclaration(member)};`),
+      "};",
+      `${check}(${layout.name}, ${mirror});`,
+      ...layout.members.map((member) => `${memberCheck}(${layout.name}, ${mirror}, ${member.name});`),
+    ].join("\n");
+  });
+
+  return header(`#ifndef TEHREER_GENERATED_LAYOUTS_H
+#define TEHREER_GENERATED_LAYOUTS_H
+
+#include <cstddef>
+#include <type_traits>
+
+#include "GeneratedSupport.h"
+
+#define TEHREER_STALE " differs from the header that the bindings were generated from; run npm run generate"
+
+#define TEHREER_CHECK_UNION(Real, Mirror) \\
+    static_assert(sizeof(Real) == sizeof(Mirror), #Real ": the size" TEHREER_STALE); \\
+    static_assert(alignof(Real) == alignof(Mirror), #Real ": the alignment" TEHREER_STALE)
+
+// A scalar typedef must stay the type that the header names and have the width its members were
+// laid out with.
+#define TEHREER_CHECK_SCALAR(Real, Base, Width) \\
+    static_assert(std::is_same<Real, Base>::value, #Real ": the type" TEHREER_STALE); \\
+    static_assert(sizeof(Real) == (Width), #Real ": the width" TEHREER_STALE)
+
+// offsetof is only defined for a standard-layout type.
+#define TEHREER_CHECK_STRUCT(Real, Mirror) \\
+    TEHREER_CHECK_UNION(Real, Mirror); \\
+    static_assert(std::is_standard_layout<Real>::value, #Real ": must stay a standard-layout struct")
+
+#define TEHREER_CHECK_UNION_MEMBER(Real, Mirror, member) \\
+    static_assert(std::is_same<decltype(Real::member), decltype(Mirror::member)>::value, #Real "." #member ": the type" TEHREER_STALE)
+
+// Every member of a union is at offset zero by definition, so a union has no offset to check.
+#define TEHREER_CHECK_MEMBER(Real, Mirror, member) \\
+    TEHREER_CHECK_UNION_MEMBER(Real, Mirror, member); \\
+    static_assert(offsetof(Real, member) == offsetof(Mirror, member), #Real "." #member ": the offset" TEHREER_STALE)
+
+namespace tehreer {
+namespace generated {
+namespace layouts {
+
+${scalars.join("\n")}
+
+${blocks.join("\n\n")}
+
+} // namespace layouts
+} // namespace generated
+} // namespace tehreer
+
+#undef TEHREER_CHECK_MEMBER
+#undef TEHREER_CHECK_UNION_MEMBER
+#undef TEHREER_CHECK_STRUCT
+#undef TEHREER_CHECK_SCALAR
+#undef TEHREER_CHECK_UNION
+#undef TEHREER_STALE
 
 #endif
 `);
@@ -537,6 +703,11 @@ function emitBinding(binding) {
   if (checks.length > 0) body.push("", ...checks);
   body.push("");
   body.push(returnsValue ? `    auto result = ${call};` : `    ${call};`);
+  // A handler of a callback that Core keeps may have thrown during the call. The result of a
+  // function that creates something is released, since nothing owns it yet.
+  body.push(binding.returns.k === "ref" && binding.returns.ownership === "owned"
+    ? "    marshal::RethrowCallbackError(rt, result);"
+    : "    marshal::RethrowCallbackError(rt);");
 
   const outputValue = (output) => output.source === "collector"
     ? "collector.Finish()"
@@ -580,6 +751,7 @@ function emitBinding(binding) {
   const needsArgs = usesArgs || binding.returns.k === "pointerView";
   const code = `jsi::Value Bind${binding.name}(jsi::Runtime &rt, const jsi::Value &, ${needsArgs ? "const jsi::Value *args, size_t count" : "const jsi::Value *, size_t"}) {
     [[maybe_unused]] constexpr const char *kFunction = "${binding.name}";
+    marshal::BeginCall();
 ${body.join("\n")}
 }`;
 
@@ -625,6 +797,7 @@ export function emitCpp(model, options) {
   files.set("GeneratedSupport.h", emitSupport(model, options));
   files.set("Handles.h", emitHandles(model));
   files.set("Structs.h", emitStructs(model));
+  files.set("Layouts.h", emitLayouts(model));
 
   const byFile = new Map();
   for (const binding of model.bindings) {

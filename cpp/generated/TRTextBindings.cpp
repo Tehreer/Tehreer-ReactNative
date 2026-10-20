@@ -30,6 +30,7 @@ namespace {
 
 jsi::Value BindTRTextCreate(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRTextCreate";
+    marshal::BeginCall();
     TRUInteger a_length = marshal::ToIndex(rt, marshal::ArgAt(args, count, 1), kFunction, "length");
     TRStringEncoding a_encoding = marshal::ToNumber<TRStringEncoding>(rt, marshal::ArgAt(args, count, 2), kFunction, "encoding");
     marshal::ConstBuffer a_string = marshal::ToConstBuffer(rt, marshal::ArgAt(args, count, 0), kFunction, "string", true);
@@ -39,43 +40,53 @@ jsi::Value BindTRTextCreate(jsi::Runtime &rt, const jsi::Value &, const jsi::Val
     }
 
     auto result = TRTextCreate(a_string.data, a_length, a_encoding);
+    marshal::RethrowCallbackError(rt, result);
     return marshal::FromHandle<TRTextRef>(rt, result, marshal::Ownership::Adopt);
 }
 
 jsi::Value BindTRTextCreateCopy(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRTextCreateCopy";
+    marshal::BeginCall();
     TRTextRef a_text = marshal::ToHandle<TRTextRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "text", false);
 
     auto result = TRTextCreateCopy(a_text);
+    marshal::RethrowCallbackError(rt, result);
     return marshal::FromHandle<TRTextRef>(rt, result, marshal::Ownership::Adopt);
 }
 
 jsi::Value BindTRTextCreateMutableCopy(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRTextCreateMutableCopy";
+    marshal::BeginCall();
     TRTextRef a_text = marshal::ToHandle<TRTextRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "text", false);
 
     auto result = TRTextCreateMutableCopy(a_text);
+    marshal::RethrowCallbackError(rt, result);
     return marshal::FromHandle<TRMutableTextRef>(rt, result, marshal::Ownership::Adopt);
 }
 
 jsi::Value BindTRTextGetEncoding(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRTextGetEncoding";
+    marshal::BeginCall();
     TRTextRef a_text = marshal::ToHandle<TRTextRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "text", false);
 
     auto result = TRTextGetEncoding(a_text);
+    marshal::RethrowCallbackError(rt);
     return marshal::FromNumber<TRStringEncoding>(rt, result);
 }
 
 jsi::Value BindTRTextGetLength(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRTextGetLength";
+    marshal::BeginCall();
     TRTextRef a_text = marshal::ToHandle<TRTextRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "text", false);
 
     auto result = TRTextGetLength(a_text);
+    marshal::RethrowCallbackError(rt);
     return marshal::FromIndex(rt, result);
 }
 
 jsi::Value BindTRTextGetCodeUnits(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRTextGetCodeUnits";
+    marshal::BeginCall();
     TRUInteger a_index = marshal::ToIndex(rt, marshal::ArgAt(args, count, 1), kFunction, "index");
     TRUInteger a_length = marshal::ToIndex(rt, marshal::ArgAt(args, count, 2), kFunction, "length");
     TRTextRef a_text = marshal::ToHandle<TRTextRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "text", false);
@@ -86,16 +97,19 @@ jsi::Value BindTRTextGetCodeUnits(jsi::Runtime &rt, const jsi::Value &, const js
     }
 
     auto result = TRTextGetCodeUnits(a_text, a_index, a_length, a_buffer.data);
+    marshal::RethrowCallbackError(rt);
     return marshal::FromBoolean(result != 0);
 }
 
 jsi::Value BindTRTextCopyAttributes(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRTextCopyAttributes";
+    marshal::BeginCall();
     TRUInteger a_index = marshal::ToIndex(rt, marshal::ArgAt(args, count, 1), kFunction, "index");
     TRUInteger o_outLength = 0;
     TRTextRef a_text = marshal::ToHandle<TRTextRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "text", false);
 
     auto result = TRTextCopyAttributes(a_text, a_index, &o_outLength);
+    marshal::RethrowCallbackError(rt, result);
     jsi::Object object(rt);
     object.setProperty(rt, "result", marshal::FromHandle<TRAttributeListRef>(rt, result, marshal::Ownership::Adopt));
     object.setProperty(rt, "outLength", marshal::FromIndex(rt, o_outLength));
@@ -104,38 +118,47 @@ jsi::Value BindTRTextCopyAttributes(jsi::Runtime &rt, const jsi::Value &, const 
 
 jsi::Value BindTRTextRetain(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRTextRetain";
+    marshal::BeginCall();
     TRTextRef a_text = marshal::ToHandle<TRTextRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "text", false);
 
     auto result = TRTextRetain(a_text);
+    marshal::RethrowCallbackError(rt, result);
     return marshal::FromHandle<TRTextRef>(rt, result, marshal::Ownership::Adopt);
 }
 
 jsi::Value BindTRTextCreateMutable(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRTextCreateMutable";
+    marshal::BeginCall();
     TRStringEncoding a_encoding = marshal::ToNumber<TRStringEncoding>(rt, marshal::ArgAt(args, count, 0), kFunction, "encoding");
 
     auto result = TRTextCreateMutable(a_encoding);
+    marshal::RethrowCallbackError(rt, result);
     return marshal::FromHandle<TRMutableTextRef>(rt, result, marshal::Ownership::Adopt);
 }
 
 jsi::Value BindTRTextBeginEditing(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRTextBeginEditing";
+    marshal::BeginCall();
     TRMutableTextRef a_text = marshal::ToHandle<TRMutableTextRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "text", false);
 
     TRTextBeginEditing(a_text);
+    marshal::RethrowCallbackError(rt);
     return jsi::Value::undefined();
 }
 
 jsi::Value BindTRTextEndEditing(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRTextEndEditing";
+    marshal::BeginCall();
     TRMutableTextRef a_text = marshal::ToHandle<TRMutableTextRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "text", false);
 
     TRTextEndEditing(a_text);
+    marshal::RethrowCallbackError(rt);
     return jsi::Value::undefined();
 }
 
 jsi::Value BindTRTextAppendCodeUnits(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRTextAppendCodeUnits";
+    marshal::BeginCall();
     TRUInteger a_codeUnitCount = marshal::ToIndex(rt, marshal::ArgAt(args, count, 2), kFunction, "codeUnitCount");
     TRMutableTextRef a_text = marshal::ToHandle<TRMutableTextRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "text", false);
     marshal::ConstBuffer a_codeUnitBuffer = marshal::ToConstBuffer(rt, marshal::ArgAt(args, count, 1), kFunction, "codeUnitBuffer", true);
@@ -145,11 +168,13 @@ jsi::Value BindTRTextAppendCodeUnits(jsi::Runtime &rt, const jsi::Value &, const
     }
 
     auto result = TRTextAppendCodeUnits(a_text, a_codeUnitBuffer.data, a_codeUnitCount);
+    marshal::RethrowCallbackError(rt);
     return marshal::FromBoolean(result != 0);
 }
 
 jsi::Value BindTRTextInsertCodeUnits(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRTextInsertCodeUnits";
+    marshal::BeginCall();
     TRUInteger a_index = marshal::ToIndex(rt, marshal::ArgAt(args, count, 1), kFunction, "index");
     TRUInteger a_codeUnitCount = marshal::ToIndex(rt, marshal::ArgAt(args, count, 3), kFunction, "codeUnitCount");
     TRMutableTextRef a_text = marshal::ToHandle<TRMutableTextRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "text", false);
@@ -160,21 +185,25 @@ jsi::Value BindTRTextInsertCodeUnits(jsi::Runtime &rt, const jsi::Value &, const
     }
 
     auto result = TRTextInsertCodeUnits(a_text, a_index, a_codeUnitBuffer.data, a_codeUnitCount);
+    marshal::RethrowCallbackError(rt);
     return marshal::FromBoolean(result != 0);
 }
 
 jsi::Value BindTRTextDeleteCodeUnits(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRTextDeleteCodeUnits";
+    marshal::BeginCall();
     TRUInteger a_index = marshal::ToIndex(rt, marshal::ArgAt(args, count, 1), kFunction, "index");
     TRUInteger a_length = marshal::ToIndex(rt, marshal::ArgAt(args, count, 2), kFunction, "length");
     TRMutableTextRef a_text = marshal::ToHandle<TRMutableTextRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "text", false);
 
     auto result = TRTextDeleteCodeUnits(a_text, a_index, a_length);
+    marshal::RethrowCallbackError(rt);
     return marshal::FromBoolean(result != 0);
 }
 
 jsi::Value BindTRTextSetCodeUnits(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRTextSetCodeUnits";
+    marshal::BeginCall();
     TRUInteger a_codeUnitCount = marshal::ToIndex(rt, marshal::ArgAt(args, count, 2), kFunction, "codeUnitCount");
     TRMutableTextRef a_text = marshal::ToHandle<TRMutableTextRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "text", false);
     marshal::ConstBuffer a_codeUnitBuffer = marshal::ToConstBuffer(rt, marshal::ArgAt(args, count, 1), kFunction, "codeUnitBuffer", true);
@@ -184,11 +213,13 @@ jsi::Value BindTRTextSetCodeUnits(jsi::Runtime &rt, const jsi::Value &, const js
     }
 
     auto result = TRTextSetCodeUnits(a_text, a_codeUnitBuffer.data, a_codeUnitCount);
+    marshal::RethrowCallbackError(rt);
     return marshal::FromBoolean(result != 0);
 }
 
 jsi::Value BindTRTextReplaceCodeUnits(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRTextReplaceCodeUnits";
+    marshal::BeginCall();
     TRUInteger a_index = marshal::ToIndex(rt, marshal::ArgAt(args, count, 1), kFunction, "index");
     TRUInteger a_length = marshal::ToIndex(rt, marshal::ArgAt(args, count, 2), kFunction, "length");
     TRUInteger a_codeUnitCount = marshal::ToIndex(rt, marshal::ArgAt(args, count, 4), kFunction, "codeUnitCount");
@@ -200,17 +231,20 @@ jsi::Value BindTRTextReplaceCodeUnits(jsi::Runtime &rt, const jsi::Value &, cons
     }
 
     auto result = TRTextReplaceCodeUnits(a_text, a_index, a_length, a_codeUnitBuffer.data, a_codeUnitCount);
+    marshal::RethrowCallbackError(rt);
     return marshal::FromBoolean(result != 0);
 }
 
 jsi::Value BindTRTextRemoveAttribute(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRTextRemoveAttribute";
+    marshal::BeginCall();
     TRUInteger a_index = marshal::ToIndex(rt, marshal::ArgAt(args, count, 1), kFunction, "index");
     TRUInteger a_length = marshal::ToIndex(rt, marshal::ArgAt(args, count, 2), kFunction, "length");
     TRAttributeType a_attributeType = marshal::ToNumber<TRAttributeType>(rt, marshal::ArgAt(args, count, 3), kFunction, "attributeType");
     TRMutableTextRef a_text = marshal::ToHandle<TRMutableTextRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "text", false);
 
     auto result = TRTextRemoveAttribute(a_text, a_index, a_length, a_attributeType);
+    marshal::RethrowCallbackError(rt);
     return marshal::FromBoolean(result != 0);
 }
 

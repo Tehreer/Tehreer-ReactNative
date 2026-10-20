@@ -46,6 +46,35 @@ export const BOUNDS = {
   },
 };
 
+/**
+ * The number of elements behind each getter that returns a pointer into Core memory. The binding
+ * records it in the `PointerView`, so the runtime can refuse a count that is larger than what Core
+ * has, whatever JavaScript asks for. `{name}` stands for a parameter; the expression is evaluated
+ * after the getter returned. A getter that is not listed stops the generator, so a new one cannot
+ * be added without saying how long its array is.
+ */
+export const POINTER_COUNTS = {
+  TRAttributeListGetItem: "1",
+  TRFontFeaturesGetItemsPtr: "TRFontFeaturesGetCount({features})",
+  TRGlyphImageGetPixelsPtr: "TRGlyphImageGetByteCount({image})",
+  TRGlyphRunGetGlyphIDsPtr: "TRGlyphRunGetGlyphCount({run})",
+  TRGlyphRunGetGlyphOffsetsPtr: "TRGlyphRunGetGlyphCount({run})",
+  TRGlyphRunGetGlyphAdvancesPtr: "TRGlyphRunGetGlyphCount({run})",
+  TRGlyphRunGetClusterMapPtr: "TRGlyphRunGetClusterMapCount({run})",
+  TRShapingEngineGetOpenTypeFeaturesPtr: "TRShapingEngineGetOpenTypeFeatureCount({engine})",
+  TRShapingResultGetGlyphIDsPtr: "TRShapingResultGetGlyphCount({result})",
+  TRShapingResultGetGlyphOffsetsPtr: "TRShapingResultGetGlyphCount({result})",
+  TRShapingResultGetGlyphAdvancesPtr: "TRShapingResultGetGlyphCount({result})",
+  TRShapingResultGetClusterMapPtr: "TRShapingResultGetCodeUnitCount({result})",
+  TRTypefaceGetVariationAxesPtr: "TRTypefaceGetVariationAxisCount({typeface})",
+  TRTypefaceGetNamedStylesPtr: "TRTypefaceGetNamedStyleCount({typeface})",
+  TRTypefaceGetPaletteEntriesPtr: "TRTypefaceGetPaletteEntryCount({typeface})",
+  TRTypefaceGetPredefinedPalettesPtr: "TRTypefaceGetPredefinedPaletteCount({typeface})",
+  TRTypefaceGetBitmapStrikesPtr: "TRTypefaceGetBitmapStrikeCount({typeface})",
+  TRTypefaceGetVariationCoordinatesPtr: "TRTypefaceGetVariationAxisCount({typeface})",
+  TRTypefaceGetAssociatedColorsPtr: "TRTypefaceGetPaletteEntryCount({typeface})",
+};
+
 /** Headers that need another library's headers just to be included. */
 export const SKIP_INCLUDES = ["TRSheenBidi.h"];
 

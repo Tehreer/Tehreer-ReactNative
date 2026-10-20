@@ -1,14 +1,21 @@
 #include "TehreerBindings.h"
 
 #include "../generated/Bindings.h"
+#include "CallbackBindings.h"
 #include "Errors.h"
 #include "HandleObject.h"
+#include "HandlerTable.h"
+#include "PointerBuffers.h"
+#include "StructCodecs.h"
 
 #include <Tehreer/Tehreer.h>
 
 #include <atomic>
+#include <cstddef>
 #include <cstring>
 #include <memory>
+#include <string>
+#include <vector>
 
 #ifndef NDEBUG
 #include <jsi/instrumentation.h>
@@ -55,7 +62,20 @@ std::shared_ptr<HandleObject> RequireHandle(jsi::Runtime &runtime, const jsi::Va
 // JavaScript to give the reference back early. It is idempotent.
 jsi::Value DisposeHandle(jsi::Runtime &runtime, const jsi::Value &, const jsi::Value *args, size_t count) {
     RequireHandle(runtime, args, count, 0, "disposeHandle", "handle")->Dispose();
+    // The last release of a replacement ends its handler, which the table only queues (it can be
+    // called from any thread); this is the JS thread, so the handler is destroyed here.
+    runtime::HandlerTable::Shared().Drain(runtime);
     return jsi::Value::undefined();
+}
+
+// Whether Core lets the object change after it is made. What a mutable object owns can be freed by
+// a setter while the object lives, so a list over it must ask Core again on every read.
+jsi::Value IsHandleMutable(jsi::Runtime &runtime, const jsi::Value &, const jsi::Value *args, size_t count) {
+    auto handle = RequireHandle(runtime, args, count, 0, "isHandleMutable", "handle");
+    if (handle->isDisposed()) {
+        marshal::Fail(runtime, "isHandleMutable", "handle", "is already disposed");
+    }
+    return jsi::Value(handle->isMutable());
 }
 
 jsi::Value IsHandleDisposed(jsi::Runtime &runtime, const jsi::Value &, const jsi::Value *args, size_t count) {
@@ -109,6 +129,39 @@ jsi::Value CreateProbe(jsi::Runtime &runtime, const jsi::Value &, const jsi::Val
 jsi::Value GetProbeReleaseCount(jsi::Runtime &runtime, const jsi::Value &, const jsi::Value *args, size_t count) {
     size_t kind = ProbeKind(runtime, args, count, "testGetProbeReleaseCount");
     return jsi::Value(static_cast<double>(gProbeReleases[kind].load()));
+}
+
+// Converts a JavaScript object to the C struct of the given name and back, so that a test sees
+// exactly what Core would be given and what native code would read. The memory is aligned for any
+// struct, and the value in it is the one the C struct holds, not a copy of the JavaScript object.
+jsi::Value RoundTripStruct(jsi::Runtime &runtime, const jsi::Value &, const jsi::Value *args, size_t count) {
+    const jsi::Value &nameValue = marshal::ArgAt(args, count, 0);
+    if (!nameValue.isString()) {
+        marshal::Fail(runtime, "testRoundTripStruct", "name", "must be a string");
+    }
+    std::string name = nameValue.getString(runtime).utf8(runtime);
+
+    const generated::StructCodec *codec = FindStructCodec(name);
+    if (codec == nullptr) {
+        runtime::FailRange(runtime, "testRoundTripStruct", "name", "is not a struct that JavaScript converts");
+    }
+
+    alignas(std::max_align_t) unsigned char storage[64];
+    if (codec->size > sizeof(storage)) {
+        marshal::Fail(runtime, "testRoundTripStruct", "name", "is bigger than the test buffer");
+    }
+
+    codec->fromJs(runtime, marshal::ArgAt(args, count, 1), "testRoundTripStruct", "value", storage);
+    return codec->toJs(runtime, storage);
+}
+
+jsi::Value GetStructNames(jsi::Runtime &runtime, const jsi::Value &, const jsi::Value *, size_t) {
+    std::vector<std::string> names = StructCodecNames();
+    jsi::Array array(runtime, names.size());
+    for (size_t index = 0; index < names.size(); index++) {
+        array.setValueAtIndex(runtime, index, jsi::String::createFromUtf8(runtime, names[index]));
+    }
+    return jsi::Value(runtime, array);
 }
 
 // Hermes runs the finalizers of host objects during a collection; JSI offers no other way to
@@ -167,16 +220,28 @@ void InstallBindings(jsi::Runtime &runtime) {
 
     jsi::Object bindings(runtime);
     generated::InstallBindings(runtime, bindings);
+    InstallCallbackBindings(runtime, bindings);
+    InstallPointerBindings(runtime, bindings);
+
+    // Its destructor ends the handlers of this runtime when the engine shuts down (see HandlerTable).
+    // The bindings are frozen and read-only on global, so it stays reachable until then.
+    bindings.setProperty(runtime, "lifetime", jsi::Object::createFromHostObject(
+        runtime, runtime::HandlerTable::Shared().Attach(runtime)));
 
     Define(runtime, bindings, "getVersion", 0, GetVersion);
     Define(runtime, bindings, "smokeTest", 0, SmokeTest);
     Define(runtime, bindings, "disposeHandle", 1, DisposeHandle);
     Define(runtime, bindings, "isHandleDisposed", 1, IsHandleDisposed);
+    Define(runtime, bindings, "isHandleMutable", 1, IsHandleMutable);
     Define(runtime, bindings, "handleEquals", 2, HandleEquals);
 #ifndef NDEBUG
     Define(runtime, bindings, "testCreateProbe", 0, CreateProbe);
     Define(runtime, bindings, "testGetProbeReleaseCount", 0, GetProbeReleaseCount);
     Define(runtime, bindings, "testCollectGarbage", 0, CollectGarbage);
+    Define(runtime, bindings, "testRoundTripStruct", 2, RoundTripStruct);
+    Define(runtime, bindings, "testGetStructNames", 0, GetStructNames);
+    InstallCallbackTestHooks(runtime, bindings);
+    InstallPointerTestHooks(runtime, bindings);
 #endif
 
     jsi::Object objectConstructor = global.getPropertyAsObject(runtime, "Object");

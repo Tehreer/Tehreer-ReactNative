@@ -30,45 +30,55 @@ namespace {
 
 jsi::Value BindTRFontFileCreateFromPath(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRFontFileCreateFromPath";
+    marshal::BeginCall();
     marshal::CStringArg a_path = marshal::ToCString(rt, marshal::ArgAt(args, count, 0), kFunction, "path", false);
 
     auto result = TRFontFileCreateFromPath(a_path.get());
+    marshal::RethrowCallbackError(rt, result);
     return marshal::FromHandle<TRFontFileRef>(rt, result, marshal::Ownership::Adopt);
 }
 
 jsi::Value BindTRFontFileCreateFromMemory(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRFontFileCreateFromMemory";
+    marshal::BeginCall();
     TRUInteger a_size = marshal::ToIndex(rt, marshal::ArgAt(args, count, 1), kFunction, "size");
     marshal::ConstBuffer a_memory = marshal::ToConstBuffer(rt, marshal::ArgAt(args, count, 0), kFunction, "memory", false);
 
     marshal::RequireCapacity(rt, kFunction, "memory", static_cast<size_t>(a_size), 1, a_memory.byteLength);
 
     auto result = TRFontFileCreateFromMemory(a_memory.data, a_size);
+    marshal::RethrowCallbackError(rt, result);
     return marshal::FromHandle<TRFontFileRef>(rt, result, marshal::Ownership::Adopt);
 }
 
 jsi::Value BindTRFontFileGetTypefaceCount(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRFontFileGetTypefaceCount";
+    marshal::BeginCall();
     TRFontFileRef a_fontFile = marshal::ToHandle<TRFontFileRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "fontFile", false);
 
     auto result = TRFontFileGetTypefaceCount(a_fontFile);
+    marshal::RethrowCallbackError(rt);
     return marshal::FromIndex(rt, result);
 }
 
 jsi::Value BindTRFontFileGetTypeface(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRFontFileGetTypeface";
+    marshal::BeginCall();
     TRUInteger a_index = marshal::ToIndex(rt, marshal::ArgAt(args, count, 1), kFunction, "index");
     TRFontFileRef a_fontFile = marshal::ToHandle<TRFontFileRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "fontFile", false);
 
     auto result = TRFontFileGetTypeface(a_fontFile, a_index);
+    marshal::RethrowCallbackError(rt);
     return marshal::FromHandle<TRTypefaceRef>(rt, result, marshal::Ownership::Retain);
 }
 
 jsi::Value BindTRFontFileRetain(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRFontFileRetain";
+    marshal::BeginCall();
     TRFontFileRef a_fontFile = marshal::ToHandle<TRFontFileRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "fontFile", false);
 
     auto result = TRFontFileRetain(a_fontFile);
+    marshal::RethrowCallbackError(rt, result);
     return marshal::FromHandle<TRFontFileRef>(rt, result, marshal::Ownership::Adopt);
 }
 

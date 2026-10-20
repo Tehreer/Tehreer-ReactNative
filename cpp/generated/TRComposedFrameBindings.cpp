@@ -47,79 +47,97 @@ void CollectTRComposedFrameEnumerateSelection_func(void *userData, TRRect rect, 
 
 jsi::Value BindTRComposedFrameGetStartIndex(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRComposedFrameGetStartIndex";
+    marshal::BeginCall();
     TRComposedFrameRef a_frame = marshal::ToHandle<TRComposedFrameRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "frame", false);
 
     auto result = TRComposedFrameGetStartIndex(a_frame);
+    marshal::RethrowCallbackError(rt);
     return marshal::FromIndex(rt, result);
 }
 
 jsi::Value BindTRComposedFrameGetEndIndex(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRComposedFrameGetEndIndex";
+    marshal::BeginCall();
     TRComposedFrameRef a_frame = marshal::ToHandle<TRComposedFrameRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "frame", false);
 
     auto result = TRComposedFrameGetEndIndex(a_frame);
+    marshal::RethrowCallbackError(rt);
     return marshal::FromIndex(rt, result);
 }
 
 jsi::Value BindTRComposedFrameGetWidth(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRComposedFrameGetWidth";
+    marshal::BeginCall();
     TRComposedFrameRef a_frame = marshal::ToHandle<TRComposedFrameRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "frame", false);
 
     auto result = TRComposedFrameGetWidth(a_frame);
+    marshal::RethrowCallbackError(rt);
     return marshal::FromNumber<TRFloat>(rt, result);
 }
 
 jsi::Value BindTRComposedFrameGetHeight(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRComposedFrameGetHeight";
+    marshal::BeginCall();
     TRComposedFrameRef a_frame = marshal::ToHandle<TRComposedFrameRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "frame", false);
 
     auto result = TRComposedFrameGetHeight(a_frame);
+    marshal::RethrowCallbackError(rt);
     return marshal::FromNumber<TRFloat>(rt, result);
 }
 
 jsi::Value BindTRComposedFrameGetLineCount(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRComposedFrameGetLineCount";
+    marshal::BeginCall();
     TRComposedFrameRef a_frame = marshal::ToHandle<TRComposedFrameRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "frame", false);
 
     auto result = TRComposedFrameGetLineCount(a_frame);
+    marshal::RethrowCallbackError(rt);
     return marshal::FromIndex(rt, result);
 }
 
 jsi::Value BindTRComposedFrameGetLine(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRComposedFrameGetLine";
+    marshal::BeginCall();
     TRUInteger a_index = marshal::ToIndex(rt, marshal::ArgAt(args, count, 1), kFunction, "index");
     TRComposedFrameRef a_frame = marshal::ToHandle<TRComposedFrameRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "frame", false);
 
     auto result = TRComposedFrameGetLine(a_frame, a_index);
+    marshal::RethrowCallbackError(rt);
     return marshal::FromHandle<TRComposedLineRef>(rt, result, marshal::Ownership::Retain);
 }
 
 jsi::Value BindTRComposedFrameGetLineIndexForCodeUnit(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRComposedFrameGetLineIndexForCodeUnit";
+    marshal::BeginCall();
     TRUInteger a_codeUnitIndex = marshal::ToIndex(rt, marshal::ArgAt(args, count, 1), kFunction, "codeUnitIndex");
     TRComposedFrameRef a_frame = marshal::ToHandle<TRComposedFrameRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "frame", false);
 
     auto result = TRComposedFrameGetLineIndexForCodeUnit(a_frame, a_codeUnitIndex);
+    marshal::RethrowCallbackError(rt);
     return marshal::FromIndex(rt, result);
 }
 
 jsi::Value BindTRComposedFrameGetLineIndexAtPosition(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRComposedFrameGetLineIndexAtPosition";
+    marshal::BeginCall();
     TRPoint a_position = TRPointFromJs(rt, marshal::ArgAt(args, count, 1), kFunction, "position");
     TRComposedFrameRef a_frame = marshal::ToHandle<TRComposedFrameRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "frame", false);
 
     auto result = TRComposedFrameGetLineIndexAtPosition(a_frame, a_position);
+    marshal::RethrowCallbackError(rt);
     return marshal::FromIndex(rt, result);
 }
 
 jsi::Value BindTRComposedFrameEnumerateSelection(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRComposedFrameEnumerateSelection";
+    marshal::BeginCall();
     TRUInteger a_index = marshal::ToIndex(rt, marshal::ArgAt(args, count, 1), kFunction, "index");
     TRUInteger a_length = marshal::ToIndex(rt, marshal::ArgAt(args, count, 2), kFunction, "length");
     marshal::Collector collector(rt);
     TRComposedFrameRef a_frame = marshal::ToHandle<TRComposedFrameRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "frame", false);
 
     auto result = TRComposedFrameEnumerateSelection(a_frame, a_index, a_length, CollectTRComposedFrameEnumerateSelection_func, &collector);
+    marshal::RethrowCallbackError(rt);
     jsi::Value items = collector.Finish();
     if (result == TRFalse) {
         return jsi::Value::undefined();
@@ -129,19 +147,23 @@ jsi::Value BindTRComposedFrameEnumerateSelection(jsi::Runtime &rt, const jsi::Va
 
 jsi::Value BindTRComposedFrameDraw(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRComposedFrameDraw";
+    marshal::BeginCall();
     TRPoint a_origin = TRPointFromJs(rt, marshal::ArgAt(args, count, 2), kFunction, "origin");
     TRComposedFrameRef a_frame = marshal::ToHandle<TRComposedFrameRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "frame", false);
     TRRendererRef a_renderer = marshal::ToHandle<TRRendererRef>(rt, marshal::ArgAt(args, count, 1), kFunction, "renderer", true);
 
     TRComposedFrameDraw(a_frame, a_renderer, a_origin);
+    marshal::RethrowCallbackError(rt);
     return jsi::Value::undefined();
 }
 
 jsi::Value BindTRComposedFrameRetain(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRComposedFrameRetain";
+    marshal::BeginCall();
     TRComposedFrameRef a_frame = marshal::ToHandle<TRComposedFrameRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "frame", false);
 
     auto result = TRComposedFrameRetain(a_frame);
+    marshal::RethrowCallbackError(rt, result);
     return marshal::FromHandle<TRComposedFrameRef>(rt, result, marshal::Ownership::Adopt);
 }
 

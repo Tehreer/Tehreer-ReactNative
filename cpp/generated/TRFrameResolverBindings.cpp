@@ -30,264 +30,326 @@ namespace {
 
 jsi::Value BindTRFrameResolverCreate(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *, size_t) {
     [[maybe_unused]] constexpr const char *kFunction = "TRFrameResolverCreate";
+    marshal::BeginCall();
 
     auto result = TRFrameResolverCreate();
+    marshal::RethrowCallbackError(rt, result);
     return marshal::FromHandle<TRFrameResolverRef>(rt, result, marshal::Ownership::Adopt);
 }
 
 jsi::Value BindTRFrameResolverGetTypesetter(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRFrameResolverGetTypesetter";
+    marshal::BeginCall();
     TRFrameResolverRef a_resolver = marshal::ToHandle<TRFrameResolverRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "resolver", false);
 
     auto result = TRFrameResolverGetTypesetter(a_resolver);
+    marshal::RethrowCallbackError(rt);
     return marshal::FromHandle<TRTypesetterRef>(rt, result, marshal::Ownership::Retain);
 }
 
 jsi::Value BindTRFrameResolverSetTypesetter(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRFrameResolverSetTypesetter";
+    marshal::BeginCall();
     TRFrameResolverRef a_resolver = marshal::ToHandle<TRFrameResolverRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "resolver", false);
     TRTypesetterRef a_typesetter = marshal::ToHandle<TRTypesetterRef>(rt, marshal::ArgAt(args, count, 1), kFunction, "typesetter", true);
 
     TRFrameResolverSetTypesetter(a_resolver, a_typesetter);
+    marshal::RethrowCallbackError(rt);
     return jsi::Value::undefined();
 }
 
 jsi::Value BindTRFrameResolverGetFrameSize(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRFrameResolverGetFrameSize";
+    marshal::BeginCall();
     TRFrameResolverRef a_resolver = marshal::ToHandle<TRFrameResolverRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "resolver", false);
 
     auto result = TRFrameResolverGetFrameSize(a_resolver);
+    marshal::RethrowCallbackError(rt);
     return TRSizeToJs(rt, result);
 }
 
 jsi::Value BindTRFrameResolverSetFrameSize(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRFrameResolverSetFrameSize";
+    marshal::BeginCall();
     TRSize a_size = TRSizeFromJs(rt, marshal::ArgAt(args, count, 1), kFunction, "size");
     TRFrameResolverRef a_resolver = marshal::ToHandle<TRFrameResolverRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "resolver", false);
 
     TRFrameResolverSetFrameSize(a_resolver, a_size);
+    marshal::RethrowCallbackError(rt);
     return jsi::Value::undefined();
 }
 
 jsi::Value BindTRFrameResolverGetFitsHorizontally(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRFrameResolverGetFitsHorizontally";
+    marshal::BeginCall();
     TRFrameResolverRef a_resolver = marshal::ToHandle<TRFrameResolverRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "resolver", false);
 
     auto result = TRFrameResolverGetFitsHorizontally(a_resolver);
+    marshal::RethrowCallbackError(rt);
     return marshal::FromBoolean(result != 0);
 }
 
 jsi::Value BindTRFrameResolverSetFitsHorizontally(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRFrameResolverSetFitsHorizontally";
+    marshal::BeginCall();
     TRBoolean a_fits = (marshal::ToBoolean(rt, marshal::ArgAt(args, count, 1), kFunction, "fits") ? TRTrue : TRFalse);
     TRFrameResolverRef a_resolver = marshal::ToHandle<TRFrameResolverRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "resolver", false);
 
     TRFrameResolverSetFitsHorizontally(a_resolver, a_fits);
+    marshal::RethrowCallbackError(rt);
     return jsi::Value::undefined();
 }
 
 jsi::Value BindTRFrameResolverGetFitsVertically(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRFrameResolverGetFitsVertically";
+    marshal::BeginCall();
     TRFrameResolverRef a_resolver = marshal::ToHandle<TRFrameResolverRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "resolver", false);
 
     auto result = TRFrameResolverGetFitsVertically(a_resolver);
+    marshal::RethrowCallbackError(rt);
     return marshal::FromBoolean(result != 0);
 }
 
 jsi::Value BindTRFrameResolverSetFitsVertically(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRFrameResolverSetFitsVertically";
+    marshal::BeginCall();
     TRBoolean a_fits = (marshal::ToBoolean(rt, marshal::ArgAt(args, count, 1), kFunction, "fits") ? TRTrue : TRFalse);
     TRFrameResolverRef a_resolver = marshal::ToHandle<TRFrameResolverRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "resolver", false);
 
     TRFrameResolverSetFitsVertically(a_resolver, a_fits);
+    marshal::RethrowCallbackError(rt);
     return jsi::Value::undefined();
 }
 
 jsi::Value BindTRFrameResolverGetTextAlignment(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRFrameResolverGetTextAlignment";
+    marshal::BeginCall();
     TRFrameResolverRef a_resolver = marshal::ToHandle<TRFrameResolverRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "resolver", false);
 
     auto result = TRFrameResolverGetTextAlignment(a_resolver);
+    marshal::RethrowCallbackError(rt);
     return marshal::FromNumber<TRTextAlignment>(rt, result);
 }
 
 jsi::Value BindTRFrameResolverSetTextAlignment(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRFrameResolverSetTextAlignment";
+    marshal::BeginCall();
     TRTextAlignment a_alignment = marshal::ToNumber<TRTextAlignment>(rt, marshal::ArgAt(args, count, 1), kFunction, "alignment");
     TRFrameResolverRef a_resolver = marshal::ToHandle<TRFrameResolverRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "resolver", false);
 
     TRFrameResolverSetTextAlignment(a_resolver, a_alignment);
+    marshal::RethrowCallbackError(rt);
     return jsi::Value::undefined();
 }
 
 jsi::Value BindTRFrameResolverGetVerticalAlignment(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRFrameResolverGetVerticalAlignment";
+    marshal::BeginCall();
     TRFrameResolverRef a_resolver = marshal::ToHandle<TRFrameResolverRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "resolver", false);
 
     auto result = TRFrameResolverGetVerticalAlignment(a_resolver);
+    marshal::RethrowCallbackError(rt);
     return marshal::FromNumber<TRVerticalAlignment>(rt, result);
 }
 
 jsi::Value BindTRFrameResolverSetVerticalAlignment(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRFrameResolverSetVerticalAlignment";
+    marshal::BeginCall();
     TRVerticalAlignment a_alignment = marshal::ToNumber<TRVerticalAlignment>(rt, marshal::ArgAt(args, count, 1), kFunction, "alignment");
     TRFrameResolverRef a_resolver = marshal::ToHandle<TRFrameResolverRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "resolver", false);
 
     TRFrameResolverSetVerticalAlignment(a_resolver, a_alignment);
+    marshal::RethrowCallbackError(rt);
     return jsi::Value::undefined();
 }
 
 jsi::Value BindTRFrameResolverGetTruncationMode(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRFrameResolverGetTruncationMode";
+    marshal::BeginCall();
     TRFrameResolverRef a_resolver = marshal::ToHandle<TRFrameResolverRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "resolver", false);
 
     auto result = TRFrameResolverGetTruncationMode(a_resolver);
+    marshal::RethrowCallbackError(rt);
     return marshal::FromNumber<TRBreakMode>(rt, result);
 }
 
 jsi::Value BindTRFrameResolverSetTruncationMode(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRFrameResolverSetTruncationMode";
+    marshal::BeginCall();
     TRBreakMode a_mode = marshal::ToNumber<TRBreakMode>(rt, marshal::ArgAt(args, count, 1), kFunction, "mode");
     TRFrameResolverRef a_resolver = marshal::ToHandle<TRFrameResolverRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "resolver", false);
 
     TRFrameResolverSetTruncationMode(a_resolver, a_mode);
+    marshal::RethrowCallbackError(rt);
     return jsi::Value::undefined();
 }
 
 jsi::Value BindTRFrameResolverGetTruncationPlace(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRFrameResolverGetTruncationPlace";
+    marshal::BeginCall();
     TRFrameResolverRef a_resolver = marshal::ToHandle<TRFrameResolverRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "resolver", false);
 
     auto result = TRFrameResolverGetTruncationPlace(a_resolver);
+    marshal::RethrowCallbackError(rt);
     return marshal::FromNumber<TRTruncationPlace>(rt, result);
 }
 
 jsi::Value BindTRFrameResolverSetTruncationPlace(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRFrameResolverSetTruncationPlace";
+    marshal::BeginCall();
     TRTruncationPlace a_place = marshal::ToNumber<TRTruncationPlace>(rt, marshal::ArgAt(args, count, 1), kFunction, "place");
     TRFrameResolverRef a_resolver = marshal::ToHandle<TRFrameResolverRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "resolver", false);
 
     TRFrameResolverSetTruncationPlace(a_resolver, a_place);
+    marshal::RethrowCallbackError(rt);
     return jsi::Value::undefined();
 }
 
 jsi::Value BindTRFrameResolverIsTruncationEnabled(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRFrameResolverIsTruncationEnabled";
+    marshal::BeginCall();
     TRFrameResolverRef a_resolver = marshal::ToHandle<TRFrameResolverRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "resolver", false);
 
     auto result = TRFrameResolverIsTruncationEnabled(a_resolver);
+    marshal::RethrowCallbackError(rt);
     return marshal::FromBoolean(result != 0);
 }
 
 jsi::Value BindTRFrameResolverSetTruncationEnabled(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRFrameResolverSetTruncationEnabled";
+    marshal::BeginCall();
     TRBoolean a_isEnabled = (marshal::ToBoolean(rt, marshal::ArgAt(args, count, 1), kFunction, "isEnabled") ? TRTrue : TRFalse);
     TRFrameResolverRef a_resolver = marshal::ToHandle<TRFrameResolverRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "resolver", false);
 
     TRFrameResolverSetTruncationEnabled(a_resolver, a_isEnabled);
+    marshal::RethrowCallbackError(rt);
     return jsi::Value::undefined();
 }
 
 jsi::Value BindTRFrameResolverIsJustificationEnabled(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRFrameResolverIsJustificationEnabled";
+    marshal::BeginCall();
     TRFrameResolverRef a_resolver = marshal::ToHandle<TRFrameResolverRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "resolver", false);
 
     auto result = TRFrameResolverIsJustificationEnabled(a_resolver);
+    marshal::RethrowCallbackError(rt);
     return marshal::FromBoolean(result != 0);
 }
 
 jsi::Value BindTRFrameResolverSetJustificationEnabled(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRFrameResolverSetJustificationEnabled";
+    marshal::BeginCall();
     TRBoolean a_isEnabled = (marshal::ToBoolean(rt, marshal::ArgAt(args, count, 1), kFunction, "isEnabled") ? TRTrue : TRFalse);
     TRFrameResolverRef a_resolver = marshal::ToHandle<TRFrameResolverRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "resolver", false);
 
     TRFrameResolverSetJustificationEnabled(a_resolver, a_isEnabled);
+    marshal::RethrowCallbackError(rt);
     return jsi::Value::undefined();
 }
 
 jsi::Value BindTRFrameResolverGetJustificationLevel(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRFrameResolverGetJustificationLevel";
+    marshal::BeginCall();
     TRFrameResolverRef a_resolver = marshal::ToHandle<TRFrameResolverRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "resolver", false);
 
     auto result = TRFrameResolverGetJustificationLevel(a_resolver);
+    marshal::RethrowCallbackError(rt);
     return marshal::FromNumber<TRFloat>(rt, result);
 }
 
 jsi::Value BindTRFrameResolverSetJustificationLevel(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRFrameResolverSetJustificationLevel";
+    marshal::BeginCall();
     TRFloat a_level = marshal::ToNumber<TRFloat>(rt, marshal::ArgAt(args, count, 1), kFunction, "level");
     TRFrameResolverRef a_resolver = marshal::ToHandle<TRFrameResolverRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "resolver", false);
 
     TRFrameResolverSetJustificationLevel(a_resolver, a_level);
+    marshal::RethrowCallbackError(rt);
     return jsi::Value::undefined();
 }
 
 jsi::Value BindTRFrameResolverGetMaxLines(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRFrameResolverGetMaxLines";
+    marshal::BeginCall();
     TRFrameResolverRef a_resolver = marshal::ToHandle<TRFrameResolverRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "resolver", false);
 
     auto result = TRFrameResolverGetMaxLines(a_resolver);
+    marshal::RethrowCallbackError(rt);
     return marshal::FromIndex(rt, result);
 }
 
 jsi::Value BindTRFrameResolverSetMaxLines(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRFrameResolverSetMaxLines";
+    marshal::BeginCall();
     TRUInteger a_maxLines = marshal::ToIndex(rt, marshal::ArgAt(args, count, 1), kFunction, "maxLines");
     TRFrameResolverRef a_resolver = marshal::ToHandle<TRFrameResolverRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "resolver", false);
 
     TRFrameResolverSetMaxLines(a_resolver, a_maxLines);
+    marshal::RethrowCallbackError(rt);
     return jsi::Value::undefined();
 }
 
 jsi::Value BindTRFrameResolverGetExtraLineSpacing(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRFrameResolverGetExtraLineSpacing";
+    marshal::BeginCall();
     TRFrameResolverRef a_resolver = marshal::ToHandle<TRFrameResolverRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "resolver", false);
 
     auto result = TRFrameResolverGetExtraLineSpacing(a_resolver);
+    marshal::RethrowCallbackError(rt);
     return marshal::FromNumber<TRFloat>(rt, result);
 }
 
 jsi::Value BindTRFrameResolverSetExtraLineSpacing(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRFrameResolverSetExtraLineSpacing";
+    marshal::BeginCall();
     TRFloat a_spacing = marshal::ToNumber<TRFloat>(rt, marshal::ArgAt(args, count, 1), kFunction, "spacing");
     TRFrameResolverRef a_resolver = marshal::ToHandle<TRFrameResolverRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "resolver", false);
 
     TRFrameResolverSetExtraLineSpacing(a_resolver, a_spacing);
+    marshal::RethrowCallbackError(rt);
     return jsi::Value::undefined();
 }
 
 jsi::Value BindTRFrameResolverGetLineHeightMultiplier(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRFrameResolverGetLineHeightMultiplier";
+    marshal::BeginCall();
     TRFrameResolverRef a_resolver = marshal::ToHandle<TRFrameResolverRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "resolver", false);
 
     auto result = TRFrameResolverGetLineHeightMultiplier(a_resolver);
+    marshal::RethrowCallbackError(rt);
     return marshal::FromNumber<TRFloat>(rt, result);
 }
 
 jsi::Value BindTRFrameResolverSetLineHeightMultiplier(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRFrameResolverSetLineHeightMultiplier";
+    marshal::BeginCall();
     TRFloat a_multiplier = marshal::ToNumber<TRFloat>(rt, marshal::ArgAt(args, count, 1), kFunction, "multiplier");
     TRFrameResolverRef a_resolver = marshal::ToHandle<TRFrameResolverRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "resolver", false);
 
     TRFrameResolverSetLineHeightMultiplier(a_resolver, a_multiplier);
+    marshal::RethrowCallbackError(rt);
     return jsi::Value::undefined();
 }
 
 jsi::Value BindTRFrameResolverCreateFrame(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRFrameResolverCreateFrame";
+    marshal::BeginCall();
     TRUInteger a_index = marshal::ToIndex(rt, marshal::ArgAt(args, count, 1), kFunction, "index");
     TRUInteger a_length = marshal::ToIndex(rt, marshal::ArgAt(args, count, 2), kFunction, "length");
     TRFrameResolverRef a_resolver = marshal::ToHandle<TRFrameResolverRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "resolver", false);
 
     auto result = TRFrameResolverCreateFrame(a_resolver, a_index, a_length);
+    marshal::RethrowCallbackError(rt, result);
     return marshal::FromHandle<TRComposedFrameRef>(rt, result, marshal::Ownership::Adopt);
 }
 
 jsi::Value BindTRFrameResolverRetain(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRFrameResolverRetain";
+    marshal::BeginCall();
     TRFrameResolverRef a_resolver = marshal::ToHandle<TRFrameResolverRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "resolver", false);
 
     auto result = TRFrameResolverRetain(a_resolver);
+    marshal::RethrowCallbackError(rt, result);
     return marshal::FromHandle<TRFrameResolverRef>(rt, result, marshal::Ownership::Adopt);
 }
 

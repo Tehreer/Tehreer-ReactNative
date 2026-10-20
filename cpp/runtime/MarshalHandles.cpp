@@ -24,6 +24,10 @@ template <class Ref> void ReleaseRef(void *pointer) {
     HandleTraits<Ref>::Release(RefFromPointer<Ref>(pointer));
 }
 
+template <class Ref> void RetainRef(void *pointer) {
+    HandleTraits<Ref>::Retain(RefFromPointer<Ref>(pointer));
+}
+
 } // namespace
 
 template <class Ref>
@@ -70,7 +74,7 @@ jsi::Value FromHandle(jsi::Runtime &rt, Ref ref, Ownership ownership) {
     // that the object does, and its destructor releases it even if the engine fails to wrap it.
     std::shared_ptr<HandleObject> object;
     try {
-        object = std::make_shared<HandleObject>(PointerFromRef(ref), Traits::kGroup, Traits::kMutable, &ReleaseRef<Ref>);
+        object = std::make_shared<HandleObject>(PointerFromRef(ref), Traits::kGroup, Traits::kMutable, &ReleaseRef<Ref>, &RetainRef<Ref>);
     } catch (...) {
         Traits::Release(ref);
         throw;

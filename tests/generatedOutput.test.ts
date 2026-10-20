@@ -53,6 +53,23 @@ test("the bindings cover the objects, structs, out parameters and callbacks of C
   assert.ok(byName.has("TRTypefaceRetain"));
 });
 
+// A view carries the count of its array, so the runtime can refuse a read past it.
+test("every pointer that Core returns carries the count of its elements, and every scalar typedef is checked", { skip: noCore }, () => {
+  const { model, cpp } = generate(headers);
+  const views = model.bindings.filter((b) => b.returns.k === "pointerView");
+  assert.ok(views.length >= 19, `${views.length} getters`);
+
+  const text = [...cpp.values()].join("\n");
+  for (const view of views) {
+    assert.match(text, new RegExp(`Bind${view.name}\\([^]*?MakePointerView\\(rt, result, "\\w+", sizeof\\(\\w+\\), static_cast<size_t>\\(`), `${view.name}: no count`);
+  }
+
+  const layouts = cpp.get("Layouts.h") ?? "";
+  for (const typedef of ["TRUInt8", "TRUInt16", "TRUInt32", "TRInt32", "TRUInteger", "TRFloat", "TRGlyphID", "TRColor", "TRTag"]) {
+    assert.match(layouts, new RegExp(`TEHREER_CHECK_SCALAR\\(${typedef},`), typedef);
+  }
+});
+
 // Ownership comes from the name, so a new or renamed function must be looked at, not guessed.
 test("the references that Core functions return are adopted or retained as reviewed", { skip: noCore }, () => {
   const { model } = generate(headers);

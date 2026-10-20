@@ -1,6 +1,8 @@
 #include "../generated/GeneratedSupport.h"
 
 #include "Errors.h"
+#include "HandleObject.h"
+#include "PointerViews.h"
 #include "TehreerBindings.h"
 
 #include <algorithm>
@@ -312,19 +314,20 @@ jsi::Array ToArray(jsi::Runtime &rt, const jsi::Value &value, const char *functi
     Fail(rt, function, parameter, "must be an array");
 }
 
-jsi::Value MakePointerView(jsi::Runtime &rt, const void *address, const char *element, size_t elementSize, const jsi::Value &owner) {
+jsi::Value MakePointerView(jsi::Runtime &rt, const void *address, const char *element, size_t elementSize, size_t count, const jsi::Value &owner) {
     if (address == nullptr) {
         return jsi::Value::undefined();
     }
 
-    // The final shape of lists and views belongs to the lists issue. This keeps the address (exact,
-    // as a BigInt) next to the owner, so the owner stays reachable for as long as the view is.
-    jsi::Object view(rt);
-    view.setProperty(rt, "address", jsi::BigInt::fromUint64(rt, static_cast<uint64_t>(reinterpret_cast<uintptr_t>(address))));
-    view.setProperty(rt, "element", jsi::String::createFromAscii(rt, element));
-    view.setProperty(rt, "elementSize", static_cast<double>(elementSize));
-    view.setProperty(rt, "owner", jsi::Value(rt, owner));
-    return jsi::Value(std::move(view));
+    // The generated getters pass the handle they were called with, so anything else is a bug of the
+    // generator; refusing it keeps a view from ever pointing at memory with no owner to check.
+    std::shared_ptr<HandleObject> handle = AsHandleObject(rt, owner);
+    if (!handle) {
+        Fail(rt, "MakePointerView", "owner", "is not a Tehreer handle");
+    }
+
+    auto view = std::make_shared<PointerViewObject>(address, element, elementSize, count, std::move(handle));
+    return jsi::Value(jsi::Object::createFromHostObject(rt, std::move(view)));
 }
 
 jsi::Value FromToken(jsi::Runtime &rt, const void *pointer) {
@@ -335,6 +338,23 @@ jsi::Value FromToken(jsi::Runtime &rt, const void *pointer) {
         runtime::FailRange(rt, "FromToken", "token", "does not fit in a JavaScript number");
     }
     return jsi::Value(static_cast<double>(address));
+}
+
+const void *ToToken(jsi::Runtime &rt, const jsi::Value &value, const char *function, const char *parameter) {
+    if (!value.isNumber()) {
+        Fail(rt, function, parameter, "must be a number");
+    }
+
+    double number = value.getNumber();
+    if (!std::isfinite(number) || std::trunc(number) != number || number < 0) {
+        runtime::FailRange(rt, function, parameter, "must be a non-negative integer");
+    }
+    // An address that does not fit a pointer (a token above 4 GiB on a 32-bit target) would wrap
+    // into a different token.
+    if (number > kMaxSafeInteger || number > static_cast<double>(std::numeric_limits<uintptr_t>::max())) {
+        runtime::FailRange(rt, function, parameter, "is out of range");
+    }
+    return reinterpret_cast<const void *>(static_cast<uintptr_t>(number));
 }
 
 // Every type that the generated code converts. The generated code only sees the declarations, so
