@@ -35,7 +35,7 @@ const base64 =
 
 const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
 
-function decode(text: string): Uint8Array {
+export function decode(text: string): Uint8Array {
   const padding = text.endsWith('==') ? 2 : text.endsWith('=') ? 1 : 0;
   const bytes = new Uint8Array((text.length / 4) * 3 - padding);
   let out = 0;
