@@ -159,6 +159,87 @@ TRAttribute AttributeFromJs(jsi::Runtime &rt, const jsi::Value &input, const cha
 
 namespace {
 
+// The lists of a typeface are read-only: Core fills them in and JavaScript only looks at them, so
+// these codecs have no way back. Their pointers (names, coordinates, colors) belong to the typeface
+// and are copied into JavaScript values here, while the caller still holds the owner (see
+// `ReadPointerStructs`), so nothing in a result points into Core memory.
+[[noreturn]] void ReadOnly(jsi::Runtime &rt, const char *function, const std::string &parameter) {
+    marshal::Fail(rt, function, parameter.c_str(), "is a struct that Core owns and JavaScript only reads");
+}
+
+template <class T, class Convert>
+jsi::Value ArrayOf(jsi::Runtime &rt, const T *items, TRUInteger count, Convert convert) {
+    if (items == nullptr) {
+        count = 0;
+    }
+    jsi::Array array(rt, static_cast<size_t>(count));
+    for (TRUInteger index = 0; index < count; index++) {
+        array.setValueAtIndex(rt, static_cast<size_t>(index), convert(items[index]));
+    }
+    return jsi::Value(rt, array);
+}
+
+jsi::Value VariationAxisToJs(jsi::Runtime &rt, const TRVariationAxis &axis) {
+    jsi::Object object(rt);
+    object.setProperty(rt, "name", marshal::FromStringView(rt, axis.name));
+    object.setProperty(rt, "tag", marshal::FromNumber<TRTag>(rt, axis.tag));
+    object.setProperty(rt, "flags", marshal::FromNumber<TRUInt32>(rt, axis.flags));
+    object.setProperty(rt, "minValue", marshal::FromNumber<TRFloat>(rt, axis.minValue));
+    object.setProperty(rt, "maxValue", marshal::FromNumber<TRFloat>(rt, axis.maxValue));
+    object.setProperty(rt, "defaultValue", marshal::FromNumber<TRFloat>(rt, axis.defaultValue));
+    return jsi::Value(std::move(object));
+}
+
+jsi::Value NamedStyleToJs(jsi::Runtime &rt, const TRNamedStyle &style) {
+    jsi::Object object(rt);
+    object.setProperty(rt, "subfamilyName", marshal::FromStringView(rt, style.subfamilyName));
+    object.setProperty(rt, "coordinates", ArrayOf(rt, style.coordinatesPtr, style.coordinateCount,
+        [&rt](TRFloat value) { return marshal::FromNumber<TRFloat>(rt, value); }));
+    object.setProperty(rt, "postScriptName", marshal::FromStringView(rt, style.postScriptName));
+    return jsi::Value(std::move(object));
+}
+
+jsi::Value PaletteEntryToJs(jsi::Runtime &rt, const TRPaletteEntry &entry) {
+    jsi::Object object(rt);
+    object.setProperty(rt, "name", marshal::FromStringView(rt, entry.name));
+    return jsi::Value(std::move(object));
+}
+
+jsi::Value PredefinedPaletteToJs(jsi::Runtime &rt, const TRPredefinedPalette &palette) {
+    jsi::Object object(rt);
+    object.setProperty(rt, "name", marshal::FromStringView(rt, palette.name));
+    object.setProperty(rt, "colors", ArrayOf(rt, palette.colorsPtr, palette.colorCount,
+        [&rt](TRColor value) { return marshal::FromNumber<TRColor>(rt, value); }));
+    object.setProperty(rt, "flags", marshal::FromNumber<TRUInt32>(rt, palette.flags));
+    return jsi::Value(std::move(object));
+}
+
+jsi::Value BitmapStrikeToJs(jsi::Runtime &rt, const TRBitmapStrike &strike) {
+    jsi::Object object(rt);
+    object.setProperty(rt, "pixelWidth", marshal::FromNumber<TRFloat>(rt, strike.pixelWidth));
+    object.setProperty(rt, "pixelHeight", marshal::FromNumber<TRFloat>(rt, strike.pixelHeight));
+    return jsi::Value(std::move(object));
+}
+
+#define TEHREER_READ_ONLY_CODEC(Type, convert) \
+    { \
+        #Type, sizeof(Type), \
+        [](jsi::Runtime &rt, const void *value) { return convert(rt, *static_cast<const Type *>(value)); }, \
+        [](jsi::Runtime &rt, const jsi::Value &, const char *function, const std::string &parameter, void *) { \
+            ReadOnly(rt, function, parameter); \
+        }, \
+    }
+
+const generated::StructCodec kReadOnlyCodecs[] = {
+    TEHREER_READ_ONLY_CODEC(TRVariationAxis, VariationAxisToJs),
+    TEHREER_READ_ONLY_CODEC(TRNamedStyle, NamedStyleToJs),
+    TEHREER_READ_ONLY_CODEC(TRPaletteEntry, PaletteEntryToJs),
+    TEHREER_READ_ONLY_CODEC(TRPredefinedPalette, PredefinedPaletteToJs),
+    TEHREER_READ_ONLY_CODEC(TRBitmapStrike, BitmapStrikeToJs),
+};
+
+#undef TEHREER_READ_ONLY_CODEC
+
 const generated::StructCodec kAttributeCodec = {
     "TRAttribute", sizeof(TRAttribute),
     [](jsi::Runtime &rt, const void *value) { return AttributeToJs(rt, *static_cast<const TRAttribute *>(value)); },
@@ -171,6 +252,11 @@ const generated::StructCodec kAttributeCodec = {
 
 const generated::StructCodec *FindStructCodec(const std::string &name) {
     for (const generated::StructCodec &codec : generated::kStructCodecs) {
+        if (name == codec.name) {
+            return &codec;
+        }
+    }
+    for (const generated::StructCodec &codec : kReadOnlyCodecs) {
         if (name == codec.name) {
             return &codec;
         }

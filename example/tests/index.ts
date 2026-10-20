@@ -3,6 +3,7 @@ import { handleTestCount, runHandleTests } from './HandleTests';
 import { callbackTestCount, runCallbackTests } from '../../tests/device/CallbackTests';
 import { listTestCount, runListTests } from '../../tests/device/ListTests';
 import { runStructTests, structTestCount } from '../../tests/device/StructTests';
+import { graphicsTestCount, runGraphicsTests } from './GraphicsTests';
 import { fontBytes } from './fontData';
 import { NativeObject } from '../../src/internal/NativeObject';
 import { adopt } from '../../src/internal/Adopt';
@@ -53,6 +54,13 @@ export const suites: readonly Suite[] = [
       const library = { NativeObject, adopt, IndexedList, coreIndices, coreNumbers, corePoints, coreStructs };
       const result = runListTests(bindings, library, { fontBytes });
       return { passed: result.passed, total: listTestCount, failures: result.failures };
+    },
+  },
+  {
+    name: 'graphics',
+    run: (bindings) => {
+      const result = runGraphicsTests(bindings);
+      return { passed: result.passed, total: graphicsTestCount, failures: result.failures };
     },
   },
 ];
