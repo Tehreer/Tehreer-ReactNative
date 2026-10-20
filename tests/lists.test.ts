@@ -485,3 +485,27 @@ test("numbers and points are converted in one pass by toArray, not asked per ele
   const points = lists.corePoints(owner(true), pointer(numbers([0, 0, 0, 0], Float32Array)), 2, () => ({ pointer: pointer(numbers([1, 2, 3, 4], Float32Array)), length: 2 }));
   assert.deepEqual(points.toArray(), [{ x: 1, y: 2 }, { x: 3, y: 4 }]);
 });
+
+// ---- a refresh that Core (or a bug) makes hostile ----
+
+test("a refresh that returns no pointer, a wrong width or a bad count fails with an error, never a read", () => {
+  const bad = (state: unknown) =>
+    lists.coreNumbers(owner(true), pointer(numbers([1, 2, 3], Uint16Array)), 3, "UInt16", () => state as never);
+
+  // No memory for elements: null as well as undefined.
+  assert.throws(() => bad({ pointer: null, length: 3 }).get(0), /no memory for 3 elements/);
+  assert.throws(() => bad({ pointer: undefined, length: 3 }).get(0), /no memory for 3 elements/);
+  assert.throws(() => bad({ pointer: null, length: 3 }).toArray(), /no memory for 3 elements/);
+  // A count that is not one.
+  assert.throws(() => bad({ pointer: pointer(new ArrayBuffer(6)), length: -1 }).get(0), RangeError);
+  assert.throws(() => bad({ pointer: pointer(new ArrayBuffer(6)), length: 1.5 }).get(0), RangeError);
+  // Elements of another width than the kind: 12 bytes for 3 UInt16 are 4-byte elements, and 5 bytes
+  // are not whole numbers at all.
+  assert.throws(() => bad({ pointer: pointer(new ArrayBuffer(12)), length: 3 }).get(0), TypeError);
+  assert.throws(() => bad({ pointer: pointer(new ArrayBuffer(5)), length: 3 }).get(0), TypeError);
+  // Fewer elements than the list was made for.
+  assert.throws(() => bad({ pointer: pointer(new ArrayBuffer(2)), length: 1 }).get(2), RangeError);
+  // A refresh that throws is not swallowed.
+  const throwing = lists.coreNumbers(owner(true), pointer(new ArrayBuffer(6)), 3, "UInt16", () => { throw new Error("boom"); });
+  assert.throws(() => throwing.get(0), /boom/);
+});

@@ -143,15 +143,15 @@ const tests: [string, (b: NativeBindings) => void][] = [
     expectThrows(() => b.TRFontFeaturesCreate([{ tag: 2 ** 32, value: 1 }], 1), /out of range/, 'RangeError');
   }],
 
-  // MakePointerView is a placeholder until lists (#9) give it its final shape; this pins what it carries.
-  ['a pointer view names the element, its size and keeps the owner', (b) => {
+  ['a pointer view is a host object that exposes only the element, its size and the count', (b) => {
     const handle = features(b, 2);
-    const view = b.TRFontFeaturesGetItemsPtr(handle) as unknown as
-      { address: bigint; element: string; elementSize: number; owner: unknown } | undefined;
+    const view = b.TRFontFeaturesGetItemsPtr(handle) as unknown as Record<string, unknown> | undefined;
     check(view !== undefined, 'a view is returned');
-    check(typeof view?.address === 'bigint' && view.address !== 0n, 'the address is a non-zero BigInt');
     check(view?.element === 'TROpenTypeFeature' && view.elementSize === 8, `${view?.element} ${view?.elementSize}`);
-    check(view?.owner === handle, 'the owner is the handle');
+    check(view?.count === 2, `count ${view?.count}`);
+    // The address and the owner are native only: a script cannot read or forge them.
+    check(view?.address === undefined && view?.owner === undefined, 'no address or owner is exposed');
+    check(Object.keys(view ?? {}).sort().join() === 'count,element,elementSize', `keys ${Object.keys(view ?? {})}`);
     b.disposeHandle(handle);
   }],
 

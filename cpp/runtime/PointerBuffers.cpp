@@ -91,6 +91,11 @@ jsi::Value ReadPointerStructs(jsi::Runtime &rt, const jsi::Value &, const jsi::V
     TRUInteger fromIndex = RequireCount(rt, marshal::ArgAt(args, count, 2), kFunction, "fromIndex");
     TRUInteger toIndex = RequireCount(rt, marshal::ArgAt(args, count, 3), kFunction, "toIndex");
 
+    // The owner first, as in createPointerBuffer: "already disposed" is the more useful answer
+    // whatever else is wrong with the request.
+    if (view->owner()->isDisposed()) {
+        marshal::Fail(rt, kFunction, "pointer", "is already disposed");
+    }
     const generated::StructCodec *codec = FindStructCodec(view->element());
     if (codec == nullptr) {
         marshal::Fail(rt, kFunction, "pointer", "does not hold structs that JavaScript converts");
@@ -136,11 +141,11 @@ std::shared_ptr<HandleObject> KeepAlive(jsi::Runtime &rt, const PointerViewObjec
 
 std::shared_ptr<RetainedMemory> RetainMemory(jsi::Runtime &rt, const PointerViewObject &view, size_t count,
                                              size_t alignment, const char *function) {
-    if (alignment != 1 && alignment != 2 && alignment != 4 && alignment != 8) {
-        runtime::FailRange(rt, function, "alignment", "must be 1, 2, 4 or 8");
-    }
     if (view.owner()->isDisposed()) {
         marshal::Fail(rt, function, "pointer", "is already disposed");
+    }
+    if (alignment != 1 && alignment != 2 && alignment != 4 && alignment != 8) {
+        runtime::FailRange(rt, function, "alignment", "must be 1, 2, 4 or 8");
     }
     RequireFits(rt, function, count, view.elementSize());
     RequireWithinView(rt, function, view, count);

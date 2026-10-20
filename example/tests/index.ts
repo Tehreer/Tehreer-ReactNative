@@ -3,6 +3,7 @@ import { handleTestCount, runHandleTests } from './HandleTests';
 import { callbackTestCount, runCallbackTests } from '../../tests/device/CallbackTests';
 import { listTestCount, runListTests } from '../../tests/device/ListTests';
 import { runStructTests, structTestCount } from '../../tests/device/StructTests';
+import { fontBytes } from './fontData';
 import { NativeObject } from '../../src/internal/NativeObject';
 import { adopt } from '../../src/internal/Adopt';
 import { IndexedList } from '../../src/collections/IndexedList';
@@ -42,7 +43,7 @@ export const suites: readonly Suite[] = [
   {
     name: 'callbacks',
     run: (bindings) => {
-      const result = runCallbackTests(bindings);
+      const result = runCallbackTests(bindings, { fontBytes });
       return { passed: result.passed, total: callbackTestCount, failures: result.failures };
     },
   },
@@ -50,7 +51,7 @@ export const suites: readonly Suite[] = [
     name: 'lists',
     run: (bindings) => {
       const library = { NativeObject, adopt, IndexedList, coreIndices, coreNumbers, corePoints, coreStructs };
-      const result = runListTests(bindings, library);
+      const result = runListTests(bindings, library, { fontBytes });
       return { passed: result.passed, total: listTestCount, failures: result.failures };
     },
   },

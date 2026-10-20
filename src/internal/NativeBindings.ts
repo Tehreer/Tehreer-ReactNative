@@ -57,6 +57,9 @@ export interface NativeBindings extends NativeFunctions {
    *
    * @param alignment The alignment, 1, 2, 4 or 8, that the typed array which will read the buffer
    *   needs (its `BYTES_PER_ELEMENT`). A typed array does not check the address, only its offset.
+   * Checks run in this order, so the first failure is the one reported: the owner (disposed), then
+   * the alignment, then the count and the address.
+   *
    * @throws Error if the owner of the pointer is disposed ("already disposed"), or `pointer` is not
    *   one that Core gave.
    * @throws RangeError if the address is not a multiple of `alignment`, or the count is more than
@@ -66,8 +69,9 @@ export interface NativeBindings extends NativeFunctions {
   /**
    * The elements `fromIndex` up to `toIndex` of a pointer to structs, as objects made by the codec of
    * the struct (the same as the by-value structs of the bindings), so that TypeScript never knows an
-   * offset. Throws if the owner is disposed, if the element is not a struct that is converted, or
-   * for a range that is not within `count`.
+   * offset. Throws if the owner is disposed (checked first, before anything else about the
+   * request), if the element is not a struct that is converted, or for a range that is not within
+   * `count`.
    */
   readPointerStructs(pointer: PointerView<string>, count: number, fromIndex: number, toIndex: number): unknown[];
 

@@ -82,7 +82,7 @@ export class CoreMemory {
     if (!Number.isInteger(length) || length < 0) {
       throw new RangeError(`length (${length}) is not a count.`);
     }
-    if (pointer === undefined && length > 0) {
+    if ((pointer === undefined || pointer === null) && length > 0) {
       throw new Error(`Core gave no memory for ${length} elements.`);
     }
   }
@@ -139,7 +139,7 @@ export class CoreMemory {
     }
 
     let buffer: ArrayBuffer;
-    if (length === 0 || pointer === undefined) {
+    if (length === 0 || pointer === undefined || pointer === null) {
       buffer = new ArrayBuffer(0);
     } else {
       buffer = getNativeBindings().createPointerBuffer(pointer, length, constructor.BYTES_PER_ELEMENT);
@@ -165,7 +165,7 @@ export class CoreMemory {
   structs(fromIndex: number, toIndex: number): unknown[] {
     const { pointer, length } = this.#current();
     CoreMemory.requireElements(length, toIndex);
-    if (pointer === undefined || fromIndex === toIndex) {
+    if (pointer === undefined || pointer === null || fromIndex === toIndex) {
       return [];
     }
 
