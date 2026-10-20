@@ -457,7 +457,10 @@ const tests: [string, (b: Bindings, lib: ListLibrary, options: ListTestOptions) 
     const points = probe.view("TRPoint", 8);
     expectThrows(() => lib.coreStructs(probe.owner, probe.view("TRFloat", 4), 4).get(0), /does not hold structs/);
     expectThrows(() => lib.coreStructs(probe.owner, probe.view("TRPoint", 4), 2).get(0), /not the size of the struct/);
-    expectThrows(() => lib.coreStructs(probe.owner, probe.view("TRVariationAxis", 8), 2).get(0), /does not hold structs/);
+    // A struct with function pointers has a layout check but no conversion; the lists of a typeface
+    // (TRVariationAxis, ...) have one, which example/tests/GraphicsTests.ts covers.
+    expectThrows(() => lib.coreStructs(probe.owner, probe.view("TRDrawCallbacks", 8), 2).get(0), /does not hold structs/);
+    expectThrows(() => lib.coreStructs(probe.owner, probe.view("TRVariationAxis", 8), 1).get(0), /not the size of the struct/);
     expectThrows(() => b.readPointerStructs(points, 2, 1, 3), /not a range within the count/, "RangeError");
     expectThrows(() => b.readPointerStructs(points, 2, 2, 1), /not a range within the count/, "RangeError");
     expectThrows(() => b.readPointerStructs(points, 2, -1, 1), /must not be -1/, "RangeError");

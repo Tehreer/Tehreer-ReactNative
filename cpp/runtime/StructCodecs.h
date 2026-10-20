@@ -33,11 +33,16 @@ TRAttribute AttributeFromJs(jsi::Runtime &rt, const jsi::Value &value, const cha
 
 /**
  * The codec of a struct by the name of its C type, or null when JavaScript does not see it as an
- * object. Covers the generated ones and `TRAttribute`.
+ * object. Covers the generated ones, `TRAttribute` and the read-only structs that a typeface lists
+ * (`TRVariationAxis`, `TRNamedStyle`, `TRPaletteEntry`, `TRPredefinedPalette`, `TRBitmapStrike`):
+ * those are copied into objects (`{ name, tag, flags, minValue, maxValue, defaultValue }`,
+ * `{ subfamilyName, coordinates, postScriptName }`, `{ name }`, `{ name, colors, flags }`,
+ * `{ pixelWidth, pixelHeight }`, a missing name being undefined and the coordinates and colors
+ * arrays of numbers), and their `fromJs` refuses, since JavaScript never gives them to Core.
  */
 const generated::StructCodec *FindStructCodec(const std::string &name);
 
-/** The names that `FindStructCodec` accepts, in a fixed order. */
+/** The names of the structs that can be written as well as read, in a fixed order (not the read-only ones). */
 std::vector<std::string> StructCodecNames();
 
 } // namespace tehreer
