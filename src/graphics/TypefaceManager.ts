@@ -124,6 +124,8 @@ export const TypefaceManager = {
   getAvailableFamilies(): TypeFamily[] {
     return getNativeBindings()
       .TRTypefaceManagerEnumerateFamilies()
-      .map((family) => new TypeFamily(adopt, family.familyName, family.familyID));
+      // Core hands a family without a name over as a NULL string, which reaches JS as undefined;
+      // the family still has to be findable and matchable, by the empty name.
+      .map((family) => new TypeFamily(adopt, (family.familyName as string | undefined) ?? "", family.familyID));
   },
 } as const;

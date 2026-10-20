@@ -345,7 +345,7 @@ test("a variation instance clamps nothing itself, passes floats, and refuses wha
   face.getVariationInstance([]);
   assert.equal(received.variation?.length, 0, "no coordinates means the defaults, which Core fills in");
 
-  for (const bad of [[NaN], [Infinity], [1, -Infinity], ["5" as unknown as number]]) {
+  for (const bad of [[NaN], [Infinity], [1, -Infinity], [1e300], [-1e300], ["5" as unknown as number]]) {
     assert.throws(() => face.getVariationInstance(bad), RangeError, JSON.stringify(bad));
   }
 

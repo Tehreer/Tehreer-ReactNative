@@ -54,7 +54,8 @@ let nextId = 1;
 const calls: string[] = [];
 const made: FakeHandle[] = [];
 const registry: { handle: FakeHandle; tag: number; familyId: number; fullName: string }[] = [];
-let families: { familyID: number; familyName: string }[] = [];
+// An unnamed family has a NULL name in Core, which the binding turns into undefined.
+let families: { familyID: number; familyName: string | undefined }[] = [];
 
 function handle(kind: string): FakeHandle {
   const created = { kind, id: nextId++, disposed: false };
@@ -254,7 +255,7 @@ test("families are snapshots with a name and an ID, and equal when both agree", 
   families = [
     { familyID: 0, familyName: "Alpha" },
     { familyID: 4, familyName: "Beta" },
-    { familyID: 0, familyName: "" },
+    { familyID: 0, familyName: undefined },
   ];
 
   const [a, b, unnamed] = TypefaceManager.getAvailableFamilies() as [Family, Family, Family];
@@ -273,6 +274,9 @@ test("families are snapshots with a name and an ID, and equal when both agree", 
   assert.equal(TypefaceManager.getTypeFamily("alpha")?.familyName, "Alpha");
   assert.equal(TypefaceManager.getTypeFamily("Gamma"), undefined);
   assert.equal(TypefaceManager.getTypeFamily("")?.familyName, "");
+  assert.equal(TypefaceManager.getTypeFamily("")?.toString(), "TypeFamily()");
+  assert.equal(TypefaceManager.getTypeFamily("")?.getTypefaceByStyle(5, 400, 0), undefined, "matching through an unnamed family does not throw");
+  assert.equal(calls.at(-1), 'match name "" 5 400 0');
 
   families = [{ familyID: 0, familyName: "\u00c9cole" }];
   assert.equal(TypefaceManager.getTypeFamily("\u00e9cole"), undefined, "only ASCII letters fold, as in Core");

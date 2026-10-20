@@ -258,7 +258,8 @@ export class Typeface extends NativeObject<"TRTypeface"> {
   getVariationInstance(coordinates: ArrayLike<number>): Typeface | undefined {
     const values = Float32Array.from(coordinates);
     for (let index = 0; index < values.length; index++) {
-      if (!Number.isFinite(coordinates[index])) {
+      // After the conversion, because a finite double such as 1e300 becomes Infinity as a float.
+      if (typeof coordinates[index] !== "number" || !Number.isFinite(values[index])) {
         throw new RangeError(`coordinates[${index}] must be a finite number.`);
       }
     }

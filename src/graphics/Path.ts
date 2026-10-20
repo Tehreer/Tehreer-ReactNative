@@ -89,6 +89,8 @@ export class Path implements PathSink {
    * @throws Whatever the sink throws, which ends the enumeration.
    */
   enumerate(sink: PathSink, transform?: AffineTransform): void {
+    // The path lives in TypeScript, as in Tehreer-Web, and Core has no path object to transform, so
+    // the affine math is applied here while the segments are passed on.
     if (transform !== undefined) {
       checkTransform(transform);
     }
