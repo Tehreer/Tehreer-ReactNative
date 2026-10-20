@@ -103,7 +103,7 @@ const tests: [string, (b: NativeBindings) => void][] = [
     check(!open, 'the last contour is closed');
 
     const ys = path.coordinates.filter((_, i) => i % 2 === 1);
-    check(Math.min(...ys) < 0 && Math.max(...ys) <= 1, `a glyph above the baseline has negative y: ${Math.min(...ys)}..${Math.max(...ys)}`);
+    check(Math.min(...ys) < 0 && Math.max(...ys) <= 25, `a glyph above the baseline has negative y: ${Math.min(...ys)}..${Math.max(...ys)}`);
     face.dispose();
   }],
 

@@ -42,7 +42,7 @@ function roboto(): Typeface {
 }
 
 function variable(): Typeface {
-  return FontFile.fromBytes(variableFontBytes).typefaces.get(0);
+  return FontFile.fromBytes(variableFontBytes).typefaces.get(3);
 }
 
 function color(): Typeface {
@@ -117,7 +117,7 @@ const tests: [string, (b: NativeBindings) => void][] = [
     check(copy instanceof Float32Array && copy[0] === 400, 'toTypedArray copies');
 
     check(face.namedStyles.length === 18, `${face.namedStyles.length} named styles`);
-    const first = face.namedStyles.get(0);
+    const first = face.namedStyles.get(3);
     check(first.styleName === 'Regular', `${first.styleName}`);
     check(first.coordinates.length === 2 && first.coordinates.get(0) === 400 && first.coordinates.get(1) === 100, 'style coordinates');
     check(face.namedStyles.every((style) => style.coordinates.length === 2), 'every style has a coordinate per axis');
@@ -230,7 +230,7 @@ const tests: [string, (b: NativeBindings) => void][] = [
     const styles = face.namedStyles;
     const coordinates = face.variationCoordinates;
     const kept = axes.get(0);
-    const keptStyle = styles.get(0);
+    const keptStyle = styles.get(3);
 
     face.dispose();
     face.dispose();

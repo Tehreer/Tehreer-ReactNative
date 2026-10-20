@@ -63,10 +63,11 @@ function register(typeface: Typeface, tag = 0, familyId = 0): boolean {
 }
 
 function cleanUp(): void {
-  for (const typeface of registered) {
-    if (!typeface.isDisposed) {
-      TypefaceManager.unregisterTypeface(typeface);
-    }
+  // The registry keeps its own reference, so what it holds is unregistered by enumerating it
+  // instead of trusting the list of wrappers made by the tests.
+  for (const typeface of TypefaceManager.getAvailableTypefaces()) {
+    TypefaceManager.unregisterTypeface(typeface);
+    typeface.dispose();
   }
   registered = [];
 }

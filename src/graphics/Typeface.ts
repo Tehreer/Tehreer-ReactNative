@@ -329,7 +329,8 @@ export class Typeface extends NativeObject<"TRTypeface"> {
   /**
    * Returns the size of a table of the font in bytes, which is zero if the font has no such table.
    *
-   * @param tag The tag of the table as a number, such as `head`.
+   * @param tag The tag of the table as a number, such as `head`. Core treats tag 0 as the whole font
+   *   file, so its size is the size of the file.
    */
   getTableSize(tag: number): number {
     return getNativeBindings().TRTypefaceGetTableSize(this.nativeHandle, tag);
@@ -338,7 +339,8 @@ export class Typeface extends NativeObject<"TRTypeface"> {
   /**
    * Copies a part of a table of the font. Only the part that is asked for is read from the font.
    *
-   * @param tag The tag of the table as a number, such as `head`.
+   * @param tag The tag of the table as a number, such as `head`. Core treats tag 0 as the whole font
+   *   file, so its data is the bytes of the file.
    * @param offset The offset in the table from where to copy, in bytes.
    * @param length The number of bytes to copy, which is the rest of the table by default. A part
    *   that goes beyond the end of the table is cut short.
