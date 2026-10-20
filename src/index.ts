@@ -15,5 +15,7 @@ export type { BitmapStrike } from "./graphics/BitmapStrike.js";
 export type { ColorPalette } from "./graphics/ColorPalette.js";
 export { FontFile } from "./graphics/FontFile.js";
 export type { NamedStyle } from "./graphics/NamedStyle.js";
+export { TypeFamily } from "./graphics/TypeFamily.js";
 export { Typeface } from "./graphics/Typeface.js";
+export { TypefaceManager } from "./graphics/TypefaceManager.js";
 export type { VariationAxis } from "./graphics/VariationAxis.js";
