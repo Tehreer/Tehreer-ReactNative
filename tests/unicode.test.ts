@@ -183,6 +183,14 @@ function scoped(body: (own: <T extends Disposable>(object: T) => T) => void): vo
 const names = () => calls.map((call) => call.name);
 const live = () => made.filter((h) => !disposed.has(h));
 
+test("a text that is not a string is a TypeError before native code runs", () => {
+  for (const text of [undefined, null, 5, {}, ["a"]]) {
+    assert.throws(() => new lib.BidiAlgorithm(text as unknown as string), { name: "TypeError", message: /text must be a string/ });
+    assert.throws(() => new lib.ScriptClassifier(text as unknown as string), TypeError);
+  }
+  assert.deepEqual(names(), []);
+});
+
 test("an algorithm needs a text and Core's answer", () => {
   assert.throws(() => new lib.BidiAlgorithm(""), RangeError);
   assert.deepEqual(names(), []);
@@ -203,18 +211,19 @@ test("ranges are checked before SheenBidi, which would clamp them", () => scoped
   assert.deepEqual(calls.at(-1)?.args.slice(1), [1, 4]);
 }));
 
-test("a base is a direction or a level from 0 to 125", () => scoped((own) => {
+test("a base is a direction or a level from 0 to 124", () => scoped((own) => {
   const algorithm = own(new lib.BidiAlgorithm("abcde"));
   const { BaseDirection } = lib;
-  for (const base of [0, 1, 2, 125, BaseDirection["LeftToRight"], BaseDirection["DefaultLeftToRight"], BaseDirection["DefaultRightToLeft"]] as number[]) {
+  for (const base of [0, 1, 2, 124, BaseDirection["LeftToRight"], BaseDirection["DefaultLeftToRight"], BaseDirection["DefaultRightToLeft"]] as number[]) {
     algorithm.createParagraph(0, 5, base).dispose();
   }
   const before = names().length;
-  for (const base of [126, 0x80, 0xfc, 0xff, -1, 1.5, Number.NaN, Number.POSITIVE_INFINITY]) {
+  for (const base of [125, 126, 0x80, 0xfc, 0xff, -1, 1.5, Number.NaN, Number.POSITIVE_INFINITY]) {
     assert.throws(() => algorithm.createParagraph(0, 5, base), RangeError, String(base));
   }
   assert.equal(names().length, before);
   assert.equal(lib.BidiAlgorithm.MAX_LEVEL, 125);
+  assert.equal((lib.BidiAlgorithm as unknown as { MAX_BASE_LEVEL: number }).MAX_BASE_LEVEL, 124);
   assert.deepEqual([BaseDirection["LeftToRight"], BaseDirection["RightToLeft"], BaseDirection["DefaultLeftToRight"], BaseDirection["DefaultRightToLeft"]], [0, 1, 0xfe, 0xfd]);
 }));
 

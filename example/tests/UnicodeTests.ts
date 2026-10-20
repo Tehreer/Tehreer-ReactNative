@@ -91,15 +91,27 @@ const tests: [string, (b: NativeBindings) => void][] = [
   }],
 
   ['the base direction is found, forced or given as a level', () => {
-    const algorithm = new BidiAlgorithm(`${ARABIC} abc`);
-    const detected = algorithm.createParagraph(0, 7, BaseDirection.DefaultLeftToRight);
-    const forced = algorithm.createParagraph(0, 7, BaseDirection.LeftToRight);
-    const level = algorithm.createParagraph(0, 7, 2);
-    const rtl = new BidiAlgorithm('abc').createParagraph(0, 3, BaseDirection.DefaultRightToLeft);
-    check(detected.baseLevel === 1 && forced.baseLevel === 0 && level.baseLevel === 2, `${detected.baseLevel} ${forced.baseLevel} ${level.baseLevel}`);
-    check(rtl.baseLevel === 1, 'no strong character takes the default of the direction that was asked for');
-    for (const object of [detected, forced, level, rtl, algorithm]) {
-      object.dispose();
+    const owned: { dispose(): void }[] = [];
+    try {
+      const algorithm = new BidiAlgorithm(`${ARABIC} abc`);
+      owned.push(algorithm);
+      const detected = algorithm.createParagraph(0, 7, BaseDirection.DefaultLeftToRight);
+      const forced = algorithm.createParagraph(0, 7, BaseDirection.LeftToRight);
+      const level = algorithm.createParagraph(0, 7, 2);
+      owned.push(detected, forced, level);
+      check(detected.baseLevel === 1 && forced.baseLevel === 0 && level.baseLevel === 2, `${detected.baseLevel} ${forced.baseLevel} ${level.baseLevel}`);
+
+      // Digits are not strong, so no character decides and the default of the request is used.
+      const neutral = new BidiAlgorithm('123');
+      owned.push(neutral);
+      const rtl = neutral.createParagraph(0, 3, BaseDirection.DefaultRightToLeft);
+      const ltr = neutral.createParagraph(0, 3, BaseDirection.DefaultLeftToRight);
+      owned.push(rtl, ltr);
+      check(rtl.baseLevel === 1 && ltr.baseLevel === 0, `without a strong character: ${rtl.baseLevel} ${ltr.baseLevel}`);
+    } finally {
+      for (const object of owned.reverse()) {
+        object.dispose();
+      }
     }
   }],
 
@@ -161,6 +173,7 @@ const tests: [string, (b: NativeBindings) => void][] = [
   }],
 
   ['the text copy lives as long as the algorithm, a paragraph or a line of it', (b) => {
+    collect(b);
     const baseline = texts(b);
     const text = `${ARABIC} (${ARABIC})`;
     const algorithm = new BidiAlgorithm(text);
@@ -181,6 +194,7 @@ const tests: [string, (b: NativeBindings) => void][] = [
   }],
 
   ['a retained handle keeps the text and the object after the first handle is disposed', (b) => {
+    collect(b);
     const baseline = texts(b);
     const algorithm = new BidiAlgorithm('abc');
     const retained = b.SBAlgorithmRetain(algorithm.nativeHandle);
@@ -204,6 +218,7 @@ const tests: [string, (b: NativeBindings) => void][] = [
   }],
 
   ['lists keep the owner readable until it is disposed, and fail after', (b) => {
+    collect(b);
     const baseline = texts(b);
     // In a function of its own, so that nothing of it is reachable when the garbage is collected.
     (() => {
@@ -254,11 +269,12 @@ const tests: [string, (b: NativeBindings) => void][] = [
     for (const [from, to] of [[0, 3], [1, 5], [2, 2], [3, 2]]) {
       expectThrows(() => paragraph.createLine(from as number, to as number), /range/, 'RangeError');
     }
-    for (const base of [126, 0x80, 0xfc, 0xff, -1, 1.5, Number.NaN]) {
+    for (const base of [125, 126, 0x80, 0xfc, 0xff, -1, 1.5, Number.NaN]) {
       expectThrows(() => algorithm.createParagraph(0, 5, base), /base/, 'RangeError');
     }
     // The bindings refuse them too, whoever calls them.
     const handle = algorithm.nativeHandle;
+    expectThrows(() => b.SBAlgorithmCreateParagraph(handle, 0, 5, 125), /baseLevel/, 'RangeError');
     expectThrows(() => b.SBAlgorithmCreateParagraph(handle, 0, 5, 126), /baseLevel/, 'RangeError');
     expectThrows(() => b.SBAlgorithmCreateParagraph(handle, 0, 5, 256), /baseLevel/, 'RangeError');
     expectThrows(() => b.SBAlgorithmCreateParagraph(handle, 0, 5, 1.5), /baseLevel/, 'RangeError');
@@ -336,6 +352,7 @@ const tests: [string, (b: NativeBindings) => void][] = [
   }],
 
   ['a script locator keeps the text it was loaded with, and replaces it on the next load', (b) => {
+    collect(b);
     const baseline = texts(b);
     const locator = b.SBScriptLocatorCreate() as Handle<'SBScriptLocator'>;
     check(texts(b) === baseline, 'a locator has no text before it is loaded');
@@ -349,7 +366,9 @@ const tests: [string, (b: NativeBindings) => void][] = [
       found.push([agent.offset, agent.length, agent.script]);
     }
     check(same(found, [[0, 3, Script.Arabic], [3, 1, Script.Latin]]), describe(found));
-    check(!b.SBScriptLocatorMoveNext(locator), 'the locator is reset after the last run');
+    // The call that returned false reset the locator (documented by SheenBidi), so its agent is empty.
+    const reset = b.SBScriptLocatorGetAgent(locator);
+    check(reset.offset === 0 && reset.length === 0, `the locator is reset after the last run: ${describe(reset)}`);
     b.SBScriptLocatorReset(locator);
     check(b.SBScriptLocatorMoveNext(locator) && b.SBScriptLocatorGetAgent(locator).offset === 0, 'and can start again');
 
@@ -362,6 +381,7 @@ const tests: [string, (b: NativeBindings) => void][] = [
   }],
 
   ['a mirror locator keeps the line and its text after every other handle is disposed', (b) => {
+    collect(b);
     const baseline = texts(b);
     const algorithm = new BidiAlgorithm(`${ARABIC} (${ARABIC})`);
     const paragraph = algorithm.createParagraph(0, 9, BaseDirection.RightToLeft);
@@ -386,6 +406,44 @@ const tests: [string, (b: NativeBindings) => void][] = [
     b.SBMirrorLocatorLoadLine(locator, undefined);
     check(texts(b) === baseline && !b.SBMirrorLocatorMoveNext(locator), 'unloading frees the copy');
     b.disposeHandle(locator);
+  }],
+
+  ['a mirror locator that holds no line can be disposed, retained and collected', (b) => {
+    // SheenBidi's finalizer of a mirror locator releases its line without a NULL check, so the
+    // binding keeps a line in every locator; these are the paths that would have crashed.
+    const unloaded = b.SBMirrorLocatorCreate() as Handle<'SBMirrorLocator'>;
+    check(!b.SBMirrorLocatorMoveNext(unloaded), 'an unloaded locator finds nothing');
+    b.disposeHandle(unloaded);
+
+    const algorithm = new BidiAlgorithm(`${ARABIC} (${ARABIC})`);
+    const line = algorithm.createParagraph(0, 9, BaseDirection.RightToLeft).createLine(0, 9);
+    const unloadedAgain = b.SBMirrorLocatorCreate() as Handle<'SBMirrorLocator'>;
+    b.SBMirrorLocatorLoadLine(unloadedAgain, line.nativeHandle);
+    check(b.SBMirrorLocatorMoveNext(unloadedAgain), 'a loaded locator finds a mirror');
+    b.SBMirrorLocatorLoadLine(unloadedAgain, undefined);
+    check(!b.SBMirrorLocatorMoveNext(unloadedAgain), 'an unloaded one finds none');
+    b.SBMirrorLocatorLoadLine(unloadedAgain, undefined);
+    b.disposeHandle(unloadedAgain);
+    line.dispose();
+    algorithm.dispose();
+
+    const first = b.SBMirrorLocatorCreate() as Handle<'SBMirrorLocator'>;
+    const second = b.SBMirrorLocatorRetain(first);
+    b.disposeHandle(first);
+    check(!b.SBMirrorLocatorMoveNext(second), 'the retained handle of an unloaded locator works');
+    b.disposeHandle(second);
+
+    // Abandoned ones are released by the finalizer, which runs on any thread.
+    (() => {
+      for (let index = 0; index < 20; index++) {
+        const locator = b.SBMirrorLocatorCreate() as Handle<'SBMirrorLocator'>;
+        if (index % 2 === 0) {
+          b.SBMirrorLocatorLoadLine(locator, undefined);
+        }
+      }
+    })();
+    collect(b);
+    check(b.smokeTest(), 'the process is still alive after the collection');
   }],
 
   ['the properties of code points', () => {
@@ -494,6 +552,7 @@ const tests: [string, (b: NativeBindings) => void][] = [
   }],
 
   ['objects that are made and disposed in a loop leave no text behind', (b) => {
+    collect(b);
     const baseline = texts(b);
     for (let index = 0; index < 300; index++) {
       const algorithm = new BidiAlgorithm(`abc ${ARABIC} ${index}`);
@@ -509,6 +568,7 @@ const tests: [string, (b: NativeBindings) => void][] = [
   }],
 
   ['objects that are never disposed are collected without harm', (b) => {
+    collect(b);
     const baseline = texts(b);
     (() => {
       for (let index = 0; index < 20; index++) {

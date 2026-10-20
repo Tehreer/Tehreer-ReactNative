@@ -91,7 +91,8 @@ export interface SheenBidiFunctions {
   SBMirrorLocatorCreate(): Handle<"SBMirrorLocator"> | undefined;
   /**
    * Loads a line, or unloads with `undefined`. The text that SheenBidi reads is the one of the line,
-   * so there is no string buffer to pass.
+   * so there is no string buffer to pass. A locator that holds no line (new, or unloaded) finds nothing
+   * and can be disposed like any other.
    */
   SBMirrorLocatorLoadLine(locator: Handle<"SBMirrorLocator">, line: Handle<"SBLine"> | undefined): void;
   SBMirrorLocatorGetAgent(locator: Handle<"SBMirrorLocator">): SBMirrorAgent;

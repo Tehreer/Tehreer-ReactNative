@@ -174,6 +174,19 @@ test("an engine that Core cannot create is an error, and a disposed engine refus
   assert.throws(() => engine.shapeText("abc"), /already disposed/);
 });
 
+test("a text that is not a string, and features that are not an array, are a TypeError", () => {
+  createResult = { engine: true };
+  const engine = new lib.ShapingEngine();
+  const before = calls.length;
+  for (const text of [undefined, null, 5, {}]) {
+    assert.throws(() => engine.shapeText(text as unknown as string), { name: "TypeError", message: /text must be a string/ });
+  }
+  for (const features of [undefined, null, 5, "liga", { length: 0 }]) {
+    assert.throws(() => { engine.openTypeFeatures = features as unknown as []; }, { name: "TypeError", message: /openTypeFeatures must be an array/ });
+  }
+  assert.equal(calls.length, before, "native code did not run");
+});
+
 test("shapeText checks its range and converts the text to UTF-16", () => {
   createResult = { engine: true };
   shapeResult = { result: true };

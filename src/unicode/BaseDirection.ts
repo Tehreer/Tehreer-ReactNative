@@ -18,5 +18,11 @@ export const BaseDirection = {
 
 export type BaseDirection = (typeof BaseDirection)[keyof typeof BaseDirection];
 
-/** The greatest explicit embedding level. */
+/** The greatest embedding level that text can have. */
 export const MAX_BIDI_LEVEL = 125;
+
+/**
+ * The greatest level that can be given as the base level of a paragraph. SheenBidi takes 125 and
+ * above for a request to find the direction, so 125 would silently not be a level.
+ */
+export const MAX_BASE_LEVEL = 124;

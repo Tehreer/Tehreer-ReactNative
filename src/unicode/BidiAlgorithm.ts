@@ -3,7 +3,7 @@ import type { NumberList } from "../collections/List.js";
 import type { UInt8 } from "../collections/NumberKind.js";
 import { getNativeBindings } from "../internal/NativeBindings.js";
 import { NativeObject } from "../internal/NativeObject.js";
-import { BaseDirection, MAX_BIDI_LEVEL } from "./BaseDirection.js";
+import { BaseDirection, MAX_BASE_LEVEL, MAX_BIDI_LEVEL } from "./BaseDirection.js";
 import { BidiParagraph } from "./BidiParagraph.js";
 
 /**
@@ -13,8 +13,11 @@ import { BidiParagraph } from "./BidiParagraph.js";
  * a line made from it, is alive: disposing the algorithm first does not invalidate them.
  */
 export class BidiAlgorithm extends NativeObject<"SBAlgorithm"> {
-  /** The greatest explicit embedding level. */
+  /** The greatest embedding level that text can have. */
   static readonly MAX_LEVEL = MAX_BIDI_LEVEL;
+
+  /** The greatest level that {@link BidiAlgorithm.createParagraph} takes as a base: SheenBidi reads 125 as "find the direction". */
+  static readonly MAX_BASE_LEVEL = MAX_BASE_LEVEL;
 
   // The length of the text is a fact that does not change, and the ranges are checked against it
   // here because SheenBidi clamps a range instead of refusing it.
@@ -27,6 +30,9 @@ export class BidiAlgorithm extends NativeObject<"SBAlgorithm"> {
    * @throws {Error} If SheenBidi cannot make the object.
    */
   constructor(text: string) {
+    if (typeof text !== "string") {
+      throw new TypeError("text must be a string.");
+    }
     if (text.length === 0) {
       throw new RangeError("Text is empty.");
     }
@@ -73,7 +79,7 @@ export class BidiAlgorithm extends NativeObject<"SBAlgorithm"> {
    *
    * @param fromIndex The index of the first character of the paragraph in the source text.
    * @param toIndex The suggested index after the last character of the paragraph.
-   * @param base A base direction, or a base level from 0 up to {@link BidiAlgorithm.MAX_LEVEL}.
+   * @param base A base direction, or a base level from 0 up to {@link BidiAlgorithm.MAX_BASE_LEVEL}.
    * @throws {RangeError} If the range is empty or not inside of the text, or the base is not valid.
    * @throws {Error} If SheenBidi cannot make the paragraph.
    */
@@ -82,9 +88,9 @@ export class BidiAlgorithm extends NativeObject<"SBAlgorithm"> {
     this.#checkSubRange(fromIndex, toIndex);
     if (
       !Number.isInteger(base) ||
-      !(base === BaseDirection.DefaultLeftToRight || base === BaseDirection.DefaultRightToLeft || (base >= 0 && base <= MAX_BIDI_LEVEL))
+      !(base === BaseDirection.DefaultLeftToRight || base === BaseDirection.DefaultRightToLeft || (base >= 0 && base <= MAX_BASE_LEVEL))
     ) {
-      throw new RangeError(`The base (${base}) is neither a base direction nor a level from 0 to ${MAX_BIDI_LEVEL}.`);
+      throw new RangeError(`The base (${base}) is neither a base direction nor a level from 0 to ${MAX_BASE_LEVEL}.`);
     }
 
     const paragraph = getNativeBindings().SBAlgorithmCreateParagraph(handle, fromIndex, toIndex - fromIndex, base);

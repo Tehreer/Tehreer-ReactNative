@@ -126,6 +126,9 @@ export class ShapingEngine extends NativeObject<"TRShapingEngine"> {
    * @throws Error if Core cannot store the features; the previous ones are kept.
    */
   set openTypeFeatures(features: readonly OpenTypeFeature[]) {
+    if (!Array.isArray(features)) {
+      throw new TypeError("openTypeFeatures must be an array.");
+    }
     const copy = features.map(({ tag, value }): OpenTypeFeature => ({ tag, value }));
     if (!getNativeBindings().TRShapingEngineSetOpenTypeFeatures(this.nativeHandle, copy, copy.length)) {
       throw new Error("Could not set the OpenType features.");
@@ -140,7 +143,12 @@ export class ShapingEngine extends NativeObject<"TRShapingEngine"> {
    * @throws RangeError if the range is not within the text.
    * @throws Error if the engine has no typeface or Core fails to shape.
    */
-  shapeText(text: string, fromIndex = 0, toIndex: number = text.length): ShapingResult {
+  shapeText(text: string, fromIndex = 0, endIndex?: number): ShapingResult {
+    // Checked before the default of `endIndex` reads the length.
+    if (typeof text !== "string") {
+      throw new TypeError("text must be a string.");
+    }
+    const toIndex = endIndex ?? text.length;
     if (!Number.isInteger(fromIndex) || !Number.isInteger(toIndex) || fromIndex < 0 || fromIndex > toIndex || toIndex > text.length) {
       throw new RangeError(`The range ${fromIndex}..${toIndex} is not within the text of ${text.length} code units.`);
     }

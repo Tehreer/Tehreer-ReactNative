@@ -160,8 +160,9 @@ SBCodepointSequence SequenceOf(const BidiText &text) {
 SBLevel ToBaseLevel(jsi::Runtime &rt, const jsi::Value &value, const char *function, const char *parameter) {
     SBLevel level = marshal::ToNumber<TRUInt8>(rt, value, function, parameter);
     // SheenBidi would take any other value as one of the two defaults without a word.
-    if (level > SBLevelMax && level != SBLevelDefaultLTR && level != SBLevelDefaultRTL) {
-        runtime::FailRange(rt, function, parameter, "is neither a level from 0 to 125 nor a default direction");
+    // 125 (SBLevelMax) and above is a request to find the direction for SheenBidi, so it is not a level.
+    if (level >= SBLevelMax && level != SBLevelDefaultLTR && level != SBLevelDefaultRTL) {
+        runtime::FailRange(rt, function, parameter, "is neither a level from 0 to 124 nor a default direction");
     }
     return level;
 }
@@ -378,11 +379,44 @@ TEHREER_BINDING(SBScriptLocatorRetain) {
 
 // ---- Mirror locator
 
+// SheenBidi's finalizer of a mirror locator releases its line without looking whether there is one
+// (FinalizeMirrorLocator calls SBLineRelease, which dereferences NULL), so a locator that never
+// loaded a line, or unloaded it, would crash when its last reference goes, on whatever thread that
+// is. A locator therefore never holds none: until a line is loaded it holds this one, a line of the
+// text "a", which has no right-to-left run and so no mirrors. It is made once, on first use, and kept
+// for the life of the process on purpose, like the handler table: it is a few hundred bytes, and
+// the locators release it on any thread, which would otherwise need a count that something owns.
+struct EmptyLine {
+    SBLineRef line;
+    const char16_t *text;
+};
+
+const EmptyLine *GetEmptyLine() {
+    static const EmptyLine *empty = []() -> const EmptyLine * {
+        static const char16_t kText[] = u"a";
+        SBCodepointSequence sequence;
+        sequence.stringEncoding = SBStringEncodingUTF16;
+        sequence.stringBuffer = kText;
+        sequence.stringLength = 1;
+
+        SBAlgorithmRef algorithm = SBAlgorithmCreate(&sequence);
+        SBParagraphRef paragraph = algorithm ? SBAlgorithmCreateParagraph(algorithm, 0, 1, 0) : nullptr;
+        SBLineRef line = paragraph ? SBParagraphCreateLine(paragraph, 0, 1) : nullptr;
+        // The line copies what it needs, but the algorithm and the paragraph are kept as well: there
+        // is nothing to gain from releasing them, and a failure leaves nothing half made.
+        return line ? new EmptyLine{ line, kText } : nullptr;
+    }();
+    return empty;
+}
+
 TEHREER_BINDING(SBMirrorLocatorCreate) {
-    SBMirrorLocatorRef locator = SBMirrorLocatorCreate();
+    const EmptyLine *empty = GetEmptyLine();
+    SBMirrorLocatorRef locator = empty ? SBMirrorLocatorCreate() : nullptr;
     if (locator == nullptr) {
         return jsi::Value::undefined();
     }
+
+    SBMirrorLocatorLoadLine(locator, empty->line, empty->text);
 
     return MakeHandle(rt, Erase(locator), &ReleaseObject<SBMirrorLocatorRef, SBMirrorLocatorRelease>, nullptr, kMirrorLocator, true);
 }
@@ -396,7 +430,9 @@ TEHREER_BINDING(SBMirrorLocatorLoadLine) {
 
     const jsi::Value &lineValue = marshal::ArgAt(args, count, 1);
     if (marshal::IsNullish(lineValue)) {
-        SBMirrorLocatorLoadLine(locator, nullptr, nullptr);
+        // Never NULL: see GetEmptyLine. The locator was made with it, so it exists.
+        const EmptyLine *empty = GetEmptyLine();
+        SBMirrorLocatorLoadLine(locator, empty->line, empty->text);
         owner->text.reset();
         return jsi::Value::undefined();
     }

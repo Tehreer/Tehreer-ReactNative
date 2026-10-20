@@ -64,6 +64,9 @@ export class ScriptClassifier {
   #isDisposed = false;
 
   constructor(text: string) {
+    if (typeof text !== "string") {
+      throw new TypeError("text must be a string.");
+    }
     this.#scripts = locateScripts(text);
     this.text = text;
   }
