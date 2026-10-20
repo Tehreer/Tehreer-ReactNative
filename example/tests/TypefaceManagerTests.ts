@@ -146,7 +146,7 @@ const tests: [string, (b: NativeBindings) => void][] = [
     found!.dispose();
   }],
 
-  ['a collected wrapper leaves the registration in place (the manager's own reference keeps the typeface alive)', (b) => {
+  ['a collected wrapper leaves the registration in place (the manager holds its own reference that keeps the typeface alive)', (b) => {
     const base = variable();
     let face: Typeface | undefined = base.getVariationInstance([300, 100])!;
     check(register(face, 61, 0), 'registered');
