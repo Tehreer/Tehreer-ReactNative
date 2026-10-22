@@ -240,8 +240,7 @@ export class Renderer extends NativeObject<"TRRenderer"> {
 
   /**
    * The direction of the runs that are passed in. In a right-to-left run the pen moves left before a
-   * glyph. A value that is not a `WritingDirection` is kept and returned as it is, and Core treats
-   * the runs as left to right.
+   * glyph. A value that is not a `WritingDirection` is kept and returned as it is.
    */
   get writingDirection(): WritingDirection {
     return getNativeBindings().TRRendererGetWritingDirection(this.nativeHandle) as WritingDirection;
