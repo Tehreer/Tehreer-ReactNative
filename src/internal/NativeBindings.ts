@@ -14,6 +14,17 @@ export interface ReplacementHandler {
 }
 
 /**
+ * A `TRAttribute` as the native side converts it, and as `readPointerStructs` reads one: the Core
+ * type of the attribute and its value. The value is a number (a float, a color, a tag, a count, an
+ * alignment or an application token), a boolean, or the handle of a typeface or of font features.
+ * A handle that is read arrives as a reference of its own, which the reader owns.
+ */
+export interface NativeAttribute {
+  type: number;
+  value: number | boolean | Handle<string>;
+}
+
+/**
  * What the native module installs on `global`: the functions of Core, those of SheenBidi's classic
  * API (`SheenBidiFunctions.ts`) and the handle functions.
  */
@@ -48,6 +59,13 @@ export interface NativeBindings extends NativeFunctions, SheenBidiFunctions {
    * handler. `undefined` when Core made nothing (an invalid `kind`).
    */
   TRReplacementCreate(handler: ReplacementHandler, kind: number): Handle<"TRReplacement"> | undefined;
+  /**
+   * `TRTextSetAttribute`, bound by hand because its argument is a union. The text copies the
+   * attribute and retains the typeface or font features that it holds, so the caller may dispose
+   * them afterwards. Returns false when the range is not within the text. Throws (`TypeError`,
+   * `RangeError`) for a value that does not fit the type, and for a handle of the wrong group.
+   */
+  TRTextSetAttribute(text: Handle<"TRText">, index: number, length: number, attribute: NativeAttribute): boolean;
 
   /**
    * An `ArrayBuffer` of `count` elements of a pointer that Core gave (a `*Ptr()` getter), over the

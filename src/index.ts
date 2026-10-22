@@ -5,6 +5,9 @@ export type { AffineTransform, Point, Rect, Size } from "./geometry.js";
 
 export { DrawStyle, GlyphImageFormat, GlyphImageKind, StrokeCap, StrokeJoin, TypeSlope, TypeWeight, TypeWidth } from "./graphics/enums.js";
 export { BreakMode, ReplacementKind, TextAlignment, TruncationPlace, VerticalAlignment } from "./layout/enums.js";
+export type { ParagraphAttributes, RunAttributes, TextAttributeName, TextAttributeRun, TextAttributes } from "./layout/TextAttributes.js";
+export { TMutableText } from "./layout/TMutableText.js";
+export { TText } from "./layout/TText.js";
 export { ShapingOrder, WritingDirection } from "./sfnt/enums.js";
 export { FontFeatures } from "./sfnt/FontFeatures.js";
 export type { OpenTypeFeature } from "./sfnt/OpenTypeFeature.js";
