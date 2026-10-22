@@ -153,11 +153,13 @@ export class TMutableText extends TText {
   /**
    * Sets attributes on the code units from `fromIndex` up to `toIndex`. An attribute that is
    * already set in a part of the range is replaced there. The text retains what the attributes
-   * refer to, such as a typeface, so they can be disposed after the call. Everything is checked
-   * before the first attribute is set, so an invalid member changes nothing.
+   * refer to, such as a typeface, so they can be disposed after the call. Invalid arguments are
+   * refused before the first attribute is set; a failure inside Core can still leave the earlier
+   * members set.
    *
-   * @throws {RangeError} If the range is not within the text, or a value is not valid.
+   * @throws {RangeError} If the range is not within the text, or a number is not valid.
    * @throws TypeError if a name is not an attribute or a value is of the wrong type.
+   * @throws Error if Core refuses an attribute.
    */
   setAttributes(fromIndex: number, toIndex: number, attributes: TextAttributes): void {
     const b = getNativeBindings();

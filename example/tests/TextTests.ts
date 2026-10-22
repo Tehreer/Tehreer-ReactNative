@@ -135,7 +135,11 @@ const tests: Test[] = [
     text.removeAttributes(1, 4, 'typeSize', 'foregroundColor', 'underline');
     check(Object.keys(text.getAttributeRun(1)?.attributes ?? { x: 1 }).length === 0, 'removed');
     check(text.getAttributeRun(4)?.attributes.foregroundColor === 0xff112233, 'kept');
+    const before = JSON.stringify(text.getAttributeRun(0));
     text.setAttributes(1, 1, { typeSize: 3 });
+    text.removeAttributes(1, 1, 'typeSize');
+    check(text.getAttributeRun(0) !== undefined && JSON.stringify(text.getAttributeRun(0)) === before, 'an empty range changes nothing');
+    check(text.getAttributeRun(1)?.attributes.typeSize === undefined, 'the empty range set nothing');
     text.dispose();
   }],
 
@@ -196,6 +200,9 @@ const tests: Test[] = [
     expectThrows(() => text.setAttributes(0, 3, { typeSize: 3, scaleX: NaN }), 'RangeError');
     expectThrows(() => text.setAttributes(0, 3, { underline: 1 } as never), 'TypeError');
     expectThrows(() => text.setAttributes(0, 3, { foregroundColor: -1 }), 'RangeError');
+    expectThrows(() => text.setAttributes(0, 3, { textAlignment: 9 as never }), 'RangeError');
+    expectThrows(() => text.setAttributes(0, 3, { typeSize: 1e39 }), 'RangeError');
+    expectThrows(() => text.setAttributes(0, 3, { userData: 2 ** 32 }), 'RangeError');
     expectThrows(() => text.setAttributes(0, 3, { userData: -1 }), 'RangeError');
     expectThrows(() => text.setAttributes(0, 3, { firstIndentLineCount: -1 }), 'RangeError');
     expectThrows(() => text.setAttributes(0, 3, { typeface: {} as never }), 'TypeError');
@@ -245,6 +252,8 @@ const tests: Test[] = [
       text.getAttributeRun(0);
       text.copy();
     }
+    // Debug builds only; the device runs those, so a missing hook is a failure, not a skip.
+    check(typeof b.testCollectGarbage === 'function', 'testCollectGarbage is missing: this needs a debug build');
     b.testCollectGarbage?.();
     check(b.smokeTest(), 'Core still works');
   }],

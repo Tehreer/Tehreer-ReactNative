@@ -571,7 +571,11 @@ test("a bad attribute changes nothing, even after a good one", () => {
     ["invalid count", { firstIndentLineCount: -1 }, RangeError],
     ["fraction count", { firstIndentLineCount: 1.5 }, RangeError],
     ["bad tag", { languageTag: -1 }, RangeError],
-    ["bad alignment", { textAlignment: "left" }, TypeError],
+    ["bad alignment", { textAlignment: "left" }, RangeError],
+    ["unknown alignment", { textAlignment: 5 }, RangeError],
+    ["float beyond FLT_MAX", { typeSize: 1e39 }, RangeError],
+    ["big user data", { userData: 2 ** 32 }, RangeError],
+    ["big count", { firstIndentLineCount: 2 ** 32 }, RangeError],
     ["typeface that is not one", { typeSize: 3, typeface: {} }, TypeError],
     ["features that are not a list", { fontFeatures: 3 }, TypeError],
   ];

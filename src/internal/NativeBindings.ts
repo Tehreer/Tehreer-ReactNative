@@ -62,8 +62,10 @@ export interface NativeBindings extends NativeFunctions, SheenBidiFunctions {
   /**
    * `TRTextSetAttribute`, bound by hand because its argument is a union. The text copies the
    * attribute and retains the typeface or font features that it holds, so the caller may dispose
-   * them afterwards. Returns false when the range is not within the text. Throws (`TypeError`,
-   * `RangeError`) for a value that does not fit the type, and for a handle of the wrong group.
+   * them afterwards. Returns false when the range is not within the text. Throws `RangeError` for a
+   * type that Core does not know or a number that does not fit its type, and a plain `Error` for a
+   * value of the wrong JavaScript type and for a handle that is disposed, immutable or of the
+   * wrong group.
    */
   TRTextSetAttribute(text: Handle<"TRText">, index: number, length: number, attribute: NativeAttribute): boolean;
 

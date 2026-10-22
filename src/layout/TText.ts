@@ -131,7 +131,11 @@ export class TText extends NativeObject<"TRText"> {
     return new TText(adopt, created);
   }
 
-  /** Makes a copy that can be edited, which has the attributes too. */
+  /**
+   * Makes a copy that can be edited, which has the attributes too.
+   *
+   * It needs `TMutableText.ts` to be loaded, which importing the package index does.
+   */
   mutableCopy(): TMutableText {
     const created = getNativeBindings().TRTextCreateMutableCopy(this.nativeHandle);
     if (created === undefined) {

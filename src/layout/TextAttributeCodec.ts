@@ -1,4 +1,5 @@
 import { Typeface } from "../graphics/Typeface.js";
+import { TextAlignment } from "./enums.js";
 import { getNativeBindings } from "../internal/NativeBindings.js";
 import type { NativeAttribute } from "../internal/NativeBindings.js";
 import type { Handle } from "../internal/NativeFunctions.js";
@@ -66,6 +67,9 @@ export function attributeType(name: string): number {
   return entryOf(name)[0];
 }
 
+// The largest finite `TRFloat` (FLT_MAX): the native side refuses a bigger double.
+const MAX_FLOAT = 3.4028234663852886e38;
+
 function checkUnsigned32(name: string, value: unknown): number {
   if (typeof value !== "number") {
     throw new TypeError(`${name} must be a number.`);
@@ -99,8 +103,8 @@ function prepareValue(name: TextAttributeName, kind: Kind, value: unknown): { va
       if (typeof value !== "number") {
         throw new TypeError(`${name} must be a number.`);
       }
-      if (!Number.isFinite(value)) {
-        throw new RangeError(`${name} (${value}) must be a finite number.`);
+      if (!Number.isFinite(value) || Math.abs(value) > MAX_FLOAT) {
+        throw new RangeError(`${name} (${value}) must be a finite number that a 32-bit float can hold.`);
       }
       return { value };
     case "boolean":
@@ -113,21 +117,28 @@ function prepareValue(name: TextAttributeName, kind: Kind, value: unknown): { va
       if (typeof value !== "number") {
         throw new TypeError(`${name} must be a number.`);
       }
-      if (!Number.isSafeInteger(value) || value < 0) {
-        throw new RangeError(`${name} (${value}) must be a whole number that is not negative.`);
+      // 32 bits: the native side refuses more on a 32-bit device, where a count and a token are 4 bytes.
+      if (!Number.isInteger(value) || value < 0 || value > 0xffffffff) {
+        throw new RangeError(`${name} (${value}) must be a whole number from 0 to 4294967295.`);
       }
       return { value };
     case "token":
       if (typeof value !== "number") {
         throw new TypeError(`${name} must be a number.`);
       }
-      if (!Number.isSafeInteger(value) || value < 0) {
-        throw new RangeError(`${name} (${value}) must be a whole number that is not negative.`);
+      // 32 bits: the native side refuses more on a 32-bit device, where a count and a token are 4 bytes.
+      if (!Number.isInteger(value) || value < 0 || value > 0xffffffff) {
+        throw new RangeError(`${name} (${value}) must be a whole number from 0 to 4294967295.`);
+      }
+      return { value };
+    case "alignment":
+      if (value !== TextAlignment.Left && value !== TextAlignment.Center && value !== TextAlignment.Right
+        && value !== TextAlignment.Leading && value !== TextAlignment.Trailing) {
+        throw new RangeError(`${name} (${String(value)}) is not a TextAlignment.`);
       }
       return { value };
     case "color":
     case "tag":
-    case "alignment":
       return { value: checkUnsigned32(name, value) };
   }
 }
@@ -182,7 +193,8 @@ export function readAttributeList(list: Handle<"TRAttributeList">): TextAttribut
     for (let index = 0; index < count; index++) {
       const view = b.TRAttributeListGetItem(list, index);
       if (view === undefined) {
-        continue;
+        // Core gives an item for every index below the count, so this is a broken list, not a gap.
+        throw new Error(`Core did not return attribute ${index} of ${count}.`);
       }
 
       // The conversion gives a reference of its own for a typeface or font features, owned from here.
