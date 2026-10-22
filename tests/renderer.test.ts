@@ -114,7 +114,7 @@ before(async () => {
       live_("TRRenderer", h);
       record("setTypeface", face === undefined ? undefined : live_("TRTypeface", face).id);
     },
-    TRRendererIsRenderable: (h: FakeHandle) => (live_("TRRenderer", h), state.hasTypeface),
+    TRRendererIsRenderable: (h: FakeHandle) => (live_("TRRenderer", h), true),
     TRRendererCreateGlyphImage(h: FakeHandle, glyph: number) {
       live_("TRRenderer", h);
       state.glyphIdsSeen.push(glyph);
@@ -246,7 +246,7 @@ test("the typeface and the glyph cache are retained by Core and each read is a r
   try {
     assert.equal(renderer.typeface, undefined);
     assert.equal(renderer.glyphCache, undefined);
-    assert.equal(renderer.isRenderable, false);
+    assert.equal(renderer.isRenderable, true, "the size decides, not the typeface");
   } finally {
     state.hasTypeface = true;
     state.cacheMissing = false;
@@ -488,4 +488,47 @@ test("a disposed cache cannot be used, and the renderer that was given it is not
   assert.throws(() => cache.size, /already disposed/);
   assert.throws(() => (renderer.glyphCache = cache), /already disposed/);
   assert.equal(renderer.typeSize, 16);
+});
+
+test("the typeface and cache setters refuse what is not one, instead of clearing", () => {
+  const renderer = new Renderer();
+  const face = renderer.typeface;
+  renderer.typeface = face;
+  const cache = new GlyphCache(10);
+  renderer.glyphCache = cache;
+  const before = (calls["setTypeface"]?.length ?? 0) + (calls["setCache"]?.length ?? 0);
+
+  for (const bad of [{}, 5, null, "x", { nativeHandle: face.nativeHandle }, cache]) {
+    assert.throws(() => (renderer.typeface = bad), TypeError, String(bad));
+  }
+  for (const bad of [{}, 5, null, "x", { nativeHandle: cache.nativeHandle }, face]) {
+    assert.throws(() => (renderer.glyphCache = bad), TypeError, String(bad));
+  }
+  assert.equal((calls["setTypeface"]?.length ?? 0) + (calls["setCache"]?.length ?? 0), before, "Core was not touched");
+});
+
+test("a run with a missing part, a bad offset or a bad advance is refused with a clear error", () => {
+  const renderer = new Renderer();
+  const good = { glyphIds: [1], glyphOffsets: [{ x: 0, y: 0 }], glyphAdvances: [5] };
+  const reached = calls["runInkBox"]?.length ?? 0;
+
+  for (const bad of [null, undefined, 5, "run"]) {
+    assert.throws(() => renderer.computeRunInkBox(bad), { name: "TypeError", message: /run must be an object/ }, String(bad));
+  }
+  for (const part of ["glyphIds", "glyphOffsets", "glyphAdvances"]) {
+    for (const bad of [null, undefined, 5]) {
+      assert.throws(() => renderer.computeRunInkBox({ ...good, [part]: bad }), { name: "TypeError", message: new RegExp(`run\\.${part}`) }, `${part} ${bad}`);
+    }
+  }
+  for (const bad of [null, undefined, 5, "a"]) {
+    assert.throws(() => renderer.generatePath({ ...good, glyphOffsets: [bad] }), { name: "TypeError", message: /glyphOffsets\[0\] must be an object/ }, String(bad));
+  }
+  for (const bad of [Infinity, -Infinity, NaN, "1", undefined]) {
+    assert.throws(() => renderer.computeRunInkBox({ ...good, glyphOffsets: [{ x: bad, y: 0 }] }), { name: "RangeError", message: /glyphOffsets\[0\].*finite/ }, `x ${bad}`);
+    assert.throws(() => renderer.computeRunInkBox({ ...good, glyphOffsets: [{ x: 0, y: bad }] }), { name: "RangeError", message: /glyphOffsets\[0\].*finite/ }, `y ${bad}`);
+    assert.throws(() => renderer.getGlyphPlacements(0, { ...good, glyphAdvances: [bad] }), { name: "RangeError", message: /glyphAdvances\[0\].*finite number/ }, `advance ${bad}`);
+  }
+  assert.equal(calls["runInkBox"]?.length ?? 0, reached, "Core was never reached");
+  renderer.computeRunInkBox(good);
+  assert.equal(calls["runInkBox"]?.length, reached + 1);
 });

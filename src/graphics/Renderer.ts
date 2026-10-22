@@ -51,9 +51,12 @@ interface RunArguments {
 // Each member is a copy made for one call, so a list over memory of Core is never read by a binding
 // while JavaScript runs, and a value that does not fit is refused instead of wrapping around.
 function readRun(run: GlyphBuffers): RunArguments {
-  const ids = elementsOf(run.glyphIds);
-  const offsets = elementsOf(run.glyphOffsets);
-  const advances = elementsOf(run.glyphAdvances);
+  if (run === null || typeof run !== "object") {
+    throw new TypeError("run must be an object with glyphIds, glyphOffsets and glyphAdvances.");
+  }
+  const ids = elementsOf(run.glyphIds, "glyphIds");
+  const offsets = elementsOf(run.glyphOffsets, "glyphOffsets");
+  const advances = elementsOf(run.glyphAdvances, "glyphAdvances");
   const count = ids.length;
 
   if (offsets.length < count || advances.length < count) {
@@ -72,19 +75,32 @@ function readRun(run: GlyphBuffers): RunArguments {
 
   const points: Point[] = [];
   for (let index = 0; index < count; index++) {
-    const point = offsets[index] as Point;
+    const point = offsets[index] as Point | null | undefined;
+    if (point === null || typeof point !== "object") {
+      throw new TypeError(`glyphOffsets[${index}] must be an object with x and y.`);
+    }
+    if (typeof point.x !== "number" || !Number.isFinite(point.x) || typeof point.y !== "number" || !Number.isFinite(point.y)) {
+      throw new RangeError(`glyphOffsets[${index}] (${String(point.x)}, ${String(point.y)}) must have finite numbers for x and y.`);
+    }
     points.push({ x: point.x, y: point.y });
   }
 
   const widths = new Float32Array(count);
   for (let index = 0; index < count; index++) {
-    widths[index] = advances[index] as number;
+    const advance = advances[index];
+    if (typeof advance !== "number" || !Number.isFinite(advance)) {
+      throw new RangeError(`glyphAdvances[${index}] (${String(advance)}) must be a finite number.`);
+    }
+    widths[index] = advance;
   }
 
   return { glyphIds, offsets: points, advances: widths, count };
 }
 
-function elementsOf<T>(source: List<T> | ArrayLike<T>): ArrayLike<T> {
+function elementsOf<T>(source: List<T> | ArrayLike<T>, name: string): ArrayLike<T> {
+  if (source === null || typeof source !== "object") {
+    throw new TypeError(`run.${name} must be a list or an array.`);
+  }
   return typeof (source as List<T>).toArray === "function" ? (source as List<T>).toArray() : (source as ArrayLike<T>);
 }
 
@@ -146,6 +162,9 @@ export class Renderer extends NativeObject<"TRRenderer"> {
 
   /** The renderer retains the cache; `undefined` selects the default cache. */
   set glyphCache(value: GlyphCache | undefined) {
+    if (value !== undefined && !(value instanceof GlyphCache)) {
+      throw new TypeError("glyphCache must be a GlyphCache, or undefined for the default cache.");
+    }
     getNativeBindings().TRRendererSetGlyphCache(this.nativeHandle, value?.nativeHandle);
   }
 
@@ -160,6 +179,9 @@ export class Renderer extends NativeObject<"TRRenderer"> {
 
   /** The renderer retains the typeface, so the object that was given can be disposed. */
   set typeface(value: Typeface | undefined) {
+    if (value !== undefined && !(value instanceof Typeface)) {
+      throw new TypeError("typeface must be a Typeface, or undefined to clear it.");
+    }
     getNativeBindings().TRRendererSetTypeface(this.nativeHandle, value?.nativeHandle);
   }
 
@@ -216,7 +238,11 @@ export class Renderer extends NativeObject<"TRRenderer"> {
     getNativeBindings().TRRendererSetRenderScale(this.nativeHandle, value);
   }
 
-  /** The direction of the runs that are passed in. In a right-to-left run the pen moves left before a glyph. */
+  /**
+   * The direction of the runs that are passed in. In a right-to-left run the pen moves left before a
+   * glyph. A value that is not a `WritingDirection` is kept and returned as it is, and Core treats
+   * the runs as left to right.
+   */
   get writingDirection(): WritingDirection {
     return getNativeBindings().TRRendererGetWritingDirection(this.nativeHandle) as WritingDirection;
   }
@@ -341,9 +367,10 @@ export class Renderer extends NativeObject<"TRRenderer"> {
   }
 
   /**
-   * Tells whether the renderer has what it needs to render: a typeface, and a size of at least one
-   * pixel in each direction, counting the scales and the render scale. A scale of zero or a negative
-   * one makes it not renderable.
+   * Tells whether the size is at least one pixel in each direction, counting the type size, the
+   * scales and the render scale. It does not depend on the typeface: a new renderer is renderable,
+   * and with no typeface it still makes no images or paths. A scale of zero or a negative one makes
+   * it not renderable.
    */
   get isRenderable(): boolean {
     return getNativeBindings().TRRendererIsRenderable(this.nativeHandle);

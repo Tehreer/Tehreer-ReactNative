@@ -119,7 +119,7 @@ const tests: Test[] = [
     check(renderer.strokeRadius === 0.5 && renderer.strokeMiter === 1 && renderer.strokeCap === 0 && renderer.strokeJoin === 0, 'stroke');
     check(renderer.shadowRadius === 0 && renderer.shadowDx === 0 && renderer.shadowDy === 0 && renderer.shadowColor === 0, 'shadow');
     check(renderer.drawStyle === DrawStyle.Fill, 'draw style');
-    check(!renderer.isRenderable, 'not renderable without a typeface');
+    check(renderer.isRenderable, 'renderable by size even without a typeface');
 
     const cache = renderer.glyphCache;
     check(cache !== undefined && cache.equals(GlyphCache.default), 'the default cache');
@@ -202,7 +202,7 @@ const tests: Test[] = [
     again?.dispose();
 
     renderer.typeface = undefined;
-    check(renderer.typeface === undefined && !renderer.isRenderable, 'undefined clears the typeface');
+    check(renderer.typeface === undefined && renderer.isRenderable, 'undefined clears the typeface, the size still renders');
     check(renderer.getGlyphImage(GlyphA) === undefined, 'nothing is made without a typeface');
     renderer.glyphCache = undefined;
     // Read through a function: after the assignment above, TypeScript narrows the property to undefined.
@@ -284,7 +284,7 @@ const tests: Test[] = [
     [base, scaled, smaller, wide, tall, skewed, renderer, cache, typeface].forEach((object) => object.dispose());
   }],
 
-  ['isRenderable follows the typeface and the size', () => {
+  ['isRenderable follows the size and the scales, not the typeface', () => {
     const { renderer, cache, typeface } = fixture();
     check(renderer.isRenderable, 'renderable');
     renderer.typeSize = 1;
@@ -626,8 +626,14 @@ const tests: Test[] = [
     expectThrows(() => renderer.generatePath({ ...run, glyphOffsets: [{ x: 0, y: 0 }] }), /offsets/, 'RangeError');
     expectThrows(() => renderer.getGlyphPlacements(2 as GlyphImageKind, run), /GlyphImageKind/, 'RangeError');
     expectThrows(() => renderer.getGlyphPlacements(-1 as GlyphImageKind, run), /GlyphImageKind/, 'RangeError');
-    expectThrows(() => renderer.computeRunInkBox({ ...run, glyphOffsets: [{ x: 'a', y: 0 }, noOffsets[1], noOffsets[2]] as never }), /offsets\.x.*must be a number/);
+    expectThrows(() => renderer.computeRunInkBox({ ...run, glyphOffsets: [{ x: 'a', y: 0 }, noOffsets[1], noOffsets[2]] as never }), /glyphOffsets\[0\].*finite/, 'RangeError');
 
+    expectThrows(() => { renderer.typeface = {} as unknown as Typeface; }, /typeface must be a Typeface/, 'TypeError');
+    expectThrows(() => { renderer.glyphCache = 5 as unknown as GlyphCache; }, /glyphCache must be a GlyphCache/, 'TypeError');
+    check(renderer.typeface !== undefined, 'a refused typeface does not clear the old one');
+    expectThrows(() => renderer.computeRunInkBox(null as never), /run must be an object/, 'TypeError');
+    expectThrows(() => renderer.computeRunInkBox({ ...run, glyphAdvances: [1, Number.NaN, 3] }), /glyphAdvances\[1\].*finite/, 'RangeError');
+    expectThrows(() => renderer.computeRunInkBox({ ...run, glyphOffsets: [{ x: Number.POSITIVE_INFINITY, y: 0 }, noOffsets[1], noOffsets[2]] as never }), /glyphOffsets\[0\].*finite/, 'RangeError');
     expectThrows(() => { renderer.typeSize = Number.NaN; }, /NaN/, 'RangeError');
     expectThrows(() => { renderer.strokeRadius = Number.NaN; }, /NaN/, 'RangeError');
     expectThrows(() => { renderer.typeSize = '12' as unknown as number; }, /must be a number/);
