@@ -14,6 +14,9 @@ void InstallCallbackBindings(facebook::jsi::Runtime &runtime, facebook::jsi::Obj
 #ifndef NDEBUG
 /** The `test*` functions for callbacks, which only debug builds contain. */
 void InstallCallbackTestHooks(facebook::jsi::Runtime &runtime, facebook::jsi::Object &target);
+
+/** The `test*` functions for the native data of glyph images (see `GlyphImageNativeData.h`). */
+void InstallGlyphImageTestHooks(facebook::jsi::Runtime &runtime, facebook::jsi::Object &target);
 #endif
 
 } // namespace tehreer
