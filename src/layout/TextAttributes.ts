@@ -25,7 +25,11 @@ export interface RunAttributes {
   readonly underline?: boolean;
   readonly strikethrough?: boolean;
   readonly decorationColor?: Color;
-  /** A whole number that the application chooses, which glyph runs give back. */
+  /**
+   * A whole number that the application chooses, which glyph runs give back. Core keeps it as a
+   * pointer, so 0 is its `NULL`: it means no user data and cannot be told from an unset one. Use a
+   * token above 0.
+   */
   readonly userData?: number;
   /** The OpenType language tag; see `ShapingEngine.getLanguageTag()`. */
   readonly languageTag?: SfntTag;

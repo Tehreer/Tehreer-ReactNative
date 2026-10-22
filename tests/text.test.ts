@@ -697,3 +697,12 @@ test("use after dispose throws, and dispose can be repeated", () => {
   assert.throws(() => live.setAttributes(0, 1, { typeface: disposedFace }), /already disposed/);
   assert.deepEqual(live.getAttributeRun(0), { attributes: {}, length: 1 });
 });
+
+test("user data of 0 and of a token are passed through and read back", () => {
+  const text = new TMutableText("ab");
+  text.setAttributes(0, 1, { userData: 0 });
+  text.setAttributes(1, 2, { userData: 7 });
+  assert.equal(text.getAttributeRun(0)?.attributes["userData"], 0);
+  assert.equal(text.getAttributeRun(1)?.attributes["userData"], 7);
+  assert.ok(calls.includes("setAttribute 0 1 20") && calls.includes("setAttribute 1 1 20"));
+});
