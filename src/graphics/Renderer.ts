@@ -221,6 +221,7 @@ export class Renderer extends NativeObject<"TRRenderer"> {
     return getNativeBindings().TRRendererGetWritingDirection(this.nativeHandle) as WritingDirection;
   }
 
+  /** Sets `writingDirection`; see the getter. */
   set writingDirection(value: WritingDirection) {
     getNativeBindings().TRRendererSetWritingDirection(this.nativeHandle, value);
   }
@@ -254,6 +255,7 @@ export class Renderer extends NativeObject<"TRRenderer"> {
     return getNativeBindings().TRRendererGetStrokeCap(this.nativeHandle) as StrokeCap;
   }
 
+  /** Sets `strokeCap`; see the getter. */
   set strokeCap(value: StrokeCap) {
     getNativeBindings().TRRendererSetStrokeCap(this.nativeHandle, value);
   }
@@ -263,6 +265,7 @@ export class Renderer extends NativeObject<"TRRenderer"> {
     return getNativeBindings().TRRendererGetStrokeJoin(this.nativeHandle) as StrokeJoin;
   }
 
+  /** Sets `strokeJoin`; see the getter. */
   set strokeJoin(value: StrokeJoin) {
     getNativeBindings().TRRendererSetStrokeJoin(this.nativeHandle, value);
   }
@@ -317,6 +320,7 @@ export class Renderer extends NativeObject<"TRRenderer"> {
     getNativeBindings().TRRendererSetShadowDy(this.nativeHandle, value);
   }
 
+  /** The color of the shadow, which is transparent black by default. */
   get shadowColor(): Color {
     return getNativeBindings().TRRendererGetShadowColor(this.nativeHandle) >>> 0;
   }
@@ -331,6 +335,7 @@ export class Renderer extends NativeObject<"TRRenderer"> {
     return getNativeBindings().TRRendererGetDrawStyle(this.nativeHandle) as DrawStyle;
   }
 
+  /** Sets `drawStyle`; see the getter. */
   set drawStyle(value: DrawStyle) {
     getNativeBindings().TRRendererSetDrawStyle(this.nativeHandle, value);
   }

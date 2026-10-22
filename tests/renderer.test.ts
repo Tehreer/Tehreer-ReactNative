@@ -37,6 +37,7 @@ const state = {
   pixels: new Uint8Array([1, 2, 3, 4, 5, 6]),
   imageBytes: 6,
   breakPlacement: -1,
+  pixelAsks: 0,
 };
 
 function handle(kind: string): FakeHandle {
@@ -100,7 +101,8 @@ before(async () => {
       h.disposed = true;
     },
     handleEquals: (a: FakeHandle, b: FakeHandle) => live(a).id === live(b).id,
-    isHandleMutable: () => false,
+    // Like the real one: a glyph image handle is not a const ref type, so it counts as mutable.
+    isHandleMutable: () => true,
     TRRendererCreate: () => handle("TRRenderer"),
     TRRendererGetGlyphCache: (h: FakeHandle) => (live_("TRRenderer", h), state.cacheMissing ? undefined : handle("TRGlyphCache")),
     TRRendererSetGlyphCache(h: FakeHandle, cache: FakeHandle | undefined) {
@@ -167,7 +169,7 @@ before(async () => {
     TRGlyphImageGetWidth: (h: FakeHandle) => (live_("TRGlyphImage", h), 3),
     TRGlyphImageGetHeight: (h: FakeHandle) => (live_("TRGlyphImage", h), 2),
     TRGlyphImageGetByteCount: (h: FakeHandle) => (live_("TRGlyphImage", h), state.imageBytes),
-    TRGlyphImageGetPixelsPtr: (h: FakeHandle) => (live_("TRGlyphImage", h), { memory: state.pixels.buffer }),
+    TRGlyphImageGetPixelsPtr: (h: FakeHandle) => (live_("TRGlyphImage", h), state.pixelAsks++, { memory: state.pixels.buffer }),
     createPointerBuffer: (view: { memory: ArrayBuffer }) => view.memory,
   };
 });
@@ -453,7 +455,9 @@ test("a glyph image reads its properties from Core and copies its pixels when as
   assert.equal(image.height, 2);
   assert.equal(image.byteCount, 6);
 
+  const asked = state.pixelAsks;
   const pixels = image.pixels;
+  assert.ok(state.pixelAsks > asked + 1, "a mutable handle is read through a refresh, which asks Core for the pointer again");
   assert.deepEqual(pixels, new Uint8Array([1, 2, 3, 4, 5, 6]));
   pixels[0] = 99;
   assert.equal(image.pixels[0], 1, "a copy: writing to it changes nothing");

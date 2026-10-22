@@ -1,4 +1,5 @@
 import { coreNumbers } from "../collections/CoreList.js";
+import type { MemoryState } from "../collections/CoreMemory.js";
 import { adopt } from "../internal/Adopt.js";
 import { getNativeBindings } from "../internal/NativeBindings.js";
 import type { Handle } from "../internal/NativeFunctions.js";
@@ -65,6 +66,13 @@ export class GlyphImage extends NativeObject<"TRGlyphImage"> {
     if (byteCount === 0) {
       return new Uint8Array(0);
     }
-    return coreNumbers(this, b.TRGlyphImageGetPixelsPtr(handle), byteCount, "UInt8").toTypedArray();
+    // The handle is marked mutable (it is not a const ref type), so a list over its memory keeps no
+    // pointer and asks Core again on each read. The pixels of an image never change.
+    const source = (): MemoryState => {
+      const bindings = getNativeBindings();
+      const owner = this.nativeHandle;
+      return { pointer: bindings.TRGlyphImageGetPixelsPtr(owner), length: bindings.TRGlyphImageGetByteCount(owner) };
+    };
+    return coreNumbers(this, b.TRGlyphImageGetPixelsPtr(handle), byteCount, "UInt8", source).toTypedArray();
   }
 }

@@ -195,8 +195,7 @@ export class Path implements PathSink {
         throw new Error("Core stopped the enumeration of a path.");
       }
 
-      const path = Path.fromElements(elements);
-      return path;
+      return Path.fromElements(elements);
     } finally {
       bindings.disposeHandle(handle);
     }
