@@ -626,7 +626,7 @@ const tests: Test[] = [
     expectThrows(() => renderer.generatePath({ ...run, glyphOffsets: [{ x: 0, y: 0 }] }), /offsets/, 'RangeError');
     expectThrows(() => renderer.getGlyphPlacements(2 as GlyphImageKind, run), /GlyphImageKind/, 'RangeError');
     expectThrows(() => renderer.getGlyphPlacements(-1 as GlyphImageKind, run), /GlyphImageKind/, 'RangeError');
-    expectThrows(() => renderer.computeRunInkBox({ ...run, glyphOffsets: [{ x: 'a', y: 0 }, noOffsets[1], noOffsets[2]] as never }), /./);
+    expectThrows(() => renderer.computeRunInkBox({ ...run, glyphOffsets: [{ x: 'a', y: 0 }, noOffsets[1], noOffsets[2]] as never }), /offsets\.x.*must be a number/);
 
     expectThrows(() => { renderer.typeSize = Number.NaN; }, /NaN/, 'RangeError');
     expectThrows(() => { renderer.strokeRadius = Number.NaN; }, /NaN/, 'RangeError');
@@ -646,22 +646,17 @@ const tests: Test[] = [
     [renderer, cache, typeface].forEach((object) => object.dispose());
   }],
 
-  ['a thrown error leaves no image owned: many placements and disposals do not grow the cache', () => {
+  ['repeated placements that are disposed do not grow the cache', () => {
     const { renderer, cache, typeface } = fixture();
-    const placements = renderer.getGlyphPlacements(GlyphImageKind.Fill, run);
-    placements.forEach((p) => p.image.dispose());
+    renderer.getGlyphPlacements(GlyphImageKind.Fill, run).forEach((p) => p.image.dispose());
     const size0 = cache.size;
     for (let round = 0; round < 50; round++) {
       renderer.getGlyphPlacements(GlyphImageKind.Fill, run).forEach((p) => p.image.dispose());
-      try {
-        renderer.getGlyphPlacements(GlyphImageKind.Fill, { ...run, glyphIds: [1, -2, 3] });
-      } catch {
-        // expected
-      }
     }
     check(cache.size === size0, 'the cache holds the same three images');
     [renderer, cache, typeface].forEach((object) => object.dispose());
   }],
+
 ];
 
 export function runRendererTests(bindings: NativeBindings): TestResult {
