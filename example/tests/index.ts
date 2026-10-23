@@ -8,6 +8,7 @@ import { runTypefaceManagerTests, typefaceManagerTestCount } from './TypefaceMan
 import { pathTestCount, runPathTests } from './PathTests';
 import { rendererTestCount, runRendererTests } from './RendererTests';
 import { runShapingTests, shapingTestCount } from './ShapingTests';
+import { runTextTests, textTestCount } from './TextTests';
 import { runUnicodeTests, unicodeTestCount } from './UnicodeTests';
 import { fontBytes } from './fontData';
 import { NativeObject } from '../../src/internal/NativeObject';
@@ -101,6 +102,13 @@ export const suites: readonly Suite[] = [
     run: (bindings) => {
       const result = runUnicodeTests(bindings);
       return { passed: result.passed, total: unicodeTestCount, failures: result.failures };
+    },
+  },
+  {
+    name: 'text',
+    run: (bindings) => {
+      const result = runTextTests(bindings);
+      return { passed: result.passed, total: textTestCount, failures: result.failures };
     },
   },
 ];

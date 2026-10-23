@@ -8,6 +8,7 @@
 #include "PointerBuffers.h"
 #include "SheenBidiBindings.h"
 #include "StructCodecs.h"
+#include "TextBindings.h"
 
 #include <Tehreer/Tehreer.h>
 
@@ -222,6 +223,7 @@ void InstallBindings(jsi::Runtime &runtime) {
     jsi::Object bindings(runtime);
     generated::InstallBindings(runtime, bindings);
     InstallCallbackBindings(runtime, bindings);
+    InstallTextBindings(runtime, bindings);
     InstallPointerBindings(runtime, bindings);
     InstallSheenBidiBindings(runtime, bindings);
 
