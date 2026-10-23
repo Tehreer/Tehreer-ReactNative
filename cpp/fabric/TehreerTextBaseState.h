@@ -1,6 +1,7 @@
 #pragma once
 
 #include "ComposedFrameBox.h"
+#include "FrameRegistry.h"
 #include "TextFrameComposer.h"
 
 #include <react/renderer/core/ConcreteState.h>
@@ -42,7 +43,12 @@ public:
         TehreerTextBaseFrameKey key,
         tehreer::fabric::ComposeStatus status,
         std::shared_ptr<const tehreer::fabric::ComposedFrameBox> frame)
-        : key(std::move(key)), status(status), frame(std::move(frame)) {}
+        : key(std::move(key)), status(status), frame(std::move(frame)) {
+#ifdef RN_SERIALIZABLE_STATE
+        // The Kotlin view finds the frame by this id (the state can only hand it numbers).
+        tehreer::fabric::FrameRegistry::Register(this->frame);
+#endif
+    }
 
     TehreerTextBaseFrameKey key;
     tehreer::fabric::ComposeStatus status{tehreer::fabric::ComposeStatus::EmptyText};
@@ -62,8 +68,9 @@ public:
 
     /**
      * What a Kotlin view can read without JNI: 0 status, 1 line count, 2 and 3 the bounds of the
-     * frame, 4 and 5 the box it was composed for. A painter that needs the frame itself reads it
-     * from the state through a JNI function instead (issue #24).
+     * frame, 4 and 5 the box it was composed for, 6 the id of the frame (0 for none) that the
+     * painter hands to `FrameRegistry::Find` through JNI. The registry only holds weak references,
+     * so the id is valid while the state it was read from is alive.
      */
     MapBuffer getMapBuffer() const {
         MapBufferBuilder builder;
@@ -73,6 +80,7 @@ public:
         builder.putDouble(3, frameHeight());
         builder.putDouble(4, key.size.width);
         builder.putDouble(5, key.size.height);
+        builder.putInt(6, frame ? static_cast<int>(frame->id()) : 0);
         return builder.build();
     }
 #endif

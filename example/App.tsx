@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { getVersion, initialize } from 'tehreer-react-native';
 import type { NativeBindings } from '../src/internal/NativeBindings';
 import { releaseSuiteNames, suites } from './tests';
@@ -8,6 +8,7 @@ import { loadFonts } from './tests/fontData';
 import { runSuites } from './tests/runSuites';
 import type { SuiteReport } from './tests/runSuites';
 import { ViewTestHost } from './tests/ViewTests';
+import { VisualCheck } from './tests/VisualCheck';
 
 interface Result {
   version: string;
@@ -55,6 +56,8 @@ export default function App() {
   const [result, setResult] = useState<Result | undefined>();
   const [error, setError] = useState<string | undefined>();
   const [pending, setPending] = useState<SyncRun | undefined>();
+  // The screen that QA looks at; the tests run and report whether or not it is shown.
+  const [visual, setVisual] = useState(false);
 
   useEffect(() => {
     // The fonts are fetched assets, so the suites wait for them; a font that cannot be fetched is an error.
@@ -94,6 +97,11 @@ export default function App() {
     }
   }, [finish, pending]);
 
+  // The check replaces the test screen; the run has finished by the time the button is there.
+  if (__DEV__ && visual) {
+    return <VisualCheck onClose={() => setVisual(false)} />;
+  }
+
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Tehreer</Text>
@@ -106,13 +114,20 @@ export default function App() {
       <Text testID="tests" style={styles.text}>
         {`Tests: ${result ? `${result.passed}/${result.total}` : '...'}`}
       </Text>
+      {__DEV__ && pending !== undefined && (
+        <Pressable onPress={() => setVisual(true)} style={styles.button} testID="showVisual">
+          <Text style={styles.buttonText}>Show frames</Text>
+        </Pressable>
+      )}
       {__DEV__ && pending !== undefined && <ViewTestHost onDone={finish} />}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#ffffff' },
+  container: { flex: 1, alignItems: 'center', justifyContent: 'flex-start', paddingTop: 64, backgroundColor: '#ffffff' },
   title: { fontSize: 28, fontWeight: '600', marginBottom: 16, color: '#000000' },
+  button: { marginVertical: 6, paddingVertical: 6, paddingHorizontal: 12, backgroundColor: '#dddddd' },
+  buttonText: { fontSize: 16, color: '#000000' },
   text: { fontSize: 18, color: '#000000', marginVertical: 4 },
 });

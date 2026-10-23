@@ -1,14 +1,20 @@
 #import "TehreerTextBaseView.h"
 
+#import "TehreerCoreGraphicsPainter.h"
 #import "fabric/TehreerTextBaseComponentDescriptor.h"
+#import "painter/PaintCallbacks.h"
 
 #import <react/renderer/components/TehreerSpec/EventEmitters.h>
 #import <react/renderer/components/TehreerSpec/Props.h>
+
+#include <memory>
 
 using namespace facebook::react;
 
 @implementation TehreerTextBaseView {
   TehreerTextBaseShadowNode::ConcreteState::Shared _state;
+  // The renderer of this view; the UI thread is the only one that draws with it.
+  std::unique_ptr<tehreer::painter::FramePainter> _painter;
 }
 
 + (ComponentDescriptorProvider)componentDescriptorProvider
@@ -22,8 +28,11 @@ using namespace facebook::react;
     static const auto defaultProps = std::make_shared<const TehreerTextBaseProps>();
     _props = defaultProps;
 
-    // Only so that the measured size can be seen; painting the frame is for the painters.
-    self.backgroundColor = [UIColor colorWithRed:0.20 green:0.45 blue:0.85 alpha:0.35];
+    _painter = std::make_unique<tehreer::painter::FramePainter>();
+
+    // The text is drawn by drawRect: onto a clear background, and again when the box changes size.
+    self.opaque = NO;
+    self.contentMode = UIViewContentModeRedraw;
   }
   return self;
 }
@@ -31,6 +40,7 @@ using namespace facebook::react;
 - (void)updateState:(const State::Shared &)state oldState:(const State::Shared &)oldState
 {
   _state = std::static_pointer_cast<const TehreerTextBaseShadowNode::ConcreteState>(state);
+  [self setNeedsDisplay];
   if (!_state || !_eventEmitter) {
     return;
   }
@@ -43,9 +53,29 @@ using namespace facebook::react;
                       .height = static_cast<Float>(data.frameHeight())});
 }
 
+// Core drew the frame's lines, runs and glyphs into a layout of its own: the view only provides
+// the context. The frame is shared and immutable, and the state keeps it alive while it is drawn.
+- (void)drawRect:(CGRect)rect
+{
+  if (!_state || !_painter) {
+    return;
+  }
+  const auto &frame = _state->getData().frame;
+  CGContextRef context = UIGraphicsGetCurrentContext();
+  if (!frame || context == nullptr) {
+    return;
+  }
+
+  // The scale of the display is the render scale: one glyph pixel is one device pixel.
+  CGFloat scale = self.contentScaleFactor > 0 ? self.contentScaleFactor : UIScreen.mainScreen.scale;
+  tehreer::ios::CoreGraphicsPainter target(context, static_cast<float>(scale));
+  _painter->Draw(frame->get(), target, static_cast<float>(scale));
+}
+
 - (void)prepareForRecycle
 {
   _state.reset();
+  [self setNeedsDisplay];
   [super prepareForRecycle];
 }
 

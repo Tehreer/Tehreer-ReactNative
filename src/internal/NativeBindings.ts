@@ -231,6 +231,28 @@ export interface NativeBindings extends NativeFunctions, SheenBidiFunctions {
   testGetNativeDataSerial?(image: Handle<"TRGlyphImage">): number;
   /** How many probes were made and how many destroyed, in this process. */
   testGetNativeDataCounts?(): { created: number; destroyed: number };
+  /**
+   * Draws a composed frame with the native painter of the platform (an Android `Canvas` over a
+   * `Bitmap`, a UIKit image context) onto a canvas that is cleared to `background`, at the render
+   * scale of the renderer, with the frame's top left at the origin, and returns the pixels: RGBA,
+   * 8 bits each, premultiplied, row by row from the top. `width` and `height` are in layout units
+   * (the canvas has `round(width * renderScale)` pixels across). The callbacks the renderer had
+   * are put back afterwards. `replacement(context, run, x, y)` is called for the runs that have a
+   * replacement, with a drawing context whose `fillRect`, `drawGlyphImage`, `beginShadow` and
+   * `endShadow` go to the same painter, and a handle of the run that it must dispose.
+   */
+  testPaintFrame?(
+    frame: Handle<"TRComposedFrame">,
+    renderer: Handle<"TRRenderer">,
+    options: {
+      width: number;
+      height: number;
+      background: number;
+      replacement?: (context: Record<string, unknown>, run: Handle<"TRGlyphRun">, x: number, y: number) => void;
+    },
+  ): { width: number; height: number; pixels: ArrayBuffer };
+  /** How many platform images (bitmaps, layers) painters made and destroyed, in this process. */
+  testGetPaintCounts?(): { created: number; destroyed: number };
 }
 
 export const nativeBindingsName = "__tehreer";
