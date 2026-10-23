@@ -368,11 +368,15 @@ const tests: Test[] = [
     };
     for (const options of [{ width: 0, height: 10 }, { width: 10, height: -1 }, { width: NaN, height: 10 }, { width: 5000, height: 10 }]) {
       const message = thrown(() => b.testPaintFrame!(frame, renderer, { ...options, background: WHITE }));
-      check(/RangeError|Error/.test(message) && message !== 'nothing', `${JSON.stringify(options)}: ${message}`);
+      // A size outside the canvas limits (or NaN) is a RangeError, nothing else.
+      check(message.startsWith('RangeError:'), `${JSON.stringify(options)}: ${message}`);
     }
-    check(thrown(() => b.testPaintFrame!(renderer as never, renderer, { width: 10, height: 10, background: WHITE })) !== 'nothing', 'a renderer is not a frame');
+    // A handle of the wrong group is a plain Error from the marshalling, not a RangeError.
+    const wrongGroup = thrown(() => b.testPaintFrame!(renderer as never, renderer, { width: 10, height: 10, background: WHITE }));
+    check(wrongGroup.startsWith('Error:') && /must be a/.test(wrongGroup), `a renderer is not a frame: ${wrongGroup}`);
     built.dispose();
-    check(/disposed/.test(thrown(() => b.testPaintFrame!(frame, renderer, { width: 10, height: 10, background: WHITE }))), 'a disposed frame');
+    const disposed = thrown(() => b.testPaintFrame!(frame, renderer, { width: 10, height: 10, background: WHITE }));
+    check(disposed.startsWith('Error:') && /already disposed/.test(disposed), `a disposed frame: ${disposed}`);
   }],
 ];
 

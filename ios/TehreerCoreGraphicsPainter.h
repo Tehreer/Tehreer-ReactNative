@@ -40,6 +40,8 @@ private:
     CGContextRef _context;
     float _density;
     bool _inShadow = false;
+    /** Open shadow scopes, nested ones included; only the outermost one makes a layer. */
+    int _scopeDepth = 0;
 };
 
 } // namespace tehreer::ios

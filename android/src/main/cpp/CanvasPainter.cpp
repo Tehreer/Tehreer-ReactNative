@@ -29,13 +29,14 @@ void DestroyGlyphBitmap(void *data) {
     {
         ScopedEnv scoped;
         if (JNIEnv *env = scoped.get()) {
-            if (const Jni *jni = GetJni(env)) {
-                // The memory goes now instead of with the next garbage collection.
-                env->CallVoidMethod(glyphBitmap->bitmap, jni->recycle);
-                ClearException(env);
-            }
+            // Only the reference goes: the bitmap is not recycled, because the RenderThread of a
+            // hardware accelerated canvas may still read it for a frame that was recorded before
+            // the image was evicted. The garbage collector frees it once nothing uses it.
             env->DeleteGlobalRef(glyphBitmap->bitmap);
         }
+        // Without an environment (no VM, or the thread cannot be attached) the global reference
+        // is leaked on purpose: there is no other way to delete it, and Core's destroy callback
+        // cannot report a failure.
     }
     delete glyphBitmap;
     PaintCounters::Destroyed().fetch_add(1);
@@ -186,18 +187,31 @@ void CanvasPainter::DrawGlyphImage(TRGlyphImageRef image, TRPoint origin, TRFloa
     float height = static_cast<float>(TRGlyphImageGetHeight(image)) * scaleY;
     _env->CallVoidMethod(_rectF, _jni->rectFSet, origin.x, origin.y, origin.x + width, origin.y + height);
 
+    if (HasPendingException()) {
+        return;
+    }
+
+    // save and restore stay balanced: restore is not called with an exception pending, and a
+    // failed save is never restored.
+    bool saved = false;
     if (clip != nullptr) {
         _env->CallIntMethod(_target, _jni->save);
+        if (HasPendingException()) {
+            return;
+        }
+        saved = true;
         _env->CallBooleanMethod(_target, _jni->clipRect, clip->origin.x, clip->origin.y, clip->origin.x + clip->size.width,
                                 clip->origin.y + clip->size.height);
+        HasPendingException();
     }
 
     _env->CallVoidMethod(_target, _jni->drawBitmapRects, data->bitmap, static_cast<jobject>(nullptr), _rectF, _paint);
-
-    if (clip != nullptr) {
-        _env->CallVoidMethod(_target, _jni->restore);
-    }
     HasPendingException();
+
+    if (saved) {
+        _env->CallVoidMethod(_target, _jni->restore);
+        HasPendingException();
+    }
 }
 
 void CanvasPainter::FillRect(TRRect rect, TRColor color) {
@@ -212,7 +226,14 @@ void CanvasPainter::FillRect(TRRect rect, TRColor color) {
 }
 
 void CanvasPainter::BeginShadow(TRFloat radius, TRFloat dx, TRFloat dy, TRColor color) {
-    if (!IsReady() || _inShadow) {
+    if (!IsReady()) {
+        return;
+    }
+
+    // Every Begin is counted, whether or not it made a layer, so that each End closes its own
+    // scope and a nested one does not end the outer one.
+    _scopeDepth++;
+    if (_inShadow || _scopeDepth > 1) {
         return;
     }
 
@@ -258,6 +279,9 @@ void CanvasPainter::BeginShadow(TRFloat radius, TRFloat dx, TRFloat dy, TRColor 
     _env->CallIntMethod(_layerCanvas, _jni->save);
     _env->CallVoidMethod(_layerCanvas, _jni->translate, static_cast<float>(-left), static_cast<float>(-top));
     if (HasPendingException()) {
+        // The layer is not in use: leave its canvas as it was found.
+        _env->CallVoidMethod(_layerCanvas, _jni->restore);
+        HasPendingException();
         return;
     }
 
@@ -272,13 +296,26 @@ void CanvasPainter::BeginShadow(TRFloat radius, TRFloat dx, TRFloat dy, TRColor 
 }
 
 void CanvasPainter::EndShadow() {
-    if (!IsReady() || !_inShadow) {
+    if (!IsReady() || _scopeDepth == 0) {
+        return;
+    }
+    if (--_scopeDepth > 0 || !_inShadow) {
         return;
     }
 
     _inShadow = false;
     _target = _canvas;
     _env->CallVoidMethod(_layerCanvas, _jni->restore);
+    if (HasPendingException()) {
+        return;
+    }
+
+    // Every object made below is a local reference, and a frame frees them all on every path:
+    // the filter, the mask and the filter that setMaskFilter returns (the previous one).
+    if (_env->PushLocalFrame(16) != JNI_OK) {
+        ClearException(_env);
+        return;
+    }
 
     if (_blurPaint == nullptr) {
         _blurPaint = Retained(_env->NewObject(_jni->paint, _jni->paintInit));
@@ -295,7 +332,6 @@ void CanvasPainter::EndShadow() {
         jobject filter = _env->NewObject(_jni->blurFilter, _jni->blurFilterInit, _shadowRadius, _jni->blurNormal);
         if (!HasPendingException() && filter != nullptr) {
             _env->CallObjectMethod(_blurPaint, _jni->setMaskFilter, filter);
-            _env->DeleteLocalRef(filter);
 
             // The mask is the blurred coverage of the layer; the blur grows it, and the offsets say
             // where it goes to line up with the layer.
@@ -307,7 +343,6 @@ void CanvasPainter::EndShadow() {
                 _env->CallVoidMethod(_paint, _jni->setFilterBitmap, static_cast<jboolean>(false));
                 _env->CallVoidMethod(_canvas, _jni->drawBitmapAt, mask, static_cast<float>(_layerLeft + offsets[0]) + _shadowDx,
                                      static_cast<float>(_layerTop + offsets[1]) + _shadowDy, _paint);
-                _env->DeleteLocalRef(mask);
             }
         }
     }
@@ -317,12 +352,13 @@ void CanvasPainter::EndShadow() {
     _env->CallVoidMethod(_canvas, _jni->drawBitmapAt, _layerBitmap, static_cast<float>(_layerLeft), static_cast<float>(_layerTop),
                          _paint);
     HasPendingException();
+    _env->PopLocalFrame(nullptr);
 }
 
 void CanvasPainter::ReleaseLayer() {
     if (_layerBitmap != nullptr) {
-        _env->CallVoidMethod(_layerBitmap, _jni->recycle);
-        ClearException(_env);
+        // Not recycled, for the reason given at DestroyGlyphBitmap: a hardware canvas may still
+        // read the layer after the draw call that made it.
         _env->DeleteGlobalRef(_layerBitmap);
         _layerBitmap = nullptr;
     }

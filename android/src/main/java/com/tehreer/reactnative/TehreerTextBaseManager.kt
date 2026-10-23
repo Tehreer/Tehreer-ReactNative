@@ -22,7 +22,7 @@ class TehreerTextBaseManager : SimpleViewManager<TehreerTextBaseView>() {
     override fun updateState(view: TehreerTextBaseView, props: ReactStylesDiffMap?, stateWrapper: StateWrapper): Any? {
         val state = stateWrapper.stateDataMapBuffer ?: return null
         // Key 6 of TehreerTextBaseStateData::getMapBuffer: the id of the frame to paint.
-        view.setFrame(state.getInt(6))
+        view.setComposedFrame(state.getInt(6))
         val context = view.context as? ThemedReactContext ?: return null
         val dispatcher = UIManagerHelper.getEventDispatcherForReactTag(context, view.id) ?: return null
         // Keys 1 to 3 of TehreerTextBaseStateData::getMapBuffer: line count and bounds of the frame.
@@ -39,7 +39,7 @@ class TehreerTextBaseManager : SimpleViewManager<TehreerTextBaseView>() {
     }
 
     override fun prepareToRecycleView(reactContext: ThemedReactContext, view: TehreerTextBaseView): TehreerTextBaseView? {
-        view.setFrame(0)
+        view.setComposedFrame(0)
         return super.prepareToRecycleView(reactContext, view)
     }
 

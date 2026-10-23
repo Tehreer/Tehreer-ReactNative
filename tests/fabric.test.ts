@@ -88,5 +88,5 @@ test("every JNI function that Kotlin declares is defined in C++ with the same na
 test("the Kotlin manager reads the frame id from the key that the state writes", () => {
   const state = read("cpp/fabric/TehreerTextBaseState.h");
   assert.match(state, /builder\.putInt\(6, frame \? static_cast<int>\(frame->id\(\)\) : 0\)/);
-  assert.match(read("android/src/main/java/com/tehreer/reactnative/TehreerTextBaseManager.kt"), /view\.setFrame\(state\.getInt\(6\)\)/);
+  assert.match(read("android/src/main/java/com/tehreer/reactnative/TehreerTextBaseManager.kt"), /view\.setComposedFrame\(state\.getInt\(6\)\)/);
 });

@@ -12,7 +12,7 @@ class TehreerTextBaseView(context: Context) : View(context) {
     private var painter: Long = TehreerPaintJni.create()
 
     /** Shows the frame of the id from the state (0 for none) and schedules a redraw. */
-    fun setFrame(frameId: Int) {
+    fun setComposedFrame(frameId: Int) {
         if (painter != 0L) {
             TehreerPaintJni.setFrame(painter, frameId)
             invalidate()

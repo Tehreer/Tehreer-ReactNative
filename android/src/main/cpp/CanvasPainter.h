@@ -16,6 +16,11 @@ namespace tehreer::android {
  * `Paint.setShadowLayer` of the framework does not draw shadows for bitmaps and is not supported
  * on a hardware accelerated canvas, which a view's canvas is.
  *
+ * The canvas must have no scale or rotation of its own (a view's canvas has none): the shadow
+ * layer is sized to the clip bounds, which are in the canvas's local units, and is composited at
+ * the same numbers, so both only agree with the pixels of the layer when a unit is a pixel. The
+ * view path never sets such a matrix; a caller that does must draw into a bitmap of its own.
+ *
  * It lives for one draw call on one thread, with the `JNIEnv` of that thread.
  */
 class CanvasPainter final : public painter::PaintTarget {
@@ -61,6 +66,8 @@ private:
     int _layerLeft = 0;
     int _layerTop = 0;
     bool _inShadow = false;
+    /** Open shadow scopes, nested ones included; only the outermost one makes a layer. */
+    int _scopeDepth = 0;
     float _shadowRadius = 0;
     float _shadowDx = 0;
     float _shadowDy = 0;

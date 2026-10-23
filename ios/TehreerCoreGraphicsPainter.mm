@@ -23,6 +23,18 @@ CGColorSpaceRef MaskSpace() {
     return space;
 }
 
+// A 1 by 1 context only tells CGLayerCreateWithContext which kind of layer to make, so one per
+// thread and kind is enough (images are made on whatever thread draws first). They are never freed.
+CGContextRef MaskHost() {
+    static thread_local CGContextRef host = CGBitmapContextCreate(nullptr, 1, 1, 8, 1, MaskSpace(), kCGImageAlphaOnly);
+    return host;
+}
+
+CGContextRef RgbHost() {
+    static thread_local CGContextRef host = CGBitmapContextCreate(nullptr, 1, 1, 8, 4, RgbSpace(), kCGImageAlphaPremultipliedFirst);
+    return host;
+}
+
 // Runs when Core destroys the image, on whichever thread releases the last reference.
 void DestroyGlyphLayer(void *data) {
     auto *glyphLayer = static_cast<GlyphLayer *>(data);
@@ -50,17 +62,17 @@ void *MakeGlyphLayer(TRGlyphImageRef image, void *) {
 
     CGRect rect = CGRectMake(0, 0, static_cast<CGFloat>(width), static_cast<CGFloat>(height));
     CGImageRef content = nullptr;
-    CGContextRef host = nullptr;
+    CGContextRef host = nullptr; // Borrowed.
 
     if (isAlpha) {
         static const CGFloat decode[2] = {1.0, 0.0};
         content = CGImageMaskCreate(width, height, 8, 8, width, provider, decode, false);
-        host = CGBitmapContextCreate(nullptr, 1, 1, 8, 1, MaskSpace(), kCGImageAlphaOnly);
+        host = MaskHost();
     } else {
         // Core's order is alpha first, with the colors premultiplied by it.
         CGBitmapInfo info = kCGBitmapByteOrder32Big | kCGImageAlphaPremultipliedFirst;
         content = CGImageCreate(width, height, 8, 32, width * 4, RgbSpace(), info, provider, nullptr, false, kCGRenderingIntentDefault);
-        host = CGBitmapContextCreate(nullptr, 1, 1, 8, 4, RgbSpace(), kCGImageAlphaPremultipliedFirst);
+        host = RgbHost();
     }
     CGDataProviderRelease(provider);
 
@@ -75,9 +87,6 @@ void *MakeGlyphLayer(TRGlyphImageRef image, void *) {
 
     if (content != nullptr) {
         CGImageRelease(content);
-    }
-    if (host != nullptr) {
-        CGContextRelease(host);
     }
     if (layer == nullptr) {
         return nullptr;
@@ -144,7 +153,10 @@ void CoreGraphicsPainter::FillRect(TRRect rect, TRColor color) {
 }
 
 void CoreGraphicsPainter::BeginShadow(TRFloat radius, TRFloat dx, TRFloat dy, TRColor color) {
-    if (_inShadow) {
+    // Every Begin is counted so that each End closes its own scope, and a nested one does not end
+    // the outer one.
+    _scopeDepth++;
+    if (_scopeDepth > 1) {
         return;
     }
 
@@ -164,7 +176,10 @@ void CoreGraphicsPainter::BeginShadow(TRFloat radius, TRFloat dx, TRFloat dy, TR
 }
 
 void CoreGraphicsPainter::EndShadow() {
-    if (!_inShadow) {
+    if (_scopeDepth == 0) {
+        return;
+    }
+    if (--_scopeDepth > 0 || !_inShadow) {
         return;
     }
 
