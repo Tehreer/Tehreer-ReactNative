@@ -19,13 +19,26 @@
     "cpp",
     "ios",
     "android",
-    "Libraries/TehreerCore",
+    "!android/build",
+    "!android/.cxx",
+    "!android/.gradle",
+    "!android/local.properties",
+    "Libraries/TehreerCore/Headers",
+    "Libraries/TehreerCore/Source",
+    "Libraries/TehreerCore/CMakeLists.txt",
+    "Libraries/TehreerCore/Tehreer.cmake.in",
+    "Libraries/TehreerCore/tehreer.pc.in",
+    "Libraries/TehreerCore/LICENSE",
+    "Libraries/TehreerCore/NOTICE",
+    "Libraries/Dependencies",
     "tehreer-react-native.podspec",
     "react-native.config.cjs",
     "LICENSE",
     "NOTICE"
   ],
   "scripts": {
+    "prepack": "node scripts/pack-vendor.mjs prepack",
+    "postpack": "node scripts/pack-vendor.mjs postpack",
     "build": "tsc -p tsconfig.build.json",
     "typecheck": "tsc -p tsconfig.json",
     "lint": "eslint .",
@@ -36,7 +49,8 @@
     "generate:unicode:check": "node scripts/generate-unicode-enums.mjs --check",
     "setup": "scripts/fetch-deps",
     "test:ios": "node scripts/test-device.mjs ios",
-    "test:android": "node scripts/test-device.mjs android"
+    "test:android": "node scripts/test-device.mjs android",
+    "test:packed": "node scripts/test-packed.mjs"
   },
   "peerDependencies": {
     "react": "*",

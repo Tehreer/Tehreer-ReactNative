@@ -124,3 +124,13 @@ The printing is in `generator/unicodeEnums.mjs`. The file is checked in, and `te
   declaration inside `#if 0` (or any conditional) is still bound. No Core header
   does this today; if one starts to, the parser must learn to reject it.
 - The SheenBidi bindings are written by hand (see the SheenBidi section), so the generator does not notice a change of SheenBidi's headers; `tests/sheenbidi.test.ts` does.
+
+# Packaging (`pack-vendor.mjs`, `test-packed.mjs`)
+
+The podspec and `android/CMakeLists.txt` compile Core and its dependencies from `Libraries/`, and nothing may be downloaded when an app is built, so the npm tarball carries them.
+
+- `npm pack` and `npm publish` run the `prepack` hook (`node scripts/pack-vendor.mjs prepack`). It fails with a message that says what to do when the Core submodule or `Libraries/Dependencies` is missing, empty or incomplete (`git submodule update --init`, `npm run setup`). Otherwise it puts a filtered copy of `Libraries/Dependencies` in its place and keeps the full tree in `Libraries/.Dependencies.full`; the `postpack` hook swaps them back. If a pack is killed half way, the next `prepack` or `node scripts/pack-vendor.mjs postpack` restores the full tree. It never changes `Libraries/TehreerCore`.
+- The allowlist is in `scripts/packaging/Vendor.mjs`: sources and headers (`.c .cc .cpp .h .hh .hpp .inc`), the few templates and CMake files that the CMake projects read, and every license, notice, authors and copying file of a dependency. Tests, docs, tools, Python and data files are left out. Core is packed by the `files` field of `package.json` (headers, sources, `CMakeLists.txt`, its two templates, license and notice; no tests, fonts or demo).
+- When a dependency is bumped and a CMake project starts to read another file, `npm run test:packed` fails (the build of the packed copy) and the file is added to the allowlist.
+- `node scripts/pack-vendor.mjs list` prints the files that would be packed, `check` only verifies.
+- `npm run test:packed` (`test-packed.mjs`) packs into `$TMPDIR/tehreer-rn-dev-42`, checks the tarball, builds Core with its CMake project from the extracted package, copies `example/` there with the extracted package in `node_modules`, and runs `gradlew :app:assembleDebug` for one ABI (offline) and `pod install` (`--ios-build` also runs `xcodebuild` of the pod). Options are in the header of the script. It needs about 4 GB of free disk space and deletes its scratch folder at the end.
