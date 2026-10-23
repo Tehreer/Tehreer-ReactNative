@@ -7,6 +7,7 @@ import { graphicsTestCount, runGraphicsTests } from './GraphicsTests';
 import { runTypefaceManagerTests, typefaceManagerTestCount } from './TypefaceManagerTests';
 import { pathTestCount, runPathTests } from './PathTests';
 import { drawingTestCount, runDrawingTests } from './DrawingTests';
+import { painterTestCount, runPainterTests } from './PainterTests';
 import { layoutTestCount, runLayoutTests } from './LayoutTests';
 import { rendererTestCount, runRendererTests } from './RendererTests';
 import { runShapingTests, shapingTestCount } from './ShapingTests';
@@ -135,6 +136,13 @@ export const suites: readonly Suite[] = [
     run: (bindings) => {
       const result = runDrawingTests(bindings);
       return { passed: result.passed, total: drawingTestCount, failures: result.failures };
+    },
+  },
+  {
+    name: 'painters',
+    run: (bindings) => {
+      const result = runPainterTests(bindings);
+      return { passed: result.passed, total: painterTestCount, failures: result.failures };
     },
   },
   {

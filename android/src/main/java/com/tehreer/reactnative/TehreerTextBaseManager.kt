@@ -12,7 +12,7 @@ import com.facebook.react.uimanager.events.Event
 /**
  * The view manager of `TehreerTextBase`. Props are read by the C++ shadow node, not by Kotlin, so
  * the manager has no setters. The shadow node's state is read as a map buffer (see
- * `TehreerTextBaseStateData::getMapBuffer`).
+ * `TehreerTextBaseStateData::getMapBuffer`), and the id of the frame in it goes to the native painter.
  */
 class TehreerTextBaseManager : SimpleViewManager<TehreerTextBaseView>() {
     override fun getName(): String = NAME
@@ -21,6 +21,8 @@ class TehreerTextBaseManager : SimpleViewManager<TehreerTextBaseView>() {
 
     override fun updateState(view: TehreerTextBaseView, props: ReactStylesDiffMap?, stateWrapper: StateWrapper): Any? {
         val state = stateWrapper.stateDataMapBuffer ?: return null
+        // Key 6 of TehreerTextBaseStateData::getMapBuffer: the id of the frame to paint.
+        view.setComposedFrame(state.getInt(6))
         val context = view.context as? ThemedReactContext ?: return null
         val dispatcher = UIManagerHelper.getEventDispatcherForReactTag(context, view.id) ?: return null
         // Keys 1 to 3 of TehreerTextBaseStateData::getMapBuffer: line count and bounds of the frame.
@@ -28,6 +30,17 @@ class TehreerTextBaseManager : SimpleViewManager<TehreerTextBaseView>() {
             FrameReadyEvent(UIManagerHelper.getSurfaceId(view), view.id, state.getInt(1), state.getDouble(2), state.getDouble(3)),
         )
         return null
+    }
+
+    // The frame is freed with the view, or when React Native reuses the view for another node.
+    override fun onDropViewInstance(view: TehreerTextBaseView) {
+        view.release()
+        super.onDropViewInstance(view)
+    }
+
+    override fun prepareToRecycleView(reactContext: ThemedReactContext, view: TehreerTextBaseView): TehreerTextBaseView? {
+        view.setComposedFrame(0)
+        return super.prepareToRecycleView(reactContext, view)
     }
 
     override fun getExportedCustomDirectEventTypeConstants(): Map<String, Any> =

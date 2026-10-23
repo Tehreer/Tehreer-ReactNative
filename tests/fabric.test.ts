@@ -60,3 +60,33 @@ test("the component name agrees in the spec, C++, Kotlin and the codegen config"
   assert.match(read("react-native.config.cjs"), /componentDescriptors: \["TehreerTextBaseComponentDescriptor"\]/);
   assert.match(read("android/src/main/java/com/tehreer/reactnative/TehreerPackage.kt"), /TehreerTextBaseManager\(\)/);
 });
+
+// The painters of issues #24 and #25: the parts that need no engine or device are compiled here, and
+// the names that Kotlin, C++ and the build files must agree on are pinned.
+test("the platform independent painter and the frame registry compile against the headers of Core alone", { skip }, async () => {
+  for (const file of ["cpp/painter/PaintCallbacks.cpp", "cpp/fabric/FrameRegistry.cpp"]) {
+    const result = await checkSyntax(compiler as string, join(root, file), [join(root, "cpp"), coreHeaders], { standard: "c++20" });
+    assert.ok(result.ok, `${file}: ${result.output}`);
+  }
+});
+
+test("every JNI function that Kotlin declares is defined in C++ with the same name, and the build keeps them", () => {
+  const kotlin = read("android/src/main/java/com/tehreer/reactnative/TehreerPaintJni.kt");
+  const cpp = read("android/src/main/cpp/TextBaseJni.cpp");
+  const declared = [...kotlin.matchAll(/@JvmStatic external fun (\w+)\(/g)].map((match) => match[1]);
+  assert.deepEqual(declared.sort(), ["create", "destroy", "draw", "setFrame"]);
+  for (const name of declared) {
+    assert.match(cpp, new RegExp(`Java_com_tehreer_reactnative_TehreerPaintJni_${name}\\(`));
+  }
+  // A static archive only gives up the members that something refers to, and nothing in C++ refers to these.
+  const cmake = read("android/CMakeLists.txt");
+  assert.match(cmake, /--undefined=Java_com_tehreer_reactnative_TehreerPaintJni_create/);
+  assert.match(cmake, /android\/src\/main\/cpp\/\*\.cpp/);
+  assert.match(cmake, /cpp\/painter\/\*\.cpp/);
+});
+
+test("the Kotlin manager reads the frame id from the key that the state writes", () => {
+  const state = read("cpp/fabric/TehreerTextBaseState.h");
+  assert.match(state, /builder\.putInt\(6, frame \? static_cast<int>\(frame->id\(\)\) : 0\)/);
+  assert.match(read("android/src/main/java/com/tehreer/reactnative/TehreerTextBaseManager.kt"), /view\.setComposedFrame\(state\.getInt\(6\)\)/);
+});

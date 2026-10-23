@@ -5,6 +5,7 @@
 #include "Errors.h"
 #include "HandleObject.h"
 #include "HandlerTable.h"
+#include "../painter/PaintBindings.h"
 #include "PointerBuffers.h"
 #include "SheenBidiBindings.h"
 #include "StructCodecs.h"
@@ -262,6 +263,7 @@ void InstallBindings(jsi::Runtime &runtime) {
     Define(runtime, bindings, "testGetStructNames", 0, GetStructNames);
     InstallCallbackTestHooks(runtime, bindings);
     InstallGlyphImageTestHooks(runtime, bindings);
+    InstallPaintTestHooks(runtime, bindings);
     InstallPointerTestHooks(runtime, bindings);
     InstallSheenBidiTestHooks(runtime, bindings);
 #endif
