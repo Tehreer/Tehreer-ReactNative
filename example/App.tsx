@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { getVersion, initialize } from 'tehreer-react-native';
 import type { NativeBindings } from '../src/internal/NativeBindings';
@@ -6,6 +6,8 @@ import { releaseSuiteNames, suites } from './tests';
 import { prepareAssetTests } from './tests/AssetTests';
 import { loadFonts } from './tests/fontData';
 import { runSuites } from './tests/runSuites';
+import type { SuiteReport } from './tests/runSuites';
+import { ViewTestHost } from './tests/ViewTests';
 
 interface Result {
   version: string;
@@ -15,13 +17,25 @@ interface Result {
   total: number;
 }
 
-function run(): Result {
+interface SyncRun {
+  version: string;
+  smokeTest: boolean;
+  reports: SuiteReport[];
+}
+
+function run(): SyncRun {
   initialize();
   // Calling twice proves that initialize() is idempotent.
   initialize();
 
   const bindings = (globalThis as unknown as { __tehreer: NativeBindings }).__tehreer;
   const reports = runSuites(bindings, __DEV__ ? suites : suites.filter((suite) => releaseSuiteNames.includes(suite.name)));
+  return { version: getVersion(), smokeTest: bindings.smokeTest(), reports };
+}
+
+/** Logs every suite, then the totals; the view suite renders, so it joins the synchronous ones here. */
+function summarize(base: SyncRun, extra: SuiteReport[]): Result {
+  const reports = [...base.reports, ...extra];
   let passed = 0;
   let total = 0;
   for (const report of reports) {
@@ -34,24 +48,21 @@ function run(): Result {
     total += report.total;
   }
 
-  return { version: getVersion(), smokeTest: bindings.smokeTest(), suites: reports.length, passed, total };
+  return { version: base.version, smokeTest: base.smokeTest, suites: reports.length, passed, total };
 }
 
 export default function App() {
   const [result, setResult] = useState<Result | undefined>();
   const [error, setError] = useState<string | undefined>();
+  const [pending, setPending] = useState<SyncRun | undefined>();
 
   useEffect(() => {
     // The fonts are fetched assets, so the suites wait for them; a font that cannot be fetched is an error.
     loadFonts()
       .then(prepareAssetTests)
       .then(() => {
-        const outcome = run();
-        setResult(outcome);
-        // The device test scripts read this line from the system log.
-        console.log(
-          `TEHREER_RESULT version=${outcome.version} smokeTest=${outcome.smokeTest} suites=${outcome.suites} passed=${outcome.passed} total=${outcome.total}`,
-        );
+        // The view suite needs the component mounted; its result completes the run (see finish).
+        setPending(run());
       })
       .catch((e: unknown) => {
         const message = e instanceof Error ? e.message : String(e);
@@ -59,6 +70,29 @@ export default function App() {
         console.log(`TEHREER_RESULT error=${message}`);
       });
   }, []);
+
+  const finish = useCallback(
+    (report?: SuiteReport) => {
+      if (pending === undefined || result !== undefined) {
+        return;
+      }
+      const outcome = summarize(pending, report === undefined ? [] : [report]);
+      // The host stays mounted, so the boxes can be looked at in a screenshot.
+      setResult(outcome);
+      // The device test scripts read this line from the system log.
+      console.log(
+        `TEHREER_RESULT version=${outcome.version} smokeTest=${outcome.smokeTest} suites=${outcome.suites} passed=${outcome.passed} total=${outcome.total}`,
+      );
+    },
+    [pending, result],
+  );
+
+  // A release build has no debug hooks for the view suite, so it runs only the release suites.
+  useEffect(() => {
+    if (!__DEV__ && pending !== undefined) {
+      finish();
+    }
+  }, [finish, pending]);
 
   return (
     <View style={styles.container}>
@@ -72,6 +106,7 @@ export default function App() {
       <Text testID="tests" style={styles.text}>
         {`Tests: ${result ? `${result.passed}/${result.total}` : '...'}`}
       </Text>
+      {__DEV__ && pending !== undefined && <ViewTestHost onDone={finish} />}
     </View>
   );
 }

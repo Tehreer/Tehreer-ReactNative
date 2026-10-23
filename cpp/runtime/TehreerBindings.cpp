@@ -237,6 +237,7 @@ void InstallBindings(jsi::Runtime &runtime) {
     jsi::Object bindings(runtime);
     generated::InstallBindings(runtime, bindings);
     InstallCallbackBindings(runtime, bindings);
+    InstallDrawBindings(runtime, bindings);
     InstallTextBindings(runtime, bindings);
     InstallPointerBindings(runtime, bindings);
     InstallSheenBidiBindings(runtime, bindings);

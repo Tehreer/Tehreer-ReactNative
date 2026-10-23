@@ -71,7 +71,7 @@
   },
   "codegenConfig": {
     "name": "TehreerSpec",
-    "type": "modules",
+    "type": "all",
     "jsSrcsDir": "src/specs",
     "android": {
       "javaPackageName": "com.tehreer.reactnative"
@@ -80,6 +80,11 @@
       "modules": {
         "NativeTehreer": {
           "className": "TehreerModuleProvider"
+        }
+      },
+      "components": {
+        "TehreerTextBase": {
+          "className": "TehreerTextBaseView"
         }
       }
     }

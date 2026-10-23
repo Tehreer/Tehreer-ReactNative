@@ -102,7 +102,7 @@ test("the functions that keep callbacks are bound by hand, and only they use the
   // no callback, so they must not reach for the table.
   const sources = readdirSync(join(root, "cpp/runtime")).filter((name) => name.endsWith(".cpp"));
   const users = sources.filter((name) => /HandlerTable::Shared\(\)/.test(read(`cpp/runtime/${name}`))).sort();
-  assert.deepEqual(users, ["CallbackTestHooks.cpp", "Callbacks.cpp", "HandlerTable.cpp", "ReplacementBindings.cpp", "TehreerBindings.cpp"]);
+  assert.deepEqual(users, ["CallbackTestHooks.cpp", "Callbacks.cpp", "DrawBindings.cpp", "HandlerTable.cpp", "ReplacementBindings.cpp", "TehreerBindings.cpp"]);
 
   // The Core header agrees: the only callbacks that are kept after the call are the replacement's.
   const header = read("Libraries/TehreerCore/Headers/Tehreer/TRReplacement.h");

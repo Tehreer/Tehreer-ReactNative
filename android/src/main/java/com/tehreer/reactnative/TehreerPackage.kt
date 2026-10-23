@@ -4,13 +4,17 @@ import com.facebook.react.BaseReactPackage
 import com.facebook.react.bridge.NativeModule
 import com.facebook.react.bridge.ReactApplicationContext
 import com.facebook.react.module.model.ReactModuleInfo
-import com.facebook.react.module.model.ReactModuleInfoProvider
+import com.facebook.react.uimanager.ViewManager
 
 /**
- * The only module this package registers is the asset resolver. The main TurboModule is C++ and is
- * found through the autolinked CMake project; Fabric views will be added here.
+ * Autolinking only accepts an Android library that has a package class. The main TurboModule is C++
+ * and is found through the autolinked CMake project; this package registers the asset resolver and
+ * the view managers of the Fabric components, whose shadow nodes are C++ too.
  */
 class TehreerPackage : BaseReactPackage() {
+    override fun createViewManagers(reactContext: ReactApplicationContext): List<ViewManager<*, *>> =
+        listOf(TehreerTextBaseManager())
+
     override fun getModule(name: String, reactContext: ReactApplicationContext): NativeModule? =
         if (name == TehreerAssetsModule.NAME) TehreerAssetsModule(reactContext) else null
 

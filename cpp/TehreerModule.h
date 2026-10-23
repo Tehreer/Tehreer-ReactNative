@@ -6,6 +6,10 @@
 #include <TehreerSpecJSI.h>
 #endif
 
+// The Android autolinking includes only this header for the library, so the component descriptor is
+// reachable through it (see fabric/TehreerTextBaseComponentDescriptor.h).
+#include "fabric/TehreerTextBaseComponentDescriptor.h"
+
 #include <memory>
 
 // The autolinking of Android instantiates this class as `TehreerModule` inside this namespace, so

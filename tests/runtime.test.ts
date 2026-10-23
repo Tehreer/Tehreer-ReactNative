@@ -59,15 +59,15 @@ test("the runtime defines every function that GeneratedSupport.h declares withou
 
 test("the handle functions and the debug hooks agree between TypeScript and C++", () => {
   const typescript = read("src/internal/NativeBindings.ts");
-  const cpp = ["TehreerBindings", "ReplacementBindings", "TextBindings", "CallbackTestHooks", "GlyphImageTestHooks", "PointerBuffers", "PointerTestHooks"].map((name) => read(`cpp/runtime/${name}.cpp`)).join("\n");
+  const cpp = ["TehreerBindings", "ReplacementBindings", "DrawBindings", "TextBindings", "CallbackTestHooks", "GlyphImageTestHooks", "PointerBuffers", "PointerTestHooks"].map((name) => read(`cpp/runtime/${name}.cpp`)).join("\n");
   const names = [...typescript.matchAll(/^ {2}(\w+)\??\(/gm)].map((match) => match[1] as string);
 
   assert.deepEqual(names, [
-    "getVersion", "smokeTest", "disposeHandle", "isHandleDisposed", "isHandleMutable", "handleEquals", "retainHandle", "TRReplacementCreate", "TRTextSetAttribute", "TRTypesetterCreate",
+    "getVersion", "smokeTest", "disposeHandle", "isHandleDisposed", "isHandleMutable", "handleEquals", "retainHandle", "TRReplacementCreate", "invokeReplacementDraw", "installDrawContext", "restoreDrawContext", "TRTextSetAttribute", "TRTypesetterCreate",
     "createPointerBuffer", "readPointerStructs",
     "testCreateProbe", "testGetProbeReleaseCount", "testCollectGarbage", "testRoundTripStruct", "testGetStructNames",
     "testGetHandlerCount", "testGetRetiredHandlerCount", "testDrainHandlers", "testReleaseOnOtherThread",
-    "testComputeRoomOnOtherThread", "testEnumerate",
+    "testSetNativeDrawCallbacks", "testGetDrawCallbacks", "testComputeRoomOnOtherThread", "testEnumerate",
     "testCreateMemoryProbe", "testReplaceMemoryProbe", "testGetMemoryProbeView", "testWriteMemoryProbe", "testGetMemoryProbeReferences",
     "testGetMemoryBlockCount", "testDropPointerBufferOnOtherThread",
     "testAttachNativeData", "testGetNativeDataSerial", "testGetNativeDataCounts",
