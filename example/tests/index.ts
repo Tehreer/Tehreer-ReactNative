@@ -11,6 +11,7 @@ import { rendererTestCount, runRendererTests } from './RendererTests';
 import { runShapingTests, shapingTestCount } from './ShapingTests';
 import { runTextTests, textTestCount } from './TextTests';
 import { runUnicodeTests, unicodeTestCount } from './UnicodeTests';
+import { assetTestCount, runAssetTests } from './AssetTests';
 import { fontBytes } from './fontData';
 import { NativeObject } from '../../src/internal/NativeObject';
 import { adopt } from '../../src/internal/Adopt';
@@ -32,6 +33,12 @@ export interface Suite {
   name: string;
   run(bindings: NativeBindings): SuiteOutcome;
 }
+
+/**
+ * The suites that a release build runs. The others need the debug hooks of the native module, which
+ * a release build does not have, and would fail there for that reason alone.
+ */
+export const releaseSuiteNames: readonly string[] = ['assets'];
 
 export const suites: readonly Suite[] = [
   {
@@ -117,6 +124,13 @@ export const suites: readonly Suite[] = [
     run: (bindings) => {
       const result = runTextTests(bindings);
       return { passed: result.passed, total: textTestCount, failures: result.failures };
+    },
+  },
+  {
+    name: 'assets',
+    run: (bindings) => {
+      const result = runAssetTests(bindings);
+      return { passed: result.passed, total: assetTestCount, failures: result.failures };
     },
   },
 ];

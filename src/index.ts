@@ -43,6 +43,7 @@ export type { Float, Int32, NumberKind, UInt16, UInt32, UInt8 } from "./collecti
 export type { BitmapStrike } from "./graphics/BitmapStrike.js";
 export type { ColorPalette } from "./graphics/ColorPalette.js";
 export { FontFile } from "./graphics/FontFile.js";
+export type { FontAsset } from "./internal/FontAssets.js";
 export { GlyphCache } from "./graphics/GlyphCache.js";
 export { GlyphImage } from "./graphics/GlyphImage.js";
 export type { NamedStyle } from "./graphics/NamedStyle.js";

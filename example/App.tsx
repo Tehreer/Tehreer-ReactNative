@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { getVersion, initialize } from 'tehreer-react-native';
 import type { NativeBindings } from '../src/internal/NativeBindings';
-import { suites } from './tests';
+import { releaseSuiteNames, suites } from './tests';
+import { prepareAssetTests } from './tests/AssetTests';
 import { loadFonts } from './tests/fontData';
 import { runSuites } from './tests/runSuites';
 
@@ -20,7 +21,7 @@ function run(): Result {
   initialize();
 
   const bindings = (globalThis as unknown as { __tehreer: NativeBindings }).__tehreer;
-  const reports = runSuites(bindings, suites);
+  const reports = runSuites(bindings, __DEV__ ? suites : suites.filter((suite) => releaseSuiteNames.includes(suite.name)));
   let passed = 0;
   let total = 0;
   for (const report of reports) {
@@ -43,6 +44,7 @@ export default function App() {
   useEffect(() => {
     // The fonts are fetched assets, so the suites wait for them; a font that cannot be fetched is an error.
     loadFonts()
+      .then(prepareAssetTests)
       .then(() => {
         const outcome = run();
         setResult(outcome);

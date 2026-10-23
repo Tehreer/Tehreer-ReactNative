@@ -55,7 +55,7 @@ The ABIs are not chosen by this library: the app picks them with the `reactNativ
 
 The wrapper sources are compiled with `-Wall -Wextra` and must stay free of warnings; `android/CMakeLists.txt` picks up new files in `cpp/`, `cpp/runtime/` and `cpp/generated/` by itself.
 
-`npm run test:android` builds the example app for the connected emulator, starts Metro, launches the app and runs every suite registered in `example/tests/index.ts` (output format in [AGENTS.md](AGENTS.md#device-test-output)). It exits non-zero on a failing test, a timeout or a missing result line.
+`npm run test:android` builds the example app for the connected emulator, starts Metro, launches the app and runs every suite registered in `example/tests/index.ts` (output format in [AGENTS.md](AGENTS.md#device-test-output)). It exits non-zero on a failing test, a timeout or a missing result line. `npm run test:android -- --release` does the same with the release build (`assembleRelease`, signed with the debug key of the example app, and no Metro: the bundle is inside the app), which is the build where `FontFile.fromAsset` reads a copy of a `res/raw` resource.
 
 ## iOS
 
@@ -70,7 +70,41 @@ xcodebuild -workspace TehreerExample.xcworkspace -scheme TehreerExample -sdk iph
 
 Use `-sdk iphoneos -destination 'generic/platform=iOS' ARCHS=arm64` for a device build. The wrapper sources must stay free of compiler warnings; warnings from Core and the dependencies are reported by Xcode too and are not fixed here.
 
-`npm run test:ios` builds the example app for the booted simulator, starts Metro, launches the app and runs every suite registered in `example/tests/index.ts` and prints a per-suite summary and the names of failing tests. It exits non-zero on a failing test, a timeout or a missing result line.
+`npm run test:ios` builds the example app for the booted simulator, starts Metro, launches the app and runs every suite registered in `example/tests/index.ts` and prints a per-suite summary and the names of failing tests. It exits non-zero on a failing test, a timeout or a missing result line. `npm run test:ios -- --release` does the same with the Release configuration, which bundles the JavaScript into the app and starts no Metro.
+
+## Packaging
+
+The npm package contains the source of Tehreer Core and of its dependencies (FreeType, HarfBuzz, libunibreak, SheenBidi), so `pod install` and the Gradle build compile everything locally and nothing is downloaded at install or build time. The `prepack` script copies them from `Libraries/` (run `git submodule update --init` and `npm run setup` first; `npm pack` fails with a message if either is missing). Only sources, headers, the CMake files the builds read and the licence files are packed, about 3.3 MiB compressed. The licences of the bundled libraries are listed in `NOTICE`. `npm run test:packed` packs the library, installs the tarball into a scratch copy of the example app and builds it (Android with Gradle, iOS with `pod install`).
+
+## Loading fonts
+
+A `FontFile` is made from bytes or from a file; Core copies the data it reads, so nothing has to stay alive afterwards. Pick the source that fits where the font lives. No option needs a package besides this one.
+
+| Where the font is | Call | Notes |
+|-------------------|------|-------|
+| Bundled with the app (`require`) | `await FontFile.fromAsset(require('./Roboto.ttf'))` | Debug and release builds, see below. Asynchronous. |
+| A file on the device | `FontFile.fromPath(path)` | Synchronous. The path is a plain file system path, not a `file:` URL. |
+| Bytes in memory | `FontFile.fromBytes(bytes)` | `ArrayBuffer` or any typed array or `DataView`. Synchronous. |
+| On a server | `FontFile.fromBytes(await (await fetch(url)).arrayBuffer())` | The library does not fetch; check `response.ok` yourself. |
+
+```ts
+import { FontFile, initialize } from 'tehreer-react-native';
+
+initialize();
+const file = await FontFile.fromAsset(require('./assets/Roboto-Regular.ttf'));
+const typeface = file.typefaces.get(0); // a typeface keeps the font data after the file is disposed
+file.dispose();
+```
+
+`fromAsset` accepts the number that `require()` returns, or an object with the `uri` of the asset. What it does depends on how React Native resolves the asset:
+
+- **Debug build** (Metro serves the asset over http): it fetches the bytes and reads them with `fromBytes`.
+- **Release build on iOS**: Metro copies the asset into the app bundle and the URI is a `file:` URL, so the file is read with `fromPath`.
+- **Release build on Android**: Metro puts a font into `res/raw`, which is not a file. The library's small native module copies the resource into the cache directory of the app (`cache/tehreer-assets/<install time>/<name>`, once per install or update, on a background thread) and the copy is read with `fromPath`.
+
+The font extension (`.ttf`, `.otf`, `.ttc`) has to be one of Metro's `assetExts`, which the default configuration of React Native includes. Call `initialize()` first (it also installs the asset reader). A missing or unreadable asset rejects with an `Error` that names the asset (`Could not load the font asset <uri>: <reason>`), and a value that is not a font asset is a `TypeError`. The `FontFile` that the promise resolves to is owned by the caller, like any other.
+
+**Apps that prefer a file system package.** If the app already uses a library such as `react-native-fs` or `expo-file-system` (to download fonts at run time, say), save the font there and call `FontFile.fromPath(path)` with the path it gives; that needs no asset support from this library.
 
 ## Enums
 
