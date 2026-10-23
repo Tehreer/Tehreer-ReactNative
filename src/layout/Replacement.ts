@@ -65,7 +65,8 @@ function makeHandler(delegate: ReplacementDelegate): ReplacementHandler {
   if (typeof delegate !== "object" || delegate === null || typeof delegate.computeRoom !== "function") {
     throw new TypeError("delegate must be an object with a computeRoom function.");
   }
-  if (delegate.draw !== undefined && typeof delegate.draw !== "function") {
+  const draw = delegate.draw;
+  if (draw !== undefined && typeof draw !== "function") {
     throw new TypeError("delegate.draw must be a function.");
   }
 
@@ -74,8 +75,9 @@ function makeHandler(delegate: ReplacementDelegate): ReplacementHandler {
   const handler: { -readonly [K in keyof ReplacementHandler]: ReplacementHandler[K] } = {
     computeRoom: (layoutWidth) => delegate.computeRoom(layoutWidth),
   };
-  if (delegate.draw !== undefined) {
-    handler.draw = (context, bounds) => delegate.draw?.(context, bounds);
+  if (draw !== undefined) {
+    // Read once, so a getter cannot pass the check and hand back a non-function later.
+    handler.draw = (context, bounds) => draw.call(delegate, context, bounds);
   }
   return handler;
 }

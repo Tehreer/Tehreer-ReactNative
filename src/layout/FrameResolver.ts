@@ -52,6 +52,7 @@ export class FrameResolver extends NativeObject<"TRFrameResolver"> {
   }
 
   set frameWidth(width: number) {
+    // Core has only a size setter, so the other side is read and written back.
     this.#setFrameSize(width, this.#getFrameSize().height);
   }
 
@@ -61,6 +62,7 @@ export class FrameResolver extends NativeObject<"TRFrameResolver"> {
   }
 
   set frameHeight(height: number) {
+    // Core has only a size setter, so the other side is read and written back.
     this.#setFrameSize(this.#getFrameSize().width, height);
   }
 
