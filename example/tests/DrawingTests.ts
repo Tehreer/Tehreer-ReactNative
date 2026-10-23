@@ -153,8 +153,9 @@ const tests: Test[] = [
   ['colors, scales and the pixels of the lent image are what the run asks for', () => {
     const faces = load();
     const { surface } = drawFrame(drawScenarios.find((s) => s.name === 'decorations')!, faces);
-    check(surface.images.length === 2 && surface.images.every((image) => image.pixels > 0), 'two glyphs, with pixels to read inside the callback');
+    check(surface.images.length === 3 && surface.images.every((image) => image.pixels > 0), `only a, b and c of the font have outlines: ${surface.images.length} images`);
     check(surface.images[0]!.color === 0xff0000ff && surface.images[1]!.color === 0xff0000ff, 'the foreground color of the run, as an unsigned number');
+    check(surface.images.slice(2).length === 1 && surface.images.slice(2).every((image) => image.color === 0xff000000), 'the renderer\'s foreground for the rest');
     check(surface.images.every((image) => image.scaleX === 1 && image.scaleY === 1 && image.clip === undefined), 'no scale, no clip');
     check(surface.wrappers.every((wrapper) => wrapper.isDisposed), 'the wrappers are disposed after the draw');
     expectThrows(() => surface.wrappers[0]!.width, 'Error', /already disposed/);
@@ -205,7 +206,7 @@ const tests: Test[] = [
     frame.draw(renderer, new Surface(), 0, 0);
     check(state(handle).isNativePainter && !state(handle).drawGlyphImage, 'back to the native painter after a draw');
     const failing = new Surface();
-    failing.fillRect = () => { throw new Error('boom'); };
+    failing.drawGlyphImage = () => { throw new Error('boom'); };
     expectThrows(() => frame.draw(renderer, failing, 0, 0), 'Error', /boom/);
     check(state(handle).isNativePainter, 'and after an error');
     expectThrows(() => frame.draw(renderer, {} as DrawingContext, 0, 0), 'TypeError');
@@ -274,7 +275,7 @@ const tests: Test[] = [
     frame.draw(renderer, second, 0, 0);
     check(second.events.length === 6, 'a second context draws everything');
     for (let index = 0; index < 5; index++) {
-      expectThrows(() => frame.draw(renderer, Object.assign(new Surface(), { fillRect: () => { throw boom; } }), 0, 0), 'RangeError');
+      expectThrows(() => frame.draw(renderer, Object.assign(new Surface(), { drawGlyphImage: () => { throw boom; } }), 0, 0), 'RangeError');
     }
     check(count() === before, 'repeated errors leak no handler');
     frame.dispose();
