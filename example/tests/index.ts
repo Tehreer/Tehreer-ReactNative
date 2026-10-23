@@ -18,6 +18,9 @@ import { adopt } from '../../src/internal/Adopt';
 import { IndexedList } from '../../src/collections/IndexedList';
 import { coreIndices, coreNumbers, corePoints, coreStructs } from '../../src/collections/CoreList';
 
+// The suite of the Fabric view renders, so it is not an entry here: App.tsx mounts `ViewTestHost`
+// (ViewTests.tsx) after these and adds its report to the totals.
+
 // The registry of the device suites. Each package or issue adds one entry here; App.tsx runs all of
 // them and logs the outcome in the format documented in AGENTS.md (scripts/test-device.mjs reads it).
 

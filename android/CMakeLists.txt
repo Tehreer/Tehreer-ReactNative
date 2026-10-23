@@ -29,6 +29,7 @@ find_package(ReactAndroid REQUIRED CONFIG)
 file(GLOB TEHREER_SOURCES CONFIGURE_DEPENDS
     "${TEHREER_ROOT}/cpp/*.cpp"
     "${TEHREER_ROOT}/cpp/runtime/*.cpp"
+    "${TEHREER_ROOT}/cpp/fabric/*.cpp"
     "${TEHREER_ROOT}/cpp/generated/*.cpp"
 )
 
@@ -37,6 +38,18 @@ add_library(tehreer_module STATIC ${TEHREER_SOURCES})
 # Warnings are enabled on the wrapper target only: Core and its dependencies are built with the
 # flags of their own projects.
 target_compile_options(tehreer_module PRIVATE -Wall -Wextra)
+
+# The shadow node and its state are compiled against React Native's headers, whose classes change
+# layout with RN_SERIALIZABLE_STATE (ConcreteState gains virtual functions on Android). A target that
+# lacks the definitions of the app builds a different class than the one React Native uses, and the
+# state then silently reads as empty. The function comes from react-native-flags.cmake, which the
+# app's CMake includes before it adds this directory. -Werror is lifted again: the flags are for
+# the definitions, and the warnings of this target are not made errors by them.
+if(NOT COMMAND target_compile_reactnative_options)
+    message(FATAL_ERROR "target_compile_reactnative_options is not defined: the app's CMake must include react-native-flags.cmake first.")
+endif()
+target_compile_reactnative_options(tehreer_module PRIVATE)
+target_compile_options(tehreer_module PRIVATE -Wno-error)
 
 target_include_directories(tehreer_module PUBLIC "${TEHREER_ROOT}/cpp")
 
