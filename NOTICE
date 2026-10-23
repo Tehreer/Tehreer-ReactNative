@@ -28,7 +28,7 @@ HarfBuzz (Libraries/Dependencies/harfbuzz)
   Copyright 2004-2023 Google, Inc., Behdad Esfahbod, Red Hat, Inc. and other HarfBuzz
   contributors (https://github.com/harfbuzz/harfbuzz); the full list is in COPYING
   Licensed under the "Old MIT" license (COPYING). The data files that HarfBuzz keeps in
-  src/ms-use (not packed) are licensed under the MIT License, Copyright (c) Microsoft
+  src/ms-use (only its COPYING is packed, not the data files) are licensed under the MIT License, Copyright (c) Microsoft
   Corporation; their license is kept in src/ms-use/COPYING.
 
 SheenBidi (Libraries/Dependencies/SheenBidi)

@@ -76,8 +76,9 @@ export class FontFile extends NativeObject<"TRFontFile"> {
    * @param asset The number that `require()` of the font gives, or an object with the `uri` of the
    * asset (the result of `Image.resolveAssetSource` works too).
    * @returns A promise of the font file, which the caller owns and disposes.
-   * @throws Error (as a rejection) if {@link initialize} was not called, or one that names the asset if it is not registered, cannot be fetched
-   * or found, is empty, or does not contain a usable font.
+   * @throws Error (as a rejection) if {@link initialize} was not called, or one that names the
+   * asset if it is not registered, cannot be fetched or found, is empty, or does not contain a
+   * usable font.
    */
   static async fromAsset(asset: FontAsset): Promise<FontFile> {
     return FontFile.fromAssetOf(getAssetHost(), asset);

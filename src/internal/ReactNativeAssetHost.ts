@@ -5,7 +5,7 @@ import NativeTehreerAssets from "../specs/NativeTehreerAssets.js";
 const resolver = NativeTehreerAssets;
 
 /**
- * The asset host of a React Native app. It is its own module, loaded when the first asset is, so
+ * The asset host of a React Native app. It is its own module, installed by `initialize()`, so
  * that importing `FontFile` does not import `react-native`.
  *
  * @internal
