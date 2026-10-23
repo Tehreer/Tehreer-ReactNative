@@ -119,15 +119,14 @@ function judge(testCase: ViewCase, expected: Expected, measured: Measured): stri
   return failures;
 }
 
-const settleMs = 600;
+/** Only the failure path: a case whose callbacks never arrive. */
 const limitMs = 20_000;
 
-/** Mounts every case, waits until the callbacks settle, and reports once. */
+/** Mounts every case, waits until each has its callbacks, and reports once. */
 export function ViewTestHost({ onDone }: { onDone: (report: SuiteReport) => void }) {
   const [faces, setFaces] = useState<Record<string, Typeface> | undefined>();
   const [error, setError] = useState<string | undefined>();
   const measured = useRef<Measured[]>(viewCases.map(() => ({})));
-  const lastCallback = useRef(Date.now());
   const reported = useRef(false);
 
   useEffect(() => {
@@ -154,9 +153,10 @@ export function ViewTestHost({ onDone }: { onDone: (report: SuiteReport) => void
     }
     const started = Date.now();
     const timer = setInterval(() => {
-      const quiet = Date.now() - lastCallback.current > settleMs;
+      // Finish as soon as every case has both callbacks. The later events of a case (the state
+      // changes again after the first layout) are not waited for: the last one that arrived counts.
       const complete = measured.current.every((m) => m.layout !== undefined && m.event !== undefined);
-      if (reported.current || !((quiet && complete) || Date.now() - started > limitMs)) {
+      if (reported.current || !(complete || Date.now() - started > limitMs)) {
         return;
       }
       reported.current = true;
@@ -198,11 +198,9 @@ export function ViewTestHost({ onDone }: { onDone: (report: SuiteReport) => void
             onLayout={(e) => {
               const { width, height } = e.nativeEvent.layout;
               measured.current[index]!.layout = { width, height };
-              lastCallback.current = Date.now();
             }}
             onFrameReady={(e) => {
               measured.current[index]!.event = { ...e.nativeEvent };
-              lastCallback.current = Date.now();
             }}
           />
         ))}

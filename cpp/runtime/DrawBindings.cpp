@@ -43,17 +43,23 @@ void DrawGlyphImage(void *userData, TRGlyphImageRef image, TRPoint origin, TRFlo
     runtime::InvokeHandler(userData, [&](jsi::Runtime &rt, jsi::Object &handler) {
         jsi::Function method = MemberFunction(rt, handler, "drawGlyphImage");
 
+        // The numbers are converted first: a conversion that throws (NaN) must not leave a handle
+        // that was already made to the finalizer.
+        jsi::Value originX = marshal::FromNumber<TRFloat>(rt, origin.x);
+        jsi::Value originY = marshal::FromNumber<TRFloat>(rt, origin.y);
+        jsi::Value scaleXValue = marshal::FromNumber<TRFloat>(rt, scaleX);
+        jsi::Value scaleYValue = marshal::FromNumber<TRFloat>(rt, scaleY);
+        jsi::Value colorValue = marshal::FromNumber<TRColor>(rt, color);
+        jsi::Value clipValue = clip != nullptr ? generated::TRRectToJs(rt, *clip) : jsi::Value::undefined();
+
         // Core lends the image for the call only. The handle owns a reference of its own, taken here,
         // so it can never dangle; the adapter disposes it when the call is over, and a wrapper that
         // the application kept is "already disposed" afterwards. A handle nobody disposed (an error
         // in between) is released by its finalizer.
         jsi::Value handle = marshal::FromHandle<TRGlyphImageRef>(rt, image, marshal::Ownership::Retain);
-        jsi::Value clipValue = clip != nullptr ? generated::TRRectToJs(rt, *clip) : jsi::Value::undefined();
 
-        method.callWithThis(rt, handler, std::move(handle),
-            marshal::FromNumber<TRFloat>(rt, origin.x), marshal::FromNumber<TRFloat>(rt, origin.y),
-            marshal::FromNumber<TRFloat>(rt, scaleX), marshal::FromNumber<TRFloat>(rt, scaleY),
-            marshal::FromNumber<TRColor>(rt, color), std::move(clipValue));
+        method.callWithThis(rt, handler, std::move(handle), std::move(originX), std::move(originY),
+            std::move(scaleXValue), std::move(scaleYValue), std::move(colorValue), std::move(clipValue));
     });
 }
 
@@ -68,10 +74,13 @@ void DrawReplacement(void *userData, const struct _TRGlyphRun *run, TRPoint orig
     runtime::InvokeHandler(userData, [&](jsi::Runtime &rt, jsi::Object &handler) {
         jsi::Function method = MemberFunction(rt, handler, "drawReplacement");
 
+        // Numbers first, as in DrawGlyphImage, so a throwing conversion cannot orphan the handle.
+        jsi::Value originX = marshal::FromNumber<TRFloat>(rt, origin.x);
+        jsi::Value originY = marshal::FromNumber<TRFloat>(rt, origin.y);
+
         // Owned and disposed like the image: the run is Core's, lent for the call.
         jsi::Value handle = marshal::FromHandle<TRGlyphRunRef>(rt, run, marshal::Ownership::Retain);
-        method.callWithThis(rt, handler, std::move(handle),
-            marshal::FromNumber<TRFloat>(rt, origin.x), marshal::FromNumber<TRFloat>(rt, origin.y));
+        method.callWithThis(rt, handler, std::move(handle), std::move(originX), std::move(originY));
     });
 }
 
@@ -109,6 +118,7 @@ public:
     }
 
     ~DrawScope() override {
+        // Only for a scope that was never restored: Restore() clears the renderer, which skips this.
         if (_renderer != nullptr) {
             runtime::HandlerTable::Shared().Remove(_key);
             TRRendererRelease(_renderer);

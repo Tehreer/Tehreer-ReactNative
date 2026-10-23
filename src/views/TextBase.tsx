@@ -13,7 +13,9 @@ import TehreerTextBase from "../specs/TehreerTextBaseNativeComponent.js";
  * the pixel grid. Give the component `maxWidth`, not `width`: a fixed width is not measured.
  *
  * The typeface is found by `typefaceTag` in `TypefaceManager` (register it first, with a tag above
- * 0, and keep it registered while the component is shown). A missing or unknown tag, an empty text
+ * 0, **before the component is mounted**, and keep it registered while it is shown: the lookup
+ * happens when the text is measured, and a typeface registered later does not re-measure a
+ * component whose props did not change). A missing or unknown tag, an empty text
  * or a type size that is not positive measures 0 by 0, and nothing is thrown.
  *
  * Replacements are not supported here: the text is a plain string, and a `computeRoom` is
