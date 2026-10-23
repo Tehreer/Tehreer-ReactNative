@@ -4,7 +4,16 @@ export { Color } from "./Color.js";
 export type { AffineTransform, Point, Rect, Size } from "./geometry.js";
 
 export { DrawStyle, GlyphImageFormat, GlyphImageKind, StrokeCap, StrokeJoin, TypeSlope, TypeWeight, TypeWidth } from "./graphics/enums.js";
+export type { ReplacementBounds, ReplacementDelegate, ReplacementRoom } from "./drawing/ReplacementDelegate.js";
 export { BreakMode, ReplacementKind, TextAlignment, TruncationPlace, VerticalAlignment } from "./layout/enums.js";
+export { ComposedFrame } from "./layout/ComposedFrame.js";
+export { ComposedLine } from "./layout/ComposedLine.js";
+export type { VisualEdge } from "./layout/ComposedLine.js";
+export { FrameResolver } from "./layout/FrameResolver.js";
+export { GlyphRun } from "./layout/GlyphRun.js";
+export { LineLocator } from "./layout/LineLocator.js";
+export { Replacement } from "./layout/Replacement.js";
+export { Typesetter } from "./layout/Typesetter.js";
 export type { ParagraphAttributes, RunAttributes, TextAttributeName, TextAttributeRun, TextAttributes } from "./layout/TextAttributes.js";
 export { TMutableText } from "./layout/TMutableText.js";
 export { TText } from "./layout/TText.js";

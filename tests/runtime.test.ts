@@ -63,7 +63,7 @@ test("the handle functions and the debug hooks agree between TypeScript and C++"
   const names = [...typescript.matchAll(/^ {2}(\w+)\??\(/gm)].map((match) => match[1] as string);
 
   assert.deepEqual(names, [
-    "getVersion", "smokeTest", "disposeHandle", "isHandleDisposed", "isHandleMutable", "handleEquals", "TRReplacementCreate", "TRTextSetAttribute",
+    "getVersion", "smokeTest", "disposeHandle", "isHandleDisposed", "isHandleMutable", "handleEquals", "TRReplacementCreate", "TRTextSetAttribute", "TRTypesetterCreate",
     "createPointerBuffer", "readPointerStructs",
     "testCreateProbe", "testGetProbeReleaseCount", "testCollectGarbage", "testRoundTripStruct", "testGetStructNames",
     "testGetHandlerCount", "testGetRetiredHandlerCount", "testDrainHandlers", "testReleaseOnOtherThread",

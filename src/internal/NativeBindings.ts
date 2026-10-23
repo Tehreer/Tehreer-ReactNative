@@ -1,6 +1,7 @@
 import type { NativeFunctions } from "./NativeFunctions.js";
 import type { Handle, PointerView, TRReplacementRoom } from "./NativeFunctions.js";
 import type { SheenBidiFunctions } from "./SheenBidiFunctions.js";
+import type { ReplacementBounds } from "../drawing/ReplacementDelegate.js";
 
 /**
  * The JavaScript side of a replacement. Core calls `computeRoom` while it shapes text and lays out
@@ -11,6 +12,11 @@ import type { SheenBidiFunctions } from "./SheenBidiFunctions.js";
  */
 export interface ReplacementHandler {
   computeRoom?: (layoutWidth: number) => TRReplacementRoom;
+  /**
+   * Draws the replacement. Core never calls it: it has no draw callback, and the native painter of
+   * a later issue finds the handler for the replacement it meets.
+   */
+  draw?: (context: unknown, bounds: ReplacementBounds) => void;
 }
 
 /**
@@ -68,6 +74,17 @@ export interface NativeBindings extends NativeFunctions, SheenBidiFunctions {
    * wrong group.
    */
   TRTextSetAttribute(text: Handle<"TRText">, index: number, length: number, attribute: NativeAttribute): boolean;
+  /**
+   * `TRTypesetterCreate`, bound by hand because the default attributes are `TRAttribute` structs
+   * with a union. The text is copied, and the typesetter retains the typeface, font features and
+   * replacement that the attributes hold, so the caller may dispose them afterwards. `undefined`
+   * when Core made nothing (some text has no typeface). The `computeRoom` handler of a replacement
+   * runs during the call, and an error it throws is thrown by it once Core returns. Throws
+   * `RangeError` for a type that Core does not know or a number that does not fit its type, and a
+   * plain `Error` for a value of the wrong JavaScript type and for a handle that is disposed or of
+   * the wrong group.
+   */
+  TRTypesetterCreate(text: Handle<"TRText">, defaultAttributes: readonly NativeAttribute[] | undefined): Handle<"TRTypesetter"> | undefined;
 
   /**
    * An `ArrayBuffer` of `count` elements of a pointer that Core gave (a `*Ptr()` getter), over the

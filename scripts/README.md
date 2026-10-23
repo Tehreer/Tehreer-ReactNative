@@ -81,7 +81,7 @@ A collecting callback is given the address of a `marshal::Collector` on the stac
 | Set | Functions | Why |
 |-----|-----------|-----|
 | `EXCLUDED` | `TRVersionGetString`, `TRTextGetSheenBidiText` | declared but not implemented / needs SheenBidi's text API |
-| `MANUAL` | draw callbacks and user data of the renderer, native data of a glyph image, `TRReplacementCreate`, `TRTextSetAttribute`, `TRTypesetterCreate` | C function pointers that stay native, retained callbacks that need the handler table (`TRReplacementCreate`, the only one, bound in `cpp/runtime/ReplacementBindings.cpp`), and the union `TRAttributeValue` written by the attribute codec; `cpp/runtime` binds them by hand |
+| `MANUAL` | draw callbacks and user data of the renderer, native data of a glyph image, `TRReplacementCreate`, `TRTextSetAttribute`, `TRTypesetterCreate` | C function pointers that stay native, retained callbacks that need the handler table (`TRReplacementCreate`, the only one, bound in `cpp/runtime/ReplacementBindings.cpp`), and the union `TRAttributeValue` written by the attribute codec (`TRTextSetAttribute`, `TRTypesetterCreate`, bound in `cpp/runtime/TextBindings.cpp`); `cpp/runtime` binds them by hand |
 | releases | every `TR*Release` | see Ownership |
 
 A name in `EXCLUDED`, `MANUAL` or `BOUNDS` that no header declares stops the generator, so these lists cannot go stale quietly.
