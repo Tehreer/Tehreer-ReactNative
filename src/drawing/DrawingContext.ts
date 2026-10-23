@@ -61,6 +61,10 @@ export interface DrawingContext {
    */
   beginShadow?(radius: number, dx: number, dy: number, color: Color): void;
 
-  /** Ends the scope that `beginShadow` began. */
+  /**
+   * Ends the scope that `beginShadow` began. After a member throws, Core stops at that first error
+   * and no further member is called, so `endShadow` does not run for a scope that was open; a
+   * context that keeps state across the pair must reset it when the draw call throws.
+   */
   endShadow?(): void;
 }
