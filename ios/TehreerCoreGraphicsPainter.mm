@@ -76,6 +76,7 @@ void *MakeGlyphLayer(TRGlyphImageRef image, void *) {
     }
     CGDataProviderRelease(provider);
 
+    // host is null if its context could not be made (then there is no layer, and no image).
     CGLayerRef layer = (content != nullptr && host != nullptr) ? CGLayerCreateWithContext(host, rect.size, nullptr) : nullptr;
     if (layer != nullptr) {
         // The layer is drawn into a context whose y axis points down, so it holds the image flipped.

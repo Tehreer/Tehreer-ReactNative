@@ -54,6 +54,8 @@ JNIEXPORT void JNICALL Java_com_tehreer_reactnative_TehreerPaintJni_draw(JNIEnv 
         return;
     }
 
+    // Per draw because it holds JNI references of this thread and a layer per shadow scope, and
+    // the canvas is only valid during onDraw.
     tehreer::android::CanvasPainter target(env, canvas);
     if (target.IsReady()) {
         painter->framePainter.Draw(painter->frame->get(), target, density);

@@ -256,23 +256,20 @@ void CanvasPainter::BeginShadow(TRFloat radius, TRFloat dx, TRFloat dy, TRColor 
         return;
     }
 
-    if (_layerBitmap == nullptr || width != _layerWidth || height != _layerHeight) {
+    // A layer of its own for every scope: a hardware canvas only records the drawBitmap of the
+    // composite, so a bitmap that a later scope erased or drew into would change what an earlier
+    // scope shows.
+    ReleaseLayer();
+    _layerBitmap = Retained(_env->CallStaticObjectMethod(_jni->bitmap, _jni->createBitmap, width, height, _jni->argb8888));
+    if (_layerBitmap == nullptr || HasPendingException()) {
+        // Out of memory: the scope is drawn without its shadow rather than not at all.
         ReleaseLayer();
-        _layerBitmap = Retained(_env->CallStaticObjectMethod(_jni->bitmap, _jni->createBitmap, width, height, _jni->argb8888));
-        if (_layerBitmap == nullptr || HasPendingException()) {
-            // Out of memory: the scope is drawn without its shadow rather than not at all.
-            ReleaseLayer();
-            return;
-        }
-        _layerCanvas = Retained(_env->NewObject(_jni->canvas, _jni->canvasInit, _layerBitmap));
-        if (_layerCanvas == nullptr || HasPendingException()) {
-            ReleaseLayer();
-            return;
-        }
-        _layerWidth = width;
-        _layerHeight = height;
-    } else {
-        _env->CallVoidMethod(_layerBitmap, _jni->eraseColor, 0);
+        return;
+    }
+    _layerCanvas = Retained(_env->NewObject(_jni->canvas, _jni->canvasInit, _layerBitmap));
+    if (_layerCanvas == nullptr || HasPendingException()) {
+        ReleaseLayer();
+        return;
     }
 
     // What is drawn in the scope keeps the coordinates of the canvas.
@@ -280,8 +277,7 @@ void CanvasPainter::BeginShadow(TRFloat radius, TRFloat dx, TRFloat dy, TRColor 
     _env->CallVoidMethod(_layerCanvas, _jni->translate, static_cast<float>(-left), static_cast<float>(-top));
     if (HasPendingException()) {
         // The layer is not in use: leave its canvas as it was found.
-        _env->CallVoidMethod(_layerCanvas, _jni->restore);
-        HasPendingException();
+        ReleaseLayer();
         return;
     }
 
@@ -306,19 +302,38 @@ void CanvasPainter::EndShadow() {
     _inShadow = false;
     _target = _canvas;
     _env->CallVoidMethod(_layerCanvas, _jni->restore);
-    if (HasPendingException()) {
-        return;
-    }
+    HasPendingException();
 
-    // Every object made below is a local reference, and a frame frees them all on every path:
-    // the filter, the mask and the filter that setMaskFilter returns (the previous one).
-    if (_env->PushLocalFrame(16) != JNI_OK) {
+    // The content of the scope is always composited; whatever fails below only costs the shadow.
+    // Every object made is a local reference, and the frame frees them all on every path: the
+    // filter, the mask and the filter that setMaskFilter returns (the previous one).
+    bool framed = _env->PushLocalFrame(16) == JNI_OK;
+    if (!framed) {
         ClearException(_env);
-        return;
     }
 
+    if (framed) {
+        DrawShadow();
+    }
+
+    // The glyphs themselves go over their shadow.
+    _env->CallVoidMethod(_paint, _jni->setColor, kOpaqueWhite);
+    _env->CallVoidMethod(_paint, _jni->setFilterBitmap, static_cast<jboolean>(false));
+    _env->CallVoidMethod(_canvas, _jni->drawBitmapAt, _layerBitmap, static_cast<float>(_layerLeft), static_cast<float>(_layerTop),
+                         _paint);
+    HasPendingException();
+    if (framed) {
+        _env->PopLocalFrame(nullptr);
+    }
+    // The canvas may still read the bitmap; only our reference goes.
+    ReleaseLayer();
+}
+
+// Draws the blurred, offset shadow of the layer. Any failure leaves the shadow out.
+void CanvasPainter::DrawShadow() {
     if (_blurPaint == nullptr) {
         _blurPaint = Retained(_env->NewObject(_jni->paint, _jni->paintInit));
+        HasPendingException();
     }
     if (_offsets == nullptr) {
         jintArray local = _env->NewIntArray(2);
@@ -327,32 +342,32 @@ void CanvasPainter::EndShadow() {
             _env->DeleteLocalRef(local);
         }
     }
-
-    if (_blurPaint != nullptr && _offsets != nullptr && _shadowRadius > 0) {
-        jobject filter = _env->NewObject(_jni->blurFilter, _jni->blurFilterInit, _shadowRadius, _jni->blurNormal);
-        if (!HasPendingException() && filter != nullptr) {
-            _env->CallObjectMethod(_blurPaint, _jni->setMaskFilter, filter);
-
-            // The mask is the blurred coverage of the layer; the blur grows it, and the offsets say
-            // where it goes to line up with the layer.
-            jobject mask = _env->CallObjectMethod(_layerBitmap, _jni->extractAlpha, _blurPaint, _offsets);
-            if (!HasPendingException() && mask != nullptr) {
-                jint offsets[2] = {0, 0};
-                _env->GetIntArrayRegion(_offsets, 0, 2, offsets);
-                _env->CallVoidMethod(_paint, _jni->setColor, static_cast<jint>(_shadowColor));
-                _env->CallVoidMethod(_paint, _jni->setFilterBitmap, static_cast<jboolean>(false));
-                _env->CallVoidMethod(_canvas, _jni->drawBitmapAt, mask, static_cast<float>(_layerLeft + offsets[0]) + _shadowDx,
-                                     static_cast<float>(_layerTop + offsets[1]) + _shadowDy, _paint);
-            }
-        }
+    if (_blurPaint == nullptr || _offsets == nullptr || !(_shadowRadius > 0)) {
+        return;
     }
 
-    // The glyphs themselves go over their shadow.
-    _env->CallVoidMethod(_paint, _jni->setColor, kOpaqueWhite);
-    _env->CallVoidMethod(_canvas, _jni->drawBitmapAt, _layerBitmap, static_cast<float>(_layerLeft), static_cast<float>(_layerTop),
-                         _paint);
+    jobject filter = _env->NewObject(_jni->blurFilter, _jni->blurFilterInit, _shadowRadius, _jni->blurNormal);
+    if (HasPendingException() || filter == nullptr) {
+        return;
+    }
+    _env->CallObjectMethod(_blurPaint, _jni->setMaskFilter, filter);
+    if (HasPendingException()) {
+        return;
+    }
+
+    // The mask is the blurred coverage of the layer; the blur grows it, and the offsets say
+    // where it goes to line up with the layer.
+    jobject mask = _env->CallObjectMethod(_layerBitmap, _jni->extractAlpha, _blurPaint, _offsets);
+    if (HasPendingException() || mask == nullptr) {
+        return;
+    }
+    jint offsets[2] = {0, 0};
+    _env->GetIntArrayRegion(_offsets, 0, 2, offsets);
+    _env->CallVoidMethod(_paint, _jni->setColor, static_cast<jint>(_shadowColor));
+    _env->CallVoidMethod(_paint, _jni->setFilterBitmap, static_cast<jboolean>(false));
+    _env->CallVoidMethod(_canvas, _jni->drawBitmapAt, mask, static_cast<float>(_layerLeft + offsets[0]) + _shadowDx,
+                         static_cast<float>(_layerTop + offsets[1]) + _shadowDy, _paint);
     HasPendingException();
-    _env->PopLocalFrame(nullptr);
 }
 
 void CanvasPainter::ReleaseLayer() {
@@ -366,8 +381,6 @@ void CanvasPainter::ReleaseLayer() {
         _env->DeleteGlobalRef(_layerCanvas);
         _layerCanvas = nullptr;
     }
-    _layerWidth = 0;
-    _layerHeight = 0;
 }
 
 } // namespace tehreer::android

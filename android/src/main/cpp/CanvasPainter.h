@@ -10,7 +10,7 @@ namespace tehreer::android {
  * (a view's canvas is), so Core's render scale is the display density and nothing is scaled here.
  *
  * Glyph images become `Bitmap`s that stay with the glyph image of Core (`ALPHA_8`, tinted by the
- * paint color, for alpha images; premultiplied `ARGB_8888` for color ones) and are recycled when
+ * paint color, for alpha images; premultiplied `ARGB_8888` for color ones) and are released when
  * Core destroys the image. A shadow scope is drawn into a layer, so that a glyph that is filled
  * and stroked casts one shadow, and the layer is blurred and composited at `EndShadow`: the
  * `Paint.setShadowLayer` of the framework does not draw shadows for bitmaps and is not supported
@@ -45,6 +45,7 @@ private:
     bool HasPendingException() const { return ClearException(_env); }
     jobject Retained(jobject local);
     void ReleaseLayer();
+    void DrawShadow();
 
     JNIEnv *_env;
     const Jni *_jni;
@@ -55,14 +56,12 @@ private:
     jobject _paint = nullptr;
     jobject _rectF = nullptr;
 
-    // The shadow scope. The layer is reused by the scopes of one draw call that have its size.
+    // The shadow scope. Every scope has a layer of its own, dropped at EndShadow.
     jobject _layerBitmap = nullptr;
     jobject _layerCanvas = nullptr;
     jobject _clipBounds = nullptr;
     jobject _blurPaint = nullptr;
     jintArray _offsets = nullptr;
-    int _layerWidth = 0;
-    int _layerHeight = 0;
     int _layerLeft = 0;
     int _layerTop = 0;
     bool _inShadow = false;
