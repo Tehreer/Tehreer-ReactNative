@@ -171,6 +171,18 @@ export interface NativeBindings extends NativeFunctions, SheenBidiFunctions {
    * its own, as the engine's collector can, so that giving the reference back is seen to work there.
    */
   testDropPointerBufferOnOtherThread?(pointer: PointerView<string>, count: number): void;
+
+  /**
+   * Stands in for a native painter: gives the image native data (a probe with a serial number) with
+   * `GetOrAttachNativeData` of `cpp/runtime/GlyphImageNativeData.h`, or finds the data it already has,
+   * and returns the serial number. `simulateRace` makes another attach win in between, so that the
+   * probe made here loses and is destroyed at once.
+   */
+  testAttachNativeData?(image: Handle<"TRGlyphImage">, simulateRace?: boolean): number;
+  /** The serial number of the probe the image holds, or -1 if it holds none. */
+  testGetNativeDataSerial?(image: Handle<"TRGlyphImage">): number;
+  /** How many probes were made and how many destroyed, in this process. */
+  testGetNativeDataCounts?(): { created: number; destroyed: number };
 }
 
 export const nativeBindingsName = "__tehreer";

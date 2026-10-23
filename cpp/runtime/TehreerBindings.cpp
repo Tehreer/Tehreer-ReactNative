@@ -245,6 +245,7 @@ void InstallBindings(jsi::Runtime &runtime) {
     Define(runtime, bindings, "testRoundTripStruct", 2, RoundTripStruct);
     Define(runtime, bindings, "testGetStructNames", 0, GetStructNames);
     InstallCallbackTestHooks(runtime, bindings);
+    InstallGlyphImageTestHooks(runtime, bindings);
     InstallPointerTestHooks(runtime, bindings);
     InstallSheenBidiTestHooks(runtime, bindings);
 #endif

@@ -59,7 +59,7 @@ test("the runtime defines every function that GeneratedSupport.h declares withou
 
 test("the handle functions and the debug hooks agree between TypeScript and C++", () => {
   const typescript = read("src/internal/NativeBindings.ts");
-  const cpp = ["TehreerBindings", "ReplacementBindings", "TextBindings", "CallbackTestHooks", "PointerBuffers", "PointerTestHooks"].map((name) => read(`cpp/runtime/${name}.cpp`)).join("\n");
+  const cpp = ["TehreerBindings", "ReplacementBindings", "TextBindings", "CallbackTestHooks", "GlyphImageTestHooks", "PointerBuffers", "PointerTestHooks"].map((name) => read(`cpp/runtime/${name}.cpp`)).join("\n");
   const names = [...typescript.matchAll(/^ {2}(\w+)\??\(/gm)].map((match) => match[1] as string);
 
   assert.deepEqual(names, [
@@ -70,6 +70,7 @@ test("the handle functions and the debug hooks agree between TypeScript and C++"
     "testComputeRoomOnOtherThread", "testEnumerate",
     "testCreateMemoryProbe", "testReplaceMemoryProbe", "testGetMemoryProbeView", "testWriteMemoryProbe", "testGetMemoryProbeReferences",
     "testGetMemoryBlockCount", "testDropPointerBufferOnOtherThread",
+    "testAttachNativeData", "testGetNativeDataSerial", "testGetNativeDataCounts",
   ]);
   for (const name of names) {
     assert.ok(cpp.includes(`"${name}"`), `${name} is not installed by cpp/runtime`);
@@ -80,12 +81,13 @@ test("the handle functions and the debug hooks agree between TypeScript and C++"
   const bindings = read("cpp/runtime/TehreerBindings.cpp");
   const start = bindings.indexOf('#ifndef NDEBUG\n    Define');
   const hooks = bindings.slice(start, bindings.indexOf("#endif", start));
-  const hookFiles = ["CallbackTestHooks", "PointerTestHooks"].map((name) => read(`cpp/runtime/${name}.cpp`));
+  const hookFiles = ["CallbackTestHooks", "GlyphImageTestHooks", "PointerTestHooks"].map((name) => read(`cpp/runtime/${name}.cpp`));
   const inDebugFile = (file: string, name: string) => file.includes(`"${name}"`) && file.indexOf("#ifndef NDEBUG") < file.indexOf(`"${name}"`)
     && file.trimEnd().endsWith("#endif");
   const debugOnly = (name: string) => hooks.includes(`"${name}"`) || hookFiles.some((file) => inDebugFile(file, name));
 
   assert.ok(hooks.includes("InstallCallbackTestHooks(runtime, bindings)"));
+  assert.ok(hooks.includes("InstallGlyphImageTestHooks(runtime, bindings)"));
   assert.ok(hooks.includes("InstallPointerTestHooks(runtime, bindings)"));
   // The two bindings that lists need are in every build, and so are not in the debug block.
   for (const name of ["createPointerBuffer", "readPointerStructs"]) {

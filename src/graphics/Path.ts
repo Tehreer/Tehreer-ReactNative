@@ -1,5 +1,5 @@
 import type { AffineTransform } from "../geometry.js";
-import { getNativeBindings } from "../internal/NativeBindings.js";
+import { getNativeBindings, type NativeBindings } from "../internal/NativeBindings.js";
 import type { Handle } from "../internal/NativeFunctions.js";
 import type { PathSink } from "./PathSink.js";
 
@@ -21,6 +21,9 @@ export type PathVerb = (typeof PathVerb)[keyof typeof PathVerb];
 
 // The number of coordinates of each verb, indexed by the verb.
 const COORDINATE_COUNTS = [2, 2, 4, 6, 0] as const;
+
+/** One segment as the bindings collect it. */
+type PathElement = ReturnType<NativeBindings["TRRendererEnumerateGlyphPaths"]>[number];
 
 /** @internal */
 export function checkTransform(transform: AffineTransform): void {
@@ -192,29 +195,39 @@ export class Path implements PathSink {
         throw new Error("Core stopped the enumeration of a path.");
       }
 
-      const path = new Path();
-      for (const element of elements) {
-        switch (element.type) {
-          case "moveTo":
-            path.moveTo(element.x, element.y);
-            break;
-          case "lineTo":
-            path.lineTo(element.x, element.y);
-            break;
-          case "quadTo":
-            path.quadTo(element.controlX, element.controlY, element.x, element.y);
-            break;
-          case "cubicTo":
-            path.cubicTo(element.control1X, element.control1Y, element.control2X, element.control2Y, element.x, element.y);
-            break;
-          case "close":
-            path.close();
-            break;
-        }
-      }
-      return path;
+      return Path.fromElements(elements);
     } finally {
       bindings.disposeHandle(handle);
     }
+  }
+
+  /**
+   * Makes a path from the segments that a binding collected (`TRPathEnumerate`,
+   * `TRRendererEnumerateGlyphPaths`).
+   *
+   * @internal
+   */
+  static fromElements(elements: readonly PathElement[]): Path {
+    const path = new Path();
+    for (const element of elements) {
+      switch (element.type) {
+        case "moveTo":
+          path.moveTo(element.x, element.y);
+          break;
+        case "lineTo":
+          path.lineTo(element.x, element.y);
+          break;
+        case "quadTo":
+          path.quadTo(element.controlX, element.controlY, element.x, element.y);
+          break;
+        case "cubicTo":
+          path.cubicTo(element.control1X, element.control1Y, element.control2X, element.control2Y, element.x, element.y);
+          break;
+        case "close":
+          path.close();
+          break;
+      }
+    }
+    return path;
   }
 }

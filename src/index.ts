@@ -34,9 +34,13 @@ export type { Float, Int32, NumberKind, UInt16, UInt32, UInt8 } from "./collecti
 export type { BitmapStrike } from "./graphics/BitmapStrike.js";
 export type { ColorPalette } from "./graphics/ColorPalette.js";
 export { FontFile } from "./graphics/FontFile.js";
+export { GlyphCache } from "./graphics/GlyphCache.js";
+export { GlyphImage } from "./graphics/GlyphImage.js";
 export type { NamedStyle } from "./graphics/NamedStyle.js";
 export { Path, PathVerb } from "./graphics/Path.js";
 export type { PathSink } from "./graphics/PathSink.js";
+export { Renderer } from "./graphics/Renderer.js";
+export type { GlyphBuffers, GlyphPlacement } from "./graphics/Renderer.js";
 export { TypeFamily } from "./graphics/TypeFamily.js";
 export { Typeface } from "./graphics/Typeface.js";
 export { TypefaceManager } from "./graphics/TypefaceManager.js";
