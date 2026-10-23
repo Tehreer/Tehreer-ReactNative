@@ -1,6 +1,8 @@
 import type { NativeFunctions } from "./NativeFunctions.js";
 import type { Handle, PointerView, TRReplacementRoom } from "./NativeFunctions.js";
 import type { SheenBidiFunctions } from "./SheenBidiFunctions.js";
+import type { DrawingContext } from "../drawing/DrawingContext.js";
+import type { DrawAdapter, DrawScope } from "./DrawAdapter.js";
 import type { ReplacementBounds } from "../drawing/ReplacementDelegate.js";
 
 /**
@@ -13,11 +15,12 @@ import type { ReplacementBounds } from "../drawing/ReplacementDelegate.js";
 export interface ReplacementHandler {
   computeRoom?: (layoutWidth: number) => TRReplacementRoom;
   /**
-   * Draws the replacement. Core never calls it: it has no draw callback, and the native painter of
-   * a later issue finds the handler for the replacement it meets.
+   * Draws the replacement. Core never calls it itself (a replacement has no draw callback): the
+   * painter of a run that has the replacement finds the handler (`invokeReplacementDraw`).
    */
-  draw?: (context: unknown, bounds: ReplacementBounds) => void;
+  draw?: (context: DrawingContext, bounds: ReplacementBounds) => void;
 }
+
 
 /**
  * A `TRAttribute` as the native side converts it, and as `readPointerStructs` reads one: the Core
@@ -70,6 +73,22 @@ export interface NativeBindings extends NativeFunctions, SheenBidiFunctions {
    * handler. `undefined` when Core made nothing (an invalid `kind`).
    */
   TRReplacementCreate(handler: ReplacementHandler, kind: number): Handle<"TRReplacement"> | undefined;
+  /**
+   * Calls the `draw` of the delegate that made the replacement, with `context` and `bounds`, as the
+   * delegate. Returns false, calling nothing, when the delegate has no `draw` (or the replacement
+   * is not one of this runtime's). An error that `draw` throws is thrown from here.
+   */
+  invokeReplacementDraw(replacement: Handle<"TRReplacement">, context: DrawingContext, bounds: ReplacementBounds): boolean;
+  /**
+   * Puts the draw callbacks of the JavaScript drawing surface on the renderer (`TRDrawCallbacks`
+   * with `drawGlyphImage`, `fillRect` and `drawReplacement`, and the shadow pair when the adapter has
+   * both functions) and returns a scope that remembers the callbacks and the user data it had.
+   * Hand-written because the callbacks are C function pointers. Every call must be paired with
+   * {@link restoreDrawContext}, in a `finally`.
+   */
+  installDrawContext(renderer: Handle<"TRRenderer">, adapter: DrawAdapter): DrawScope;
+  /** Puts the callbacks back that {@link installDrawContext} replaced. Idempotent. */
+  restoreDrawContext(scope: DrawScope): void;
   /**
    * `TRTextSetAttribute`, bound by hand because its argument is a union. The text copies the
    * attribute and retains the typeface or font features that it holds, so the caller may dispose
@@ -148,6 +167,13 @@ export interface NativeBindings extends NativeFunctions, SheenBidiFunctions {
   testDrainHandlers?(): void;
   /** Gives the handle's replacement back to Core on a new thread, as a finalizer on any thread could. */
   testReleaseOnOtherThread?(handle: Handle<"TRReplacement">): void;
+  /** Gives the renderer draw callbacks of a native painter (a `fillRect` and a user data of its own), or clears them. */
+  testSetNativeDrawCallbacks?(renderer: Handle<"TRRenderer">, isSet: boolean): void;
+  /** Which draw callbacks the renderer has, and whether they are those of {@link testSetNativeDrawCallbacks}. */
+  testGetDrawCallbacks?(renderer: Handle<"TRRenderer">): {
+    drawGlyphImage: boolean; drawGlyphPath: boolean; fillRect: boolean; drawReplacement: boolean;
+    beginShadow: boolean; endShadow: boolean; isNativePainter: boolean; hasUserData: boolean;
+  };
   /**
    * Asks Core for the room of the replacement from a new thread and returns it. The handler must
    * not run there, so the room is zero.

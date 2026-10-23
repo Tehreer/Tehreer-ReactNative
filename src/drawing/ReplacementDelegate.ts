@@ -1,3 +1,5 @@
+import type { DrawingContext } from "./DrawingContext.js";
+
 /** The room that a replacement takes in a line, in the user space. */
 export interface ReplacementRoom {
   /** The distance from the baseline to the top. */
@@ -36,9 +38,13 @@ export interface ReplacementDelegate {
   computeRoom(layoutWidth: number): ReplacementRoom;
 
   /**
-   * Draws the replacement. Nothing is drawn if it is not there. It is stored with the delegate but
-   * not called yet: drawing comes with the drawing context of a later issue, which gives `context`
-   * its type.
+   * Draws the replacement. Nothing is drawn if it is not there.
+   *
+   * It is called by the draw functions (`GlyphRun.draw`, `ComposedLine.draw`, `ComposedFrame.draw`)
+   * when they meet a run of this replacement, with the context that they draw into and the bounds in
+   * pixels (the render scale applied), as the delegate. It runs inside the Core draw call; an error
+   * it throws stops the drawing and is thrown from the `draw` call once Core has returned. The views
+   * draw natively and do not call it through a `DrawingContext`.
    */
-  draw?(context: unknown, bounds: ReplacementBounds): void;
+  draw?(context: DrawingContext, bounds: ReplacementBounds): void;
 }

@@ -4,6 +4,7 @@ export { Color } from "./Color.js";
 export type { AffineTransform, Point, Rect, Size } from "./geometry.js";
 
 export { DrawStyle, GlyphImageFormat, GlyphImageKind, StrokeCap, StrokeJoin, TypeSlope, TypeWeight, TypeWidth } from "./graphics/enums.js";
+export type { DrawingContext } from "./drawing/DrawingContext.js";
 export type { ReplacementBounds, ReplacementDelegate, ReplacementRoom } from "./drawing/ReplacementDelegate.js";
 export { BreakMode, ReplacementKind, TextAlignment, TruncationPlace, VerticalAlignment } from "./layout/enums.js";
 export { ComposedFrame } from "./layout/ComposedFrame.js";

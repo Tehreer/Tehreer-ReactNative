@@ -1,4 +1,5 @@
-import type { ReplacementDelegate, ReplacementRoom } from "../drawing/ReplacementDelegate.js";
+import type { DrawingContext } from "../drawing/DrawingContext.js";
+import type { ReplacementBounds, ReplacementDelegate, ReplacementRoom } from "../drawing/ReplacementDelegate.js";
 import { adopt } from "../internal/Adopt.js";
 import { holding } from "../internal/Holding.js";
 import { getNativeBindings } from "../internal/NativeBindings.js";
@@ -61,6 +62,17 @@ export class Replacement extends NativeObject<"TRReplacement"> {
    */
   computeRoom(layoutWidth: number): ReplacementRoom {
     return holding([this.nativeHandle], ([handle]) => getNativeBindings().TRReplacementComputeRoom(handle, layoutWidth));
+  }
+
+  /**
+   * Calls the `draw` of the delegate, if it has one. Used by the drawing adapter when a draw function
+   * meets a run of this replacement.
+   *
+   * @returns Whether there was a `draw` to call.
+   * @internal
+   */
+  draw(context: DrawingContext, bounds: ReplacementBounds): boolean {
+    return getNativeBindings().invokeReplacementDraw(this.nativeHandle, context, bounds);
   }
 }
 

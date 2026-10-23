@@ -10,6 +10,7 @@
 #include "HandleObject.h"
 
 #include <cstddef>
+#include <cstdint>
 #include <memory>
 #include <thread>
 #include <utility>
@@ -122,6 +123,47 @@ jsi::Value ComputeRoomOnOtherThread(jsi::Runtime &rt, const jsi::Value &, const 
     return generated::TRReplacementRoomToJs(rt, room);
 }
 
+// A native painter stands in for the one the views will have: it sets callbacks of its own and
+// user data that is not a handler key, so a test can see that a draw puts them back afterwards.
+void NativeFillRect(void *, TRRect, TRColor) {
+}
+
+constexpr std::uintptr_t kNativePainterToken = 0x5A5A;
+
+jsi::Value SetNativeDrawCallbacks(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
+    constexpr const char *kFunction = "testSetNativeDrawCallbacks";
+    TRRendererRef renderer = marshal::ToHandle<TRRendererRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "renderer", false);
+    bool isSet = marshal::ToBoolean(rt, marshal::ArgAt(args, count, 1), kFunction, "isSet");
+
+    TRDrawCallbacks callbacks = {};
+    if (isSet) {
+        callbacks.fillRect = &NativeFillRect;
+    }
+    TRRendererSetDrawCallbacks(renderer, &callbacks, isSet ? reinterpret_cast<void *>(kNativePainterToken) : nullptr);
+    return jsi::Value::undefined();
+}
+
+// Which draw callbacks the renderer has, and whether the user data is the native painter's.
+jsi::Value GetDrawCallbacks(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
+    constexpr const char *kFunction = "testGetDrawCallbacks";
+    TRRendererRef renderer = marshal::ToHandle<TRRendererRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "renderer", false);
+
+    TRDrawCallbacks callbacks = {};
+    TRRendererGetDrawCallbacks(renderer, &callbacks);
+    void *userData = TRRendererGetDrawUserData(renderer);
+
+    jsi::Object result(rt);
+    result.setProperty(rt, "drawGlyphImage", callbacks.drawGlyphImage != nullptr);
+    result.setProperty(rt, "drawGlyphPath", callbacks.drawGlyphPath != nullptr);
+    result.setProperty(rt, "fillRect", callbacks.fillRect != nullptr);
+    result.setProperty(rt, "drawReplacement", callbacks.drawReplacement != nullptr);
+    result.setProperty(rt, "beginShadow", callbacks.beginShadow != nullptr);
+    result.setProperty(rt, "endShadow", callbacks.endShadow != nullptr);
+    result.setProperty(rt, "isNativePainter", callbacks.fillRect == &NativeFillRect && userData == reinterpret_cast<void *>(kNativePainterToken));
+    result.setProperty(rt, "hasUserData", userData != nullptr);
+    return result;
+}
+
 } // namespace
 
 void InstallCallbackTestHooks(jsi::Runtime &runtime, jsi::Object &target) {
@@ -131,6 +173,8 @@ void InstallCallbackTestHooks(jsi::Runtime &runtime, jsi::Object &target) {
     Define(runtime, target, "testDrainHandlers", 0, DrainHandlers);
     Define(runtime, target, "testReleaseOnOtherThread", 1, ReleaseOnOtherThread);
     Define(runtime, target, "testComputeRoomOnOtherThread", 2, ComputeRoomOnOtherThread);
+    Define(runtime, target, "testSetNativeDrawCallbacks", 2, SetNativeDrawCallbacks);
+    Define(runtime, target, "testGetDrawCallbacks", 1, GetDrawCallbacks);
 }
 
 } // namespace tehreer
