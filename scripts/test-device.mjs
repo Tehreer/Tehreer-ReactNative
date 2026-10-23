@@ -1,5 +1,9 @@
 // Builds the example app, runs it on the booted iOS simulator or Android emulator, and checks the
-// line that App.tsx logs. Usage: node scripts/test-device.mjs <ios|android>
+// line that App.tsx logs. Usage: node scripts/test-device.mjs <ios|android> [--release]
+//
+// --release builds the Release (iOS) or release (Android) configuration instead of Debug. Its
+// JavaScript is bundled into the app, so Metro is not started: that is the build in which
+// FontFile.fromAsset reads a file instead of fetching from Metro.
 //
 // The example app runs its registered suites and logs TEHREER_SUITE, TEHREER_FAIL and one final
 // TEHREER_RESULT line (format in AGENTS.md, parser in scripts/device/DeviceResults.mjs). The run
@@ -175,7 +179,11 @@ async function withMetro(bundlePlatform, body) {
   }
 }
 
-async function ios() {
+/** Runs `body` with Metro in a debug build; a release build carries its bundle and needs none. */
+const serving = (release, bundlePlatform, body) => (release ? body() : withMetro(bundlePlatform, body));
+
+async function ios(release) {
+  const configuration = release ? "Release" : "Debug";
   const bundleId = "org.reactjs.native.example.TehreerExample";
   // Building only the architecture of the booted simulator halves the time and the disk use.
   const booted = spawnSync("xcrun", ["simctl", "list", "devices", "booted", "-j"], { encoding: "utf8" });
@@ -185,13 +193,13 @@ async function ios() {
     run("pod", ["install"], { cwd: `${example}/ios`, env: { ...process.env, LANG: "en_US.UTF-8" } });
   }
   run("xcodebuild", [
-    "-workspace", "TehreerExample.xcworkspace", "-scheme", "TehreerExample", "-configuration", "Debug",
+    "-workspace", "TehreerExample.xcworkspace", "-scheme", "TehreerExample", "-configuration", configuration,
     "-sdk", "iphonesimulator", "-destination", `id=${devices[0].udid}`, "ONLY_ACTIVE_ARCH=YES",
     "-derivedDataPath", "build", "CODE_SIGNING_ALLOWED=NO", "build",
   ], { cwd: `${example}/ios` });
-  run("xcrun", ["simctl", "install", "booted", `${example}/ios/build/Build/Products/Debug-iphonesimulator/TehreerExample.app`]);
+  run("xcrun", ["simctl", "install", "booted", `${example}/ios/build/Build/Products/${configuration}-iphonesimulator/TehreerExample.app`]);
 
-  return withMetro("ios", () => {
+  return serving(release, "ios", () => {
     spawnSync("xcrun", ["simctl", "terminate", "booted", bundleId]);
     return waitForResult(
       "xcrun",
@@ -201,7 +209,8 @@ async function ios() {
   });
 }
 
-async function android() {
+async function android(release) {
+  const variant = release ? "Release" : "Debug";
   const sdk = process.env.ANDROID_HOME;
   if (!sdk) throw new Error("ANDROID_HOME is not set");
   const adb = `${sdk}/platform-tools/adb`;
@@ -217,19 +226,20 @@ async function android() {
   const device = (...args) => ["-s", serial, ...args];
 
   const abi = spawnSync(adb, device("shell", "getprop", "ro.product.cpu.abi"), { encoding: "utf8" }).stdout.trim();
-  run("./gradlew", [":app:assembleDebug", `-PreactNativeArchitectures=${abi}`], { cwd: `${example}/android` });
-  run(adb, device("reverse", `tcp:${metroPort}`, `tcp:${metroPort}`));
-  run(adb, device("install", "-r", `${example}/android/app/build/outputs/apk/debug/app-debug.apk`));
+  run("./gradlew", [`:app:assemble${variant}`, `-PreactNativeArchitectures=${abi}`], { cwd: `${example}/android` });
+  if (!release) run(adb, device("reverse", `tcp:${metroPort}`, `tcp:${metroPort}`));
+  run(adb, device("install", "-r", `${example}/android/app/build/outputs/apk/${variant.toLowerCase()}/app-${variant.toLowerCase()}.apk`));
   run(adb, device("logcat", "-c"));
 
-  return withMetro("android", () =>
+  return serving(release, "android", () =>
     waitForResult(adb, device("logcat", "-s", "ReactNativeJS:I"), () =>
       run(adb, device("shell", "am", "start", "-n", "com.tehreerexample/.MainActivity"))));
 }
 
-const platform = process.argv[2];
-if (platform !== "ios" && platform !== "android") {
-  console.error("usage: node scripts/test-device.mjs <ios|android>");
+const [platform, ...options] = process.argv.slice(2);
+const release = options.includes("--release");
+if ((platform !== "ios" && platform !== "android") || options.some((option) => option !== "--release")) {
+  console.error("usage: node scripts/test-device.mjs <ios|android> [--release]");
   process.exit(2);
 }
 
@@ -241,7 +251,7 @@ function report(log) {
 }
 
 try {
-  const log = await (platform === "ios" ? ios() : android());
+  const log = await (platform === "ios" ? ios(release) : android(release));
   const parsed = report(log);
   const problems = checkDeviceResults(parsed, version);
   if (problems.length > 0) {

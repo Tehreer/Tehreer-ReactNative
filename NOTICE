@@ -4,27 +4,38 @@ Copyright 2026 Muhammad Tayyab Akram
 This product includes software developed by Muhammad Tayyab Akram
 (https://github.com/Tehreer).
 
-This product is built with Tehreer Core (https://github.com/Tehreer/Tehreer-Core),
-which is fetched at build time and compiled into the native libraries of the package. Tehreer Core
-is licensed under the Apache License, Version 2.0, and carries the following notice of
-its own third-party components, which are fetched at build time and linked in. Each
-component remains under its own license.
+This package contains the source code of Tehreer Core (https://github.com/Tehreer/Tehreer-Core)
+and of its four third-party libraries, and compiles them into the native libraries of your app.
+Nothing is downloaded when the package is installed or built. Tehreer Core is licensed under the
+Apache License, Version 2.0; its license and notice are in Libraries/TehreerCore. Each third-party
+library stays under its own license, and the license and notice files it ships with are kept next
+to its sources in Libraries/Dependencies/<name>:
 
-FreeType
-  Copyright The FreeType Project (https://freetype.org)
-  Licensed under the FreeType License or the GNU General Public License,
-  version 2.
+FreeType (Libraries/Dependencies/freetype)
+  Copyright 1996-2026 David Turner, Robert Wilhelm, Werner Lemberg and others
+  (https://freetype.org)
+  Licensed, at your choice, under the FreeType License (docs/FTL.TXT) or the GNU General Public
+  License, version 2 (docs/GPLv2.TXT); see LICENSE.TXT. If you choose the FreeType License, it asks
+  for this credit in the documentation of a product:
+    Portions of this software are copyright (C) 2026 The FreeType Project (https://freetype.org).
+    All rights reserved.
+  FreeType also contains the BDF and PCF drivers (X Window System style license, see the headers
+  of src/bdf and src/pcf), the zlib code of its gzip module (zlib license, src/gzip/zlib.h,
+  Copyright 1995-2024 Jean-loup Gailly and Mark Adler), code taken from HarfBuzz (Old MIT) and an
+  MD5 implementation in the public domain.
 
-HarfBuzz
-  Copyright Google, Inc. and other HarfBuzz contributors
-  (https://github.com/harfbuzz/harfbuzz)
-  Licensed under the "Old MIT" license.
+HarfBuzz (Libraries/Dependencies/harfbuzz)
+  Copyright 2004-2023 Google, Inc., Behdad Esfahbod, Red Hat, Inc. and other HarfBuzz
+  contributors (https://github.com/harfbuzz/harfbuzz); the full list is in COPYING
+  Licensed under the "Old MIT" license (COPYING). The data files that HarfBuzz keeps in
+  src/ms-use (only its COPYING is packed, not the data files) are licensed under the MIT License, Copyright (c) Microsoft
+  Corporation; their license is kept in src/ms-use/COPYING.
 
-SheenBidi
-  Copyright Muhammad Tayyab Akram (https://github.com/Tehreer/SheenBidi)
-  Licensed under the Apache License, Version 2.0.
+SheenBidi (Libraries/Dependencies/SheenBidi)
+  Copyright 2014-2026 Muhammad Tayyab Akram (https://github.com/Tehreer/SheenBidi)
+  Licensed under the Apache License, Version 2.0 (LICENSE, NOTICE).
 
-libunibreak
+libunibreak (Libraries/Dependencies/libunibreak)
   Copyright Wu Yongwei, Tom Hacohen, Petr Filipsky and Andreas Roever
   (https://github.com/adah1972/libunibreak)
-  Licensed under the libunibreak license, a zlib-style license.
+  Licensed under the libunibreak license, a zlib-style license (LICENCE).

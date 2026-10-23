@@ -1,3 +1,5 @@
+import { installAssetHost } from "./internal/FontAssets.js";
+import { reactNativeAssetHost } from "./internal/ReactNativeAssetHost.js";
 import { findNativeBindings, getNativeBindings } from "./internal/NativeBindings.js";
 import NativeTehreer from "./specs/NativeTehreer.js";
 
@@ -9,6 +11,7 @@ import NativeTehreer from "./specs/NativeTehreer.js";
  * Importing the library never throws.
  */
 export function initialize(): void {
+  installAssetHost(reactNativeAssetHost);
   if (findNativeBindings() !== undefined) {
     return;
   }

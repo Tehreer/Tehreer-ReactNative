@@ -1,8 +1,9 @@
-import { Image } from 'react-native';
+import { loadFontAsset } from '../../src/internal/FontAssets';
+import { reactNativeAssetHost } from '../../src/internal/ReactNativeAssetHost';
 
 // The fonts of the tests are binary assets (example/assets/fonts), not source code. Metro treats a
-// `require()` of a `.ttf` as an asset, and a debug build serves it from the dev server, so it is
-// fetched. That is asynchronous, so App.tsx calls `loadFonts()` before it runs the suites; the
+// `require()` of a `.ttf` as an asset. A debug build serves it from the dev server, so it is fetched;
+// a release build has it as a file, which `fetch()` reads through a `file:` URL. That is asynchronous, so App.tsx calls `loadFonts()` before it runs the suites; the
 // bytes below are `let` bindings that it fills in, and the suites read them when they run.
 
 const assets = {
@@ -21,15 +22,23 @@ export let colorFontBytes: Uint8Array = new Uint8Array(0);
 /** Noto Nastaliq Urdu, which shapes Urdu. */
 export let nastaliqFontBytes: Uint8Array = new Uint8Array(0);
 
-async function fetchBytes(asset: number): Promise<Uint8Array> {
-  const { uri } = Image.resolveAssetSource(asset);
-  const response = await fetch(uri);
-  if (!response.ok) {
-    throw new Error(`Could not fetch the font ${uri}: status ${response.status}`);
+async function readFile(path: string): Promise<Uint8Array> {
+  const url = `file://${path.split('/').map(encodeURIComponent).join('/')}`;
+  const response = await fetch(url);
+  if (!response.ok && response.status !== 0) {
+    throw new Error(`Could not read the font ${path}: status ${response.status}`);
   }
-  const bytes = new Uint8Array(await response.arrayBuffer());
+  return new Uint8Array(await response.arrayBuffer());
+}
+
+async function fetchBytes(asset: number): Promise<Uint8Array> {
+  // The library resolves the asset to bytes (debug) or to a path (release); the tests only need bytes.
+  const data = await loadFontAsset(reactNativeAssetHost, asset);
+  const bytes = 'bytes' in data
+    ? new Uint8Array(data.bytes)
+    : await readFile(data.path);
   if (bytes.length === 0) {
-    throw new Error(`The font ${uri} is empty`);
+    throw new Error(`The font ${data.uri} is empty`);
   }
   return bytes;
 }

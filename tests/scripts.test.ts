@@ -290,3 +290,20 @@ test("the files of example/tests have no long chain of string concatenations, wh
     assert.ok(longest <= 500, `${name} has a chain of ${longest} lines that end in "+": join an array instead`);
   }
 });
+
+// The device test script cannot run here (it needs a simulator or emulator), but its argument
+// handling decides which build a run tests, so a mistake must fail before anything is built.
+test("test-device accepts --release and refuses everything else without building", () => {
+  const script = new URL("../scripts/test-device.mjs", import.meta.url).pathname;
+  for (const args of [[], ["web"], ["ios", "--bogus"], ["android", "--release", "--debug"], ["--release"]]) {
+    const result = run(process.execPath, [script, ...args]);
+    assert.equal(result.status, 2, `${args.join(" ")}: ${result.stderr}`);
+    assert.match(result.stderr, /usage: node scripts\/test-device\.mjs <ios\|android> \[--release\]/);
+  }
+
+  const source = readFileSync(script, "utf8");
+  assert.match(source, /"-configuration", configuration/);
+  assert.match(source, /assemble\$\{variant\}/);
+  // A release build carries its bundle: Metro must not be needed (or its port required) for it.
+  assert.match(source, /release \? body\(\) : withMetro\(/);
+});

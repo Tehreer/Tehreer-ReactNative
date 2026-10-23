@@ -2,7 +2,8 @@ import { useCallback, useEffect, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { getVersion, initialize } from 'tehreer-react-native';
 import type { NativeBindings } from '../src/internal/NativeBindings';
-import { suites } from './tests';
+import { releaseSuiteNames, suites } from './tests';
+import { prepareAssetTests } from './tests/AssetTests';
 import { loadFonts } from './tests/fontData';
 import { runSuites } from './tests/runSuites';
 import type { SuiteReport } from './tests/runSuites';
@@ -28,7 +29,7 @@ function run(): SyncRun {
   initialize();
 
   const bindings = (globalThis as unknown as { __tehreer: NativeBindings }).__tehreer;
-  const reports = runSuites(bindings, suites);
+  const reports = runSuites(bindings, __DEV__ ? suites : suites.filter((suite) => releaseSuiteNames.includes(suite.name)));
   return { version: getVersion(), smokeTest: bindings.smokeTest(), reports };
 }
 
@@ -58,6 +59,7 @@ export default function App() {
   useEffect(() => {
     // The fonts are fetched assets, so the suites wait for them; a font that cannot be fetched is an error.
     loadFonts()
+      .then(prepareAssetTests)
       .then(() => {
         // The view suite needs the component mounted; its result completes the run (see finish).
         setPending(run());
@@ -70,11 +72,11 @@ export default function App() {
   }, []);
 
   const finish = useCallback(
-    (report: SuiteReport) => {
+    (report?: SuiteReport) => {
       if (pending === undefined || result !== undefined) {
         return;
       }
-      const outcome = summarize(pending, [report]);
+      const outcome = summarize(pending, report === undefined ? [] : [report]);
       // The host stays mounted, so the boxes can be looked at in a screenshot.
       setResult(outcome);
       // The device test scripts read this line from the system log.
@@ -84,6 +86,13 @@ export default function App() {
     },
     [pending, result],
   );
+
+  // A release build has no debug hooks for the view suite, so it runs only the release suites.
+  useEffect(() => {
+    if (!__DEV__ && pending !== undefined) {
+      finish();
+    }
+  }, [finish, pending]);
 
   return (
     <View style={styles.container}>
@@ -97,7 +106,7 @@ export default function App() {
       <Text testID="tests" style={styles.text}>
         {`Tests: ${result ? `${result.passed}/${result.total}` : '...'}`}
       </Text>
-      {pending !== undefined && <ViewTestHost onDone={finish} />}
+      {__DEV__ && pending !== undefined && <ViewTestHost onDone={finish} />}
     </View>
   );
 }
