@@ -5,6 +5,8 @@ import type { Color } from "../Color.js";
 import type { Point, Rect } from "../geometry.js";
 import { Renderer } from "../graphics/Renderer.js";
 import { Typeface } from "../graphics/Typeface.js";
+import { drawIntoContext } from "../drawing/Drawing.js";
+import type { DrawingContext } from "../drawing/DrawingContext.js";
 import { adopt } from "../internal/Adopt.js";
 import { getNativeBindings } from "../internal/NativeBindings.js";
 import type { Handle } from "../internal/NativeFunctions.js";
@@ -236,5 +238,30 @@ export class GlyphRun extends NativeObject<"TRGlyphRun"> {
       throw new TypeError("renderer must be a Renderer.");
     }
     return toRect(getNativeBindings().TRGlyphRunComputeInkBox(this.nativeHandle, renderer.nativeHandle));
+  }
+
+  /**
+   * Draws the background, the glyphs or the replacement, and the underline and strikethrough of the
+   * run into a context.
+   *
+   * Core sets the renderer up for each run while it draws and gives it back as it was. Its render
+   * scale, draw style, stroke and shadow settings are used. This is the slow path (see
+   * {@link DrawingContext}): the callbacks of the context are installed on the renderer for the
+   * call and removed after it, also when an error is thrown, and the callbacks the renderer had
+   * before are restored.
+   *
+   * @param renderer The renderer whose settings and glyph cache are used.
+   * @param context The surface that receives the glyph images, rectangles and shadows.
+   * @param x The x of the start of the run on its baseline, in the user space. The origin of the run
+   *   in its line is not added.
+   * @param y The y of the baseline, with the y axis pointing downward.
+   *
+   * @throws TypeError if `renderer` is not a `Renderer`, or the context lacks `drawGlyphImage` or `fillRect`.
+   * @throws Error if this object, the renderer or a number is not valid (disposed, NaN), or with the
+   *   first error that a member of the context (or a replacement's `draw`) throws, after Core returned.
+   */
+  draw(renderer: Renderer, context: DrawingContext, x: number, y: number): void {
+    drawIntoContext(this.nativeHandle, renderer, context, (run, rendererHandle) =>
+      getNativeBindings().TRGlyphRunDraw(run, rendererHandle, { x, y }));
   }
 }

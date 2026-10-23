@@ -1,0 +1,87 @@
+#pragma once
+
+#include "ComposedFrameBox.h"
+#include "TextFrameComposer.h"
+
+#include <react/renderer/core/ConcreteState.h>
+#include <react/renderer/graphics/Float.h>
+#include <react/renderer/graphics/Size.h>
+
+#include <memory>
+#include <string>
+
+#ifdef RN_SERIALIZABLE_STATE
+#include <folly/dynamic.h>
+#include <react/renderer/mapbuffer/MapBuffer.h>
+#include <react/renderer/mapbuffer/MapBufferBuilder.h>
+#endif
+
+namespace facebook::react {
+
+/** What the frame of a state was composed from; a layout pass that finds the same key keeps the state. */
+struct TehreerTextBaseFrameKey {
+    std::string text;
+    int typefaceTag{0};
+    Float typeSize{0};
+    int maxLines{0};
+    /** The size of the box (the content frame that Yoga chose). */
+    Size size{};
+
+    bool operator==(const TehreerTextBaseFrameKey &other) const = default;
+};
+
+/**
+ * The state of a `TehreerTextBase` shadow node: the frame that Core composed for the final box,
+ * which the native view reads. The frame is shared and immutable, and its last owner releases it,
+ * on whichever thread that is.
+ */
+class TehreerTextBaseStateData final {
+public:
+    TehreerTextBaseStateData() = default;
+    TehreerTextBaseStateData(
+        TehreerTextBaseFrameKey key,
+        tehreer::fabric::ComposeStatus status,
+        std::shared_ptr<const tehreer::fabric::ComposedFrameBox> frame)
+        : key(std::move(key)), status(status), frame(std::move(frame)) {}
+
+    TehreerTextBaseFrameKey key;
+    tehreer::fabric::ComposeStatus status{tehreer::fabric::ComposeStatus::EmptyText};
+    /** Null unless `status` is `Composed`. */
+    std::shared_ptr<const tehreer::fabric::ComposedFrameBox> frame;
+
+#ifdef RN_SERIALIZABLE_STATE
+    // The Android state contract wants these. Java never writes this state, so the update from a
+    // dynamic keeps the previous data.
+    TehreerTextBaseStateData(const TehreerTextBaseStateData &previous, folly::dynamic /*data*/)
+        : key(previous.key), status(previous.status), frame(previous.frame) {}
+
+    folly::dynamic getDynamic() const {
+        return folly::dynamic::object("status", static_cast<int>(status))("lineCount", lineCount())("width", frameWidth())(
+            "height", frameHeight());
+    }
+
+    /**
+     * What a Kotlin view can read without JNI: 0 status, 1 line count, 2 and 3 the bounds of the
+     * frame, 4 and 5 the box it was composed for. A painter that needs the frame itself reads it
+     * from the state through a JNI function instead (issue #24).
+     */
+    MapBuffer getMapBuffer() const {
+        MapBufferBuilder builder;
+        builder.putInt(0, static_cast<int>(status));
+        builder.putInt(1, lineCount());
+        builder.putDouble(2, frameWidth());
+        builder.putDouble(3, frameHeight());
+        builder.putDouble(4, key.size.width);
+        builder.putDouble(5, key.size.height);
+        return builder.build();
+    }
+#endif
+
+    int lineCount() const { return frame ? static_cast<int>(frame->lineCount()) : 0; }
+    double frameWidth() const { return frame ? frame->width() : 0; }
+    double frameHeight() const { return frame ? frame->height() : 0; }
+};
+
+using TehreerTextBaseState = ConcreteState<TehreerTextBaseStateData>;
+
+} // namespace facebook::react
