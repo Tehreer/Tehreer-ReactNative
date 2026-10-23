@@ -59,13 +59,17 @@ export class GlyphRun extends NativeObject<"TRGlyphRun"> {
     return getNativeBindings().TRGlyphRunGetWritingDirection(this.nativeHandle) as WritingDirection;
   }
 
-  /** Tells whether the glyphs are in the reverse order of the code units. */
+  /**
+   * Tells whether the direction of the run opposes the default direction of its script, which is
+   * what Core means by backward. It is false for right-to-left Urdu, whose script is right to left.
+   */
   get isBackward(): boolean {
     return getNativeBindings().TRGlyphRunIsBackward(this.nativeHandle);
   }
 
   /**
-   * The typeface of the glyphs, which is `undefined` for a replacement. Each read gives a wrapper
+   * The typeface of the glyphs. A run of a replacement has one too, since Core refuses text that has none; it is
+   * `undefined` only if Core gives none. Each read gives a wrapper
    * with a reference of its own, which the caller disposes.
    */
   get typeface(): Typeface | undefined {

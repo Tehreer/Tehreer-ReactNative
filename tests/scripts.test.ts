@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { copyFileSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { copyFileSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { spawnSync } from "node:child_process";
@@ -272,5 +272,21 @@ test("no script or package script kills processes by name or pattern", async () 
     lines.forEach((line, index) => {
       assert.doesNotMatch(line, banned, `${file}:${index + 1} kills by name or pattern`);
     });
+  }
+});
+
+test("the files of example/tests have no long chain of string concatenations, which Babel and Metro cannot transform", () => {
+  const dir = join(import.meta.dirname, "../example/tests");
+  for (const name of readdirSync(dir).filter((file) => file.endsWith(".ts"))) {
+    const lines = readFileSync(join(dir, name), "utf8").split("\n");
+    let run = 0;
+    let longest = 0;
+    for (const line of lines) {
+      // Babel recurses once for each, and the stack ends in the thousands (a font of 2180 lines failed); the
+      // chains of the other fonts are some hundred. A line that ends in `+` continues an expression; Babel recurses once for each of them.
+      run = /\+\s*$/.test(line) ? run + 1 : 0;
+      longest = Math.max(longest, run);
+    }
+    assert.ok(longest <= 500, `${name} has a chain of ${longest} lines that end in "+": join an array instead`);
   }
 });

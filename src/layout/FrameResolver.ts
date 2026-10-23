@@ -1,4 +1,5 @@
 import type { Size } from "../geometry.js";
+import { holding } from "../internal/Holding.js";
 import { getNativeBindings } from "../internal/NativeBindings.js";
 import { NativeObject } from "../internal/NativeObject.js";
 import { checkConstant, checkIndex, checkOrderedRange } from "./Checks.js";
@@ -17,7 +18,9 @@ import { Typesetter } from "./Typesetter.js";
  * line height multiplier of 1. The paragraphs take their alignment, indents, spacing and line
  * heights from the attributes of the text; the alignment here is for those that have none.
  *
- * The numbers that it takes are not NaN (a NaN is a `RangeError`); an infinite one is valid.
+ * The numbers that it takes are not NaN (a NaN is a `RangeError`); an infinite one is valid. The
+ * `computeRoom` of a replacement may dispose the resolver or its typesetter while `createFrame` runs:
+ * the call holds references of its own, so the disposal takes effect when it returns.
  */
 export class FrameResolver extends NativeObject<"TRFrameResolver"> {
   /** @throws Error if Core cannot create the resolver. */
@@ -46,7 +49,7 @@ export class FrameResolver extends NativeObject<"TRFrameResolver"> {
     getNativeBindings().TRFrameResolverSetTypesetter(this.nativeHandle, value?.nativeHandle);
   }
 
-  /** The width of the frame, as it was set. Unbounded (infinite) by default; a negative one counts as zero. */
+  /** The width of the frame, as it was set. Unbounded by default (what Core stores is `FLT_MAX`, so it reads back as that, not as infinity); a negative one counts as zero. */
   get frameWidth(): number {
     return this.#getFrameSize().width;
   }
@@ -56,7 +59,7 @@ export class FrameResolver extends NativeObject<"TRFrameResolver"> {
     this.#setFrameSize(width, this.#getFrameSize().height);
   }
 
-  /** The height of the frame, as it was set. Unbounded (infinite) by default; a negative one counts as zero. */
+  /** The height of the frame, as it was set. Unbounded by default (what Core stores is `FLT_MAX`, so it reads back as that, not as infinity); a negative one counts as zero. */
   get frameHeight(): number {
     return this.#getFrameSize().height;
   }
@@ -142,7 +145,10 @@ export class FrameResolver extends NativeObject<"TRFrameResolver"> {
     getNativeBindings().TRFrameResolverSetJustificationEnabled(this.nativeHandle, checkBoolean("isJustificationEnabled", value));
   }
 
-  /** How far the words are spread to justify a line, from 0 to 1. A higher level spreads them further. */
+  /**
+   * How far the words are spread to justify a line, from 0 to 1 as Core documents it; Core does not
+   * clamp it, so a value outside that range is Core's to interpret. A higher level spreads them further.
+   */
   get justificationLevel(): number {
     return getNativeBindings().TRFrameResolverGetJustificationLevel(this.nativeHandle);
   }
@@ -202,14 +208,19 @@ export class FrameResolver extends NativeObject<"TRFrameResolver"> {
     if (fromIndex === toIndex) {
       throw new RangeError("The range must not be empty.");
     }
-    // The binding retains what it returns, so the reference is given back at once.
+    // The binding retains what it returns, so the reference is ours; it is kept through the call, and
+    // the resolver is held too, since a replacement's computeRoom runs inside it and could dispose
+    // either, or set another typesetter.
     const typesetter = b.TRFrameResolverGetTypesetter(handle);
     if (typesetter === undefined) {
       throw new Error("The typesetter is not set.");
     }
-    b.disposeHandle(typesetter);
-
-    const frame = b.TRFrameResolverCreateFrame(handle, fromIndex, toIndex - fromIndex);
+    let frame;
+    try {
+      frame = holding([handle], ([held]) => b.TRFrameResolverCreateFrame(held, fromIndex, toIndex - fromIndex));
+    } finally {
+      b.disposeHandle(typesetter);
+    }
     if (frame === undefined) {
       throw new RangeError(`The range ${fromIndex}..${toIndex} is not within the text.`);
     }

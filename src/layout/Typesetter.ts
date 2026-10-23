@@ -1,5 +1,6 @@
 import { adopt } from "../internal/Adopt.js";
 import { getNativeBindings } from "../internal/NativeBindings.js";
+import { holding } from "../internal/Holding.js";
 import type { Handle } from "../internal/NativeFunctions.js";
 import { NativeObject } from "../internal/NativeObject.js";
 import { checkConstant, checkNonEmptyRange } from "./Checks.js";
@@ -20,10 +21,14 @@ function create(text: TText | string, defaultAttributes: TextAttributes | undefi
   try {
     own = typeof text === "string" ? new TText(text) : undefined;
     const source = own ?? (text as TText);
-    const created = getNativeBindings().TRTypesetterCreate(
-      source.nativeHandle,
-      prepared.length === 0 ? undefined : prepared.map(({ attribute }) => attribute),
-    );
+    // What Core uses during the call is held, since a replacement's computeRoom runs inside it.
+    const attributes = prepared.map(({ attribute }) => attribute);
+    const handles = attributes.flatMap(({ value }) => (typeof value === "object" ? [value] : []));
+    const created = holding([source.nativeHandle, ...handles], ([text, ...copies]) => {
+      let next = 0;
+      const held = attributes.map((attribute) => (typeof attribute.value === "object" ? { ...attribute, value: copies[next++] as Handle<string> } : attribute));
+      return getNativeBindings().TRTypesetterCreate(text, held.length === 0 ? undefined : held);
+    });
     if (created === undefined) {
       throw new Error("Could not create a typesetter. Does all of the text have a typeface?");
     }
@@ -40,7 +45,9 @@ function create(text: TText | string, defaultAttributes: TextAttributes | undefi
  * after the typesetter is made. A typesetter is immutable and thread safe.
  *
  * The extents and widths that it takes are numbers that are not NaN (a NaN is a `RangeError`); an
- * infinite one is valid and means no limit. The range of a line is in code units, from
+ * infinite one is valid. The calls that can run a replacement's `computeRoom` hold references of
+ * their own to the typesetter and what they use, so the handler may dispose them: the disposal takes
+ * effect when the call returns. The range of a line is in code units, from
  * `fromIndex` up to but not including `toIndex`.
  */
 export class Typesetter extends NativeObject<"TRTypesetter"> {
@@ -52,11 +59,15 @@ export class Typesetter extends NativeObject<"TRTypesetter"> {
    * @param defaultAttributes The attributes to use where the text sets none. Core looks only at
    *   those that decide how text is shaped: the typeface, type size, scales, baseline offset,
    *   obliqueness, replacement, language tag and font features. A typeface has to be given by the
-   *   text or by them for every part that is not a replacement. A `computeRoom` that a replacement
-   *   has runs during this call, and an error it throws is thrown from here.
+   *   text or by them for every part, a replacement's included: Core refuses a replacement whose
+   *   range has no typeface (ShapeResolver.c), although TRTypesetter.h says a typeface is not needed
+   *   there. A `computeRoom` that a replacement has runs during this call, and an error it throws is
+   *   thrown from here. The call holds references of its own to what it uses, so a `computeRoom`
+   *   that disposes the text or an attribute's object only takes effect after it.
    * @throws TypeError if `text` is not a string or a `TText`, or an attribute is of the wrong type.
    * @throws RangeError if the value of an attribute is not valid.
-   * @throws Error if some text has no typeface, or Core cannot create the typesetter.
+   * @throws Error if some text, a replacement's included, has no typeface, or Core cannot create the
+   *   typesetter.
    */
   constructor(text: TText | string, defaultAttributes?: TextAttributes);
   /** @internal */
@@ -103,8 +114,8 @@ export class Typesetter extends NativeObject<"TRTypesetter"> {
    */
   createSimpleLine(fromIndex: number, toIndex: number, layoutWidth = 0): ComposedLine {
     checkNonEmptyRange(fromIndex, toIndex);
-    const handle = this.nativeHandle;
-    const line = getNativeBindings().TRTypesetterCreateSimpleLine(handle, fromIndex, toIndex - fromIndex, layoutWidth);
+    const line = holding([this.nativeHandle], ([handle]) =>
+      getNativeBindings().TRTypesetterCreateSimpleLine(handle, fromIndex, toIndex - fromIndex, layoutWidth));
     return ComposedLine.adopting(checkLine(line, "a line"));
   }
 
@@ -123,11 +134,10 @@ export class Typesetter extends NativeObject<"TRTypesetter"> {
     checkNonEmptyRange(fromIndex, toIndex);
     checkConstant("place", place, TruncationPlace);
     const units = token === undefined ? undefined : toCodeUnits(token);
-    const handle = this.nativeHandle;
-    const line = getNativeBindings().TRTypesetterCreateTruncationToken(
+    const line = holding([this.nativeHandle], ([handle]) => getNativeBindings().TRTypesetterCreateTruncationToken(
       handle, fromIndex, toIndex - fromIndex, place,
       units === undefined || units.length === 0 ? undefined : units, units?.length ?? 0, UTF16,
-    );
+    ));
     return ComposedLine.adopting(checkLine(line, "a truncation token"));
   }
 
@@ -150,28 +160,26 @@ export class Typesetter extends NativeObject<"TRTypesetter"> {
     if (!(tokenLine instanceof ComposedLine)) {
       throw new TypeError("tokenLine must be a ComposedLine.");
     }
-    const handle = this.nativeHandle;
-    const line = getNativeBindings().TRTypesetterCreateTruncatedLine(
-      handle, fromIndex, toIndex - fromIndex, extent, breakMode, place, tokenLine.nativeHandle,
-    );
+    const line = holding([this.nativeHandle, tokenLine.nativeHandle], ([handle, token]) =>
+      getNativeBindings().TRTypesetterCreateTruncatedLine(handle, fromIndex, toIndex - fromIndex, extent, breakMode, place, token));
     return ComposedLine.adopting(checkLine(line, "a truncated line"));
   }
 
   /**
    * Makes a line of a range, stretched to an extent by adding space to its inner spaces.
    *
-   * @param justificationFactor How much of the extra space is used: 1 or more stretches the line
-   *   fully, anything less does it partially, and 0 or less leaves it as it is.
+   * @param justificationFactor How much of the extra space is used: 1 stretches the line fully and 0
+   *   leaves it as it is. Core does not clamp it, so what a factor outside 0 to 1 does is Core's:
+   *   the wrapper passes it as it is.
    * @param justificationExtent The extent to stretch the line to. The spaces are squeezed if it is
    *   less than the width of the line.
    * @throws RangeError if the range is empty or is not within the text.
    */
   createJustifiedLine(fromIndex: number, toIndex: number, justificationFactor: number, justificationExtent: number): ComposedLine {
     checkNonEmptyRange(fromIndex, toIndex);
-    const handle = this.nativeHandle;
-    const line = getNativeBindings().TRTypesetterCreateJustifiedLine(
+    const line = holding([this.nativeHandle], ([handle]) => getNativeBindings().TRTypesetterCreateJustifiedLine(
       handle, fromIndex, toIndex - fromIndex, justificationFactor, justificationExtent,
-    );
+    ));
     return ComposedLine.adopting(checkLine(line, "a justified line"));
   }
 

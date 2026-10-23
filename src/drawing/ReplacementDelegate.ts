@@ -21,12 +21,16 @@ export interface ReplacementBounds {
 /** What gives a replacement its size, and draws it. */
 export interface ReplacementDelegate {
   /**
-   * Computes the room of the replacement. It is called with a layout width of 0 while the text is
+   * Computes the room of the replacement, as an object of the numbers `ascent`, `descent` and `extent`,
+   * none NaN or negative: anything else makes the call that asked throw a `TypeError` (not an object
+   * of numbers) or a `RangeError` (a number that is not valid).
+   *
+   * It is called with a layout width of 0 while the text is
    * shaped, and with the width of the frame while the frame is laid out. A block replacement
    * usually takes the whole layout width as its extent.
    *
    * It runs inside the call of the library that shapes or lays out text, which throws whatever it
-   * throws once Core has returned. It must not dispose objects that the call is using. It runs on
+   * throws once Core has returned. It may dispose the objects that the call is using: the call holds references of its own, so the disposal takes effect when it returns. It runs on
    * the JavaScript thread only: Core asking for the room from another thread gets zero.
    */
   computeRoom(layoutWidth: number): ReplacementRoom;

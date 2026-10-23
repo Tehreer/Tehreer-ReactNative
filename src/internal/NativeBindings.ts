@@ -58,6 +58,11 @@ export interface NativeBindings extends NativeFunctions, SheenBidiFunctions {
    */
   handleEquals(handle: Handle<string>, other: Handle<string>): boolean;
   /**
+   * A new handle with a reference of its own to the same object, which the caller disposes. It does
+   * not depend on `handle` afterwards. Throws if the handle is disposed.
+   */
+  retainHandle(handle: Handle<string>): Handle<string>;
+  /**
    * `TRReplacementCreate`, bound by hand because Core keeps the callbacks and their `userData`
    * after the call. The handler is held in the native handler table until the replacement is
    * destroyed (when Core has released its last reference), and not by the handle: disposing the

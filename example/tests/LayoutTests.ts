@@ -13,11 +13,10 @@ import { Replacement } from '../../src/layout/Replacement';
 import { TMutableText } from '../../src/layout/TMutableText';
 import { Typesetter } from '../../src/layout/Typesetter';
 import { WritingDirection } from '../../src/sfnt/enums';
-import { fontBytes as robotoBytes } from './fontData';
+import { fontBytes as robotoBytes, nastaliqFontBytes } from './fontData';
 import { layoutExpected } from './layoutExpected';
 import { frameScenarios, measure, measureTypesetter } from './layoutScenarios';
 import type { Faces } from './layoutScenarios';
-import { nastaliqFontBytes } from './nastaliqFontData';
 
 // The suite of issue #21: Typesetter, FrameResolver, ComposedFrame, ComposedLine, GlyphRun,
 // LineLocator and Replacement against the real bindings, on the fixtures of Core. The geometry of the
@@ -327,7 +326,7 @@ const tests: Test[] = [
     const line = typesetter.createSimpleLine(0, urdu.length);
     check(line.paragraphLevel % 2 === 1, 'right to left paragraph');
     const run = line.runs.get(0);
-    check(run.writingDirection === WritingDirection.RightToLeft && run.bidiLevel % 2 === 1 && run.isBackward, 'a backward run');
+    check(run.writingDirection === WritingDirection.RightToLeft && run.bidiLevel % 2 === 1 && !run.isBackward, 'a right to left run, which is not backward: Urdu is a right to left script');
     check(Math.abs(line.getCodeUnitDistance(line.endIndex) - line.width) < 0.5, 'the end is at the width');
     check(line.getCodeUnitDistance(0) > 0, 'the start of a right to left line is at its right');
     check(run.clusterMap.length === urdu.length, 'a cluster map entry for each code unit');
@@ -364,8 +363,9 @@ const tests: Test[] = [
     check(count() === before + 1, 'the handler is in the table');
 
     let text: TMutableText | undefined = new TMutableText('ab￼a');
-    text.setAttributes(0, 2, { typeface: faces.roboto, typeSize: 20 });
-    text.setAttributes(3, 4, { typeface: faces.roboto, typeSize: 20 });
+    // The replacement's range needs a typeface too: Core (ShapeResolver.c) refuses the typesetter
+    // otherwise, though TRTypesetter.h says it is not needed there.
+    text.setAttributes(0, 4, { typeface: faces.roboto, typeSize: 20 });
     text.setAttributes(2, 3, { replacement });
     replacement.dispose();
     replacement = undefined;
@@ -450,10 +450,66 @@ const tests: Test[] = [
     // A room that is not a room is an error of the call as well.
     const bad = new Replacement({ computeRoom: () => ({ ascent: 'x' } as unknown as typeof room) });
     expectThrows(() => bad.computeRoom(1), 'TypeError');
+    for (const value of [NaN, -1, Infinity]) {
+      const invalid = new Replacement({ computeRoom: () => ({ ...room, extent: value }) });
+      expectThrows(() => invalid.computeRoom(1), 'RangeError');
+      invalid.dispose();
+    }
     for (const object of [bad, late, resolver, typesetter, second]) {
       object.dispose();
     }
     check(count() === before, 'everything is released');
+  }],
+
+  ['D1: a computeRoom that disposes what the call uses neither crashes nor frees it early', (b) => {
+    const { faces } = load();
+    const count = (): number => (b.testDrainHandlers?.(), (b.testGetHandlerCount as () => number).call(b));
+    const before = count();
+    const text = new TMutableText('ab\uFFFCa');
+    text.setAttributes(0, 4, { typeface: faces.roboto, typeSize: 20 });
+
+    let typesetter: Typesetter | undefined;
+    let resolver: FrameResolver | undefined;
+    let disposing = false;
+    const replacement = new Replacement({
+      computeRoom: (width) => {
+        if (disposing) {
+          // The handler disposes the objects that Core is using, and the typesetter of the resolver.
+          typesetter?.dispose();
+          if (resolver !== undefined) {
+            resolver.typesetter = undefined;
+            resolver.dispose();
+          }
+        }
+        return { ...room, extent: width };
+      },
+    }, ReplacementKind.Block);
+    text.setAttributes(2, 3, { replacement });
+    typesetter = new Typesetter(text);
+    check(typesetter !== undefined, 'the typesetter was made');
+
+    disposing = true;
+    const line = typesetter.createSimpleLine(0, 4, 50);
+    check(typesetter.isDisposed, 'the handler disposed the typesetter during the call');
+    check(line.endIndex === 4 && line.runs.length > 0, 'and the line was made');
+    expectThrows(() => typesetter?.createSimpleLine(0, 1), 'Error', /already disposed/);
+
+    disposing = false;
+    typesetter = new Typesetter(text);
+    resolver = new FrameResolver();
+    resolver.typesetter = typesetter;
+    resolver.frameWidth = 100;
+    disposing = true;
+    const frame = resolver.createFrame(0, 4);
+    check(resolver.isDisposed && frame.lines.length === 3, 'the same for a resolver and its typesetter');
+
+    disposing = false;
+    const direct = new Replacement({ computeRoom: () => { direct.dispose(); return room; } });
+    check(direct.computeRoom(1).extent === 30 && direct.isDisposed, 'and for the replacement that is asked');
+    for (const object of [line, frame, typesetter, replacement, text]) {
+      object.dispose();
+    }
+    check(b.smokeTest() && count() === before, 'everything is released');
   }],
 
   ['truncation tokens and truncated lines have the range that Core documents', () => {

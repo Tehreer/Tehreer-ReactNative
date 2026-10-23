@@ -1,5 +1,6 @@
 import type { ReplacementDelegate, ReplacementRoom } from "../drawing/ReplacementDelegate.js";
 import { adopt } from "../internal/Adopt.js";
+import { holding } from "../internal/Holding.js";
 import { getNativeBindings } from "../internal/NativeBindings.js";
 import type { ReplacementHandler } from "../internal/NativeBindings.js";
 import type { Handle } from "../internal/NativeFunctions.js";
@@ -54,29 +55,60 @@ export class Replacement extends NativeObject<"TRReplacement"> {
    * Computes the room of the replacement for a layout width, which asks the delegate. An error that
    * the delegate throws is thrown from here.
    *
-   * @throws RangeError if the width is NaN, or the delegate gives a room that is not valid.
+   * @throws RangeError if the width is NaN, or the delegate gives a number that is NaN, negative or too
+   *   big for a 32-bit float.
+   * @throws TypeError if the delegate gives something that is not an object of three numbers.
    */
   computeRoom(layoutWidth: number): ReplacementRoom {
-    return getNativeBindings().TRReplacementComputeRoom(this.nativeHandle, layoutWidth);
+    return holding([this.nativeHandle], ([handle]) => getNativeBindings().TRReplacementComputeRoom(handle, layoutWidth));
   }
+}
+
+// The largest finite `TRFloat` (FLT_MAX): the native side refuses a bigger double.
+const MAX_FLOAT = 3.4028234663852886e38;
+
+/**
+ * The contract for what `computeRoom` returns: a value that is not an object with the numbers
+ * `ascent`, `descent` and `extent` is a `TypeError`, and a number that is NaN, negative or more than
+ * a 32-bit float holds is a `RangeError`. It is checked here, so the error is the same whether Core
+ * or the application asks, and a copy is returned so that getters of the result never run natively.
+ */
+function checkRoom(result: unknown): ReplacementRoom {
+  if (typeof result !== "object" || result === null) {
+    throw new TypeError("computeRoom must return an object with ascent, descent and extent.");
+  }
+  const room = result as Record<string, unknown>;
+  const checked: Record<string, number> = {};
+  for (const name of ["ascent", "descent", "extent"]) {
+    const value = room[name];
+    if (typeof value !== "number") {
+      throw new TypeError(`computeRoom: ${name} must be a number.`);
+    }
+    if (!(value >= 0) || value > MAX_FLOAT) {
+      throw new RangeError(`computeRoom: ${name} (${value}) must be a number from 0 to what a 32-bit float holds.`);
+    }
+    checked[name] = value;
+  }
+  return checked as unknown as ReplacementRoom;
 }
 
 function makeHandler(delegate: ReplacementDelegate): ReplacementHandler {
   if (typeof delegate !== "object" || delegate === null || typeof delegate.computeRoom !== "function") {
     throw new TypeError("delegate must be an object with a computeRoom function.");
   }
-  const draw = delegate.draw;
-  if (draw !== undefined && typeof draw !== "function") {
+  if (delegate.draw !== undefined && typeof delegate.draw !== "function") {
     throw new TypeError("delegate.draw must be a function.");
   }
 
-  // The delegate is called as itself, so a class can keep its state in `this`. The handler refers to
-  // the delegate and never to the wrapper that is made from it.
+  // Each function is read once, so a getter or a change of the delegate later does not matter, and is
+  // called as the delegate, so a class can keep its state in `this`. The handler refers to the
+  // delegate and never to the wrapper that is made from it.
+  const computeRoom = delegate.computeRoom;
+  const draw = delegate.draw;
   const handler: { -readonly [K in keyof ReplacementHandler]: ReplacementHandler[K] } = {
-    computeRoom: (layoutWidth) => delegate.computeRoom(layoutWidth),
+    computeRoom: (layoutWidth) => checkRoom(computeRoom.call(delegate, layoutWidth)),
   };
   if (draw !== undefined) {
-    // Read once, so a getter cannot pass the check and hand back a non-function later.
     handler.draw = (context, bounds) => draw.call(delegate, context, bounds);
   }
   return handler;

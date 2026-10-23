@@ -95,6 +95,8 @@ let cores: Core[];
 let calls: string[];
 let attributesSeen: { type: number; value: unknown }[] | undefined | null;
 let failNext: Set<string>;
+/** Runs inside the Core call of the bindings that can reach a replacement, as its computeRoom would. */
+let duringCall: (() => void) | undefined;
 const TEXT_LENGTH = 10;
 
 function core(kind: string, data: Record<string, unknown> = {}): Core {
@@ -157,6 +159,7 @@ function fake(): Record<string, unknown> {
     },
     isHandleMutable: () => false,
     handleEquals: (a: FakeHandle, b: FakeHandle) => live(a) === live(b),
+    retainHandle: (handle: FakeHandle) => retained(live(handle)),
     createPointerBuffer(view: { memory: ArrayBuffer }) {
       calls.push("buffer");
       return view.memory;
@@ -171,12 +174,18 @@ function fake(): Record<string, unknown> {
     },
     TRReplacementGetKind: (handle: FakeHandle) => live(handle).data["kind"],
     TRReplacementComputeRoom(handle: FakeHandle, width: number) {
+      duringCall?.();
       const handler = live(handle).data["handler"] as { computeRoom(width: number): unknown };
       return handler.computeRoom(width);
     },
     TRTypesetterCreate(text: FakeHandle, attributes: { type: number; value: unknown }[] | undefined) {
       live(text);
       attributesSeen = attributes;
+      duringCall?.();
+      live(text);
+      for (const attribute of attributes ?? []) {
+        if (typeof attribute.value === "object") live(attribute.value as FakeHandle);
+      }
       calls.push("createTypesetter");
       if (failNext.delete("createTypesetter")) return undefined;
       for (const attribute of attributes ?? []) {
@@ -196,6 +205,8 @@ function fake(): Record<string, unknown> {
       return inText(index, length) ? index : -1;
     },
     TRTypesetterCreateSimpleLine(handle: FakeHandle, index: number, length: number, width: number) {
+      live(handle);
+      duringCall?.();
       live(handle);
       calls.push(`simple ${index} ${length} ${width}`);
       return inText(index, length) ? line(index, index + length) : undefined;
@@ -249,6 +260,8 @@ function fake(): Record<string, unknown> {
       const resolver = live(handle);
       calls.push(`frame ${index} ${length}`);
       assert.ok(resolver.data["typesetter"] !== undefined, "a frame is not made without a typesetter");
+      duringCall?.();
+      live(handle);
       return inText(index, length) ? handleOf(core("frame", { from: index, to: index + length, lines: 3 })) : undefined;
     },
     TRComposedFrameRetain: retainer(),
@@ -347,6 +360,7 @@ beforeEach(() => {
   calls = [];
   attributesSeen = undefined;
   failNext = new Set();
+  duringCall = undefined;
   (globalThis as Record<string, unknown>)["__tehreer"] = fake();
 });
 
@@ -787,4 +801,62 @@ test("a locator maps -1 and Core's refusals", () => {
   assert.throws(() => locator.findLines(undefined as never), TypeError);
   assert.equal(locator.getFirstLineIndexBelow(0), 0);
   assert.equal(locator.getFirstLineIndexBelow(1000), -1);
+});
+
+test("what computeRoom returns is a TypeError when it is not three numbers and a RangeError when a number is not valid", () => {
+  const ask = (result: unknown) => new Replacement({ computeRoom: () => result as typeof room }).computeRoom(1);
+  for (const bad of [undefined, null, 5, "room", {}, { ascent: 1, descent: 1 }, { ascent: "1", descent: 1, extent: 1 }, { ascent: 1, descent: 1, extent: null }]) {
+    assert.throws(() => ask(bad), TypeError, JSON.stringify(bad));
+  }
+  for (const value of [NaN, -1, -Infinity, Infinity, 1e39]) {
+    assert.throws(() => ask({ ascent: 1, descent: value, extent: 1 }), RangeError, String(value));
+  }
+  assert.deepEqual(ask({ ascent: 0, descent: 0, extent: 0 }), { ascent: 0, descent: 0, extent: 0 });
+  let reads = 0;
+  const getter = { get ascent() { reads++; return 1; }, descent: 2, extent: 3 };
+  assert.deepEqual(ask(getter), room);
+  assert.equal(reads, 1, "a copy is passed on, so a getter runs once");
+});
+
+test("a delegate's functions are read once, when the replacement is made", () => {
+  const seen: string[] = [];
+  const delegate = { computeRoom(): typeof room { seen.push("first"); return room; } };
+  const replacement = new Replacement(delegate);
+  delegate.computeRoom = () => { seen.push("second"); return room; };
+  replacement.computeRoom(1);
+  assert.deepEqual(seen, ["first"]);
+});
+
+test("a call that can reach computeRoom holds its own references, so a handler may dispose what the call uses", () => {
+  const set = typesetter();
+  const core = set.nativeHandle.core;
+  duringCall = () => set.dispose();
+  const line = set.createSimpleLine(0, 3);
+  assert.ok(set.isDisposed, "the disposal took effect");
+  assert.equal(core.refs, 0, "and Core's reference went once the call was over");
+  assert.equal(line.runs.length, 2);
+
+  const made = new FrameResolver();
+  const given = typesetter();
+  made.typesetter = given;
+  const held = given.nativeHandle.core;
+  given.dispose();
+  duringCall = () => { made.typesetter = undefined; made.dispose(); };
+  assert.equal(made.createFrame(0, 4).lines.length, 3);
+  assert.ok(made.isDisposed);
+  assert.equal(held.refs, 0, "the typesetter that the resolver dropped mid-call was kept until the end");
+
+  duringCall = undefined;
+  const replacement = new Replacement({ computeRoom: () => room });
+  duringCall = () => replacement.dispose();
+  assert.deepEqual(replacement.computeRoom(1), room);
+  assert.ok(replacement.isDisposed);
+
+  duringCall = undefined;
+  const text = new TText("abc");
+  const face = typeface();
+  duringCall = () => { text.dispose(); face.dispose(); };
+  new Typesetter(text, { typeface: face });
+  assert.ok(text.isDisposed && face.isDisposed);
+  assert.deepEqual(cores.filter((c) => c.kind === "text" && c.refs !== 0), [], "nothing is left held");
 });

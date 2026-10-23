@@ -1,56 +1,47 @@
-// Generated from Libraries/TehreerCore/Tests/Fonts/Roboto-Regular.abc.ttf (a subset of Roboto with
-// the letters "abc", 2132 bytes, Apache 2.0). It is embedded because the example app has no file
-// access in the test runner, and decoded by hand because Hermes has no Buffer.
+import { Image } from 'react-native';
 
-const base64 =
-  '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';
+// The fonts of the tests are binary assets (example/assets/fonts), not source code. Metro treats a
+// `require()` of a `.ttf` as an asset, and a debug build serves it from the dev server, so it is
+// fetched. That is asynchronous, so App.tsx calls `loadFonts()` before it runs the suites; the
+// bytes below are `let` bindings that it fills in, and the suites read them when they run.
 
-const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
+const assets = {
+  roboto: require('../assets/fonts/Roboto-Regular.abc.ttf') as number,
+  variable: require('../assets/fonts/Roboto-Variable.abc.ttf') as number,
+  color: require('../assets/fonts/RocherColorGX.abc.ttf') as number,
+  nastaliq: require('../assets/fonts/NotoNastaliqUrdu-Regular.ttf') as number,
+};
 
-export function decode(text: string): Uint8Array {
-  const padding = text.endsWith('==') ? 2 : text.endsWith('=') ? 1 : 0;
-  const bytes = new Uint8Array((text.length / 4) * 3 - padding);
-  let out = 0;
-  for (let i = 0; i < text.length; i += 4) {
-    let bits = 0;
-    for (let j = 0; j < 4; j++) {
-      const c = text[i + j] as string;
-      bits = (bits << 6) | (c === '=' ? 0 : alphabet.indexOf(c));
-    }
-    for (let shift = 16; shift >= 0 && out < bytes.length; shift -= 8) {
-      bytes[out++] = (bits >> shift) & 0xff;
-    }
+/** The bytes of a font whose glyphs `a`, `b` and `c` have outlines. */
+export let fontBytes: Uint8Array = new Uint8Array(0);
+/** Roboto with the `wght` and `wdth` axes and 18 named styles. */
+export let variableFontBytes: Uint8Array = new Uint8Array(0);
+/** A variable color font with 11 palettes. */
+export let colorFontBytes: Uint8Array = new Uint8Array(0);
+/** Noto Nastaliq Urdu, which shapes Urdu. */
+export let nastaliqFontBytes: Uint8Array = new Uint8Array(0);
+
+async function fetchBytes(asset: number): Promise<Uint8Array> {
+  const { uri } = Image.resolveAssetSource(asset);
+  const response = await fetch(uri);
+  if (!response.ok) {
+    throw new Error(`Could not fetch the font ${uri}: status ${response.status}`);
+  }
+  const bytes = new Uint8Array(await response.arrayBuffer());
+  if (bytes.length === 0) {
+    throw new Error(`The font ${uri} is empty`);
   }
   return bytes;
 }
 
-/** The bytes of a font whose glyphs `a`, `b` and `c` have outlines. */
-export const fontBytes: Uint8Array = decode(base64);
+/** Fetches every font. It must finish before the suites run. */
+export async function loadFonts(): Promise<void> {
+  const [roboto, variable, color, nastaliq] = await Promise.all([
+    fetchBytes(assets.roboto), fetchBytes(assets.variable), fetchBytes(assets.color), fetchBytes(assets.nastaliq),
+  ]);
+  // Plain assignments: the transform of an export that is a `let` follows these best.
+  fontBytes = roboto;
+  variableFontBytes = variable;
+  colorFontBytes = color;
+  nastaliqFontBytes = nastaliq;
+}
