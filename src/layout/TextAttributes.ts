@@ -3,10 +3,8 @@ import type { Typeface } from "../graphics/Typeface.js";
 import type { FontFeatures } from "../sfnt/FontFeatures.js";
 import type { OpenTypeFeature } from "../sfnt/OpenTypeFeature.js";
 import type { SfntTag } from "../sfnt/SfntTag.js";
+import type { Replacement } from "./Replacement.js";
 import type { TextAlignment } from "./enums.js";
-
-// `replacement` (TRAttributeReplacement) is not a member yet: it needs the `Replacement` class and
-// its delegate, which come with the layout package (issue #21). The native codec already handles it.
 
 /** The attributes that apply to a run of text. A member that is missing is not set. */
 export interface RunAttributes {
@@ -20,6 +18,11 @@ export interface RunAttributes {
   readonly baselineOffset?: number;
   /** The skew of the glyphs. Runs with different values are kept apart. */
   readonly obliqueness?: number;
+  /**
+   * What takes the place of the text of the range. Reading it gives a wrapper that the reader owns
+   * and disposes. Core retains it, so the object that was given can be disposed.
+   */
+  readonly replacement?: Replacement;
   readonly foregroundColor?: Color;
   readonly backgroundColor?: Color;
   readonly underline?: boolean;

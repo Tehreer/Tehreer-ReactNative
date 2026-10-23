@@ -72,6 +72,7 @@ let TText: { new (text: string): TextLike };
 let TMutableText: { new (text?: string): MutableLike };
 let Typeface: { adopting(handle: FakeHandle): Wrapper };
 let FontFeatures: { new (features: { tag: number; value: number }[]): Wrapper };
+let Replacement: { new (delegate: unknown, kind?: number): Wrapper };
 
 let calls: string[];
 let cores: Core[];
@@ -278,6 +279,10 @@ function fake(): Record<string, unknown> {
       calls.push("createFontFeatures");
       return handleOf(core("features", { items: features }));
     },
+    TRReplacementCreate(handler: unknown, kind: number) {
+      calls.push(`createReplacement ${kind}`);
+      return handleOf(core("replacement"));
+    },
     TRFontFeaturesGetCount: (handle: FakeHandle) => must(live(handle).core.items).length,
     TRFontFeaturesGetItemsPtr: (handle: FakeHandle) => ({ items: live(handle).core.items }),
   };
@@ -286,11 +291,13 @@ function fake(): Record<string, unknown> {
 before(async () => {
   out = compileModules([
     "src/layout/TText.ts", "src/layout/TMutableText.ts", "src/graphics/Typeface.ts", "src/sfnt/FontFeatures.ts",
+    "src/layout/Replacement.ts",
   ]);
   TText = ((await importModule(out, "layout/TText.js")) as { TText: typeof TText }).TText;
   TMutableText = ((await importModule(out, "layout/TMutableText.js")) as { TMutableText: typeof TMutableText }).TMutableText;
   Typeface = ((await importModule(out, "graphics/Typeface.js")) as { Typeface: typeof Typeface }).Typeface;
   FontFeatures = ((await importModule(out, "sfnt/FontFeatures.js")) as { FontFeatures: typeof FontFeatures }).FontFeatures;
+  Replacement = ((await importModule(out, "layout/Replacement.js")) as { Replacement: typeof Replacement }).Replacement;
 });
 
 beforeEach(() => {
@@ -391,13 +398,15 @@ test("a long string is read in chunks", () => {
 
 test("every attribute that the wrapper supports has the Core type of its name in TRAttribute.h", () => {
   const types = headerTypes();
-  types.delete("replacement");
-  assert.equal(types.size, 25, "25 supported attributes; replacement waits for issue #21");
+  assert.equal(types.size, 26, "26 attributes in TRAttribute.h, all of them supported");
 
   const text = new TMutableText("a");
   for (const [name, type] of types) {
     calls = [];
-    const value = name === "typeface" ? typeface() : name === "fontFeatures" ? [{ tag: 1, value: 1 }] : EVERY_ATTRIBUTE[name];
+    const value = name === "typeface" ? typeface()
+      : name === "fontFeatures" ? [{ tag: 1, value: 1 }]
+        : name === "replacement" ? new Replacement({ computeRoom: () => ({ ascent: 1, descent: 1, extent: 1 }) })
+          : EVERY_ATTRIBUTE[name];
     assert.ok(value !== undefined, `${name} has a test value`);
     text.setAttributes(0, 1, { [name]: value });
     assert.ok(calls.includes(`setAttribute 0 1 ${type}`), `${name} is type ${type}: ${calls.join(", ")}`);
@@ -558,7 +567,7 @@ test("a bad attribute changes nothing, even after a good one", () => {
   const cases: [string, Attributes, ErrorConstructor | RangeErrorConstructor | TypeErrorConstructor][] = [
     ["unknown name", { typeSize: 3, bogus: 1 }, TypeError],
     ["inherited name", { typeSize: 3, constructor: 1 }, TypeError],
-    ["replacement is not supported yet", { typeSize: 3, replacement: {} }, TypeError],
+    ["replacement that is not one", { typeSize: 3, replacement: {} }, TypeError],
     ["string size", { typeSize: "3" }, TypeError],
     ["NaN size", { typeSize: 3, scaleX: NaN }, RangeError],
     ["infinite size", { scaleY: Infinity }, RangeError],
@@ -587,7 +596,7 @@ test("a bad attribute changes nothing, even after a good one", () => {
   assert.throws(() => text.setAttributes(0, 3, null as unknown as Attributes), TypeError);
   assert.deepEqual(text.getAttributeRun(0), { attributes: {}, length: 3 });
   assert.throws(() => text.removeAttributes(0, 3, "typeSize", "bogus"), TypeError);
-  assert.throws(() => text.removeAttributes(0, 3, "replacement"), TypeError);
+  assert.throws(() => text.removeAttributes(0, 3, "typeSize", "constructor"), TypeError);
   assert.ok(!calls.some((call) => call.startsWith("removeAttribute")), "no removal happens when a name is bad");
 
   // A member that is undefined is not set.
@@ -652,17 +661,37 @@ test("reading attributes gives the list back and the references of what was read
   assert.equal(refsOf(face), before);
 });
 
-test("a replacement that a text holds is skipped, and its reference is given back", () => {
+test("a replacement is stored, read back as a wrapper of its own, and Core keeps it after dispose", () => {
+  const text = new TMutableText("ab");
+  const replacement = new Replacement({ computeRoom: () => ({ ascent: 1, descent: 1, extent: 1 }) }, 1);
+  const held = replacement.nativeHandle.core;
+  text.setAttributes(0, 2, { replacement });
+  assert.ok(calls.includes("setAttribute 0 2 7"));
+  assert.equal(held.refs, 3, "the wrapper and one reference for each unit of the range");
+
+  const read = must(text.getAttributeRun(0)).attributes["replacement"] as Wrapper;
+  assert.ok(read.equals(replacement));
+  assert.notEqual(read, replacement, "a read gives a wrapper of its own");
+  assert.equal(held.refs, 4);
+  read.dispose();
+  replacement.dispose();
+  assert.equal(held.refs, 2, "only the text holds it");
+
+  assert.throws(() => text.setAttributes(0, 1, { replacement: replacement }), /already disposed/);
+  text.removeAttributes(0, 2, "replacement");
+  assert.equal(held.refs, 0, "removing gives the references back");
+});
+
+test("an attribute type that the wrapper has no member for is skipped, and its reference is given back", () => {
   const text = new TMutableText("a");
-  // Not settable through the wrapper; Core could have it from another way, so reading must cope.
-  const replacement = core("replacement");
+  const unknown = core("unknown");
   const inner = textOf(text.nativeHandle);
-  must(inner.attrs[0]).set(7, replacement);
+  must(inner.attrs[0]).set(99, unknown);
   must(inner.attrs[0]).set(2, 9);
 
   const run = must(text.getAttributeRun(0));
   assert.deepEqual(run.attributes, { typeSize: 9 });
-  assert.equal(replacement.refs, 1, "only the text holds it");
+  assert.equal(unknown.refs, 1, "only the text holds it");
 });
 
 test("use after dispose throws, and dispose can be repeated", () => {

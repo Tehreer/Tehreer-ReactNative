@@ -84,6 +84,20 @@ jsi::Value IsHandleDisposed(jsi::Runtime &runtime, const jsi::Value &, const jsi
     return jsi::Value(RequireHandle(runtime, args, count, 0, "isHandleDisposed", "handle")->isDisposed());
 }
 
+// A handle with a reference of its own to the same object. A binding that can run JavaScript (a
+// replacement's computeRoom) is given one, so that the handler disposing the wrapper it was called
+// through cannot free what Core is using.
+jsi::Value RetainHandle(jsi::Runtime &runtime, const jsi::Value &, const jsi::Value *args, size_t count) {
+    auto handle = RequireHandle(runtime, args, count, 0, "retainHandle", "handle");
+    if (handle->isDisposed()) {
+        marshal::Fail(runtime, "retainHandle", "handle", "is already disposed");
+    }
+    if (!handle->canDuplicate()) {
+        marshal::Fail(runtime, "retainHandle", "handle", "cannot be retained");
+    }
+    return jsi::Object::createFromHostObject(runtime, handle->Duplicate());
+}
+
 // Two handles are different objects even when they hold references to the same Core object (a
 // retain gives a new one), so the identity of the Core object is what is compared.
 jsi::Value HandleEquals(jsi::Runtime &runtime, const jsi::Value &, const jsi::Value *args, size_t count) {
@@ -238,6 +252,7 @@ void InstallBindings(jsi::Runtime &runtime) {
     Define(runtime, bindings, "isHandleDisposed", 1, IsHandleDisposed);
     Define(runtime, bindings, "isHandleMutable", 1, IsHandleMutable);
     Define(runtime, bindings, "handleEquals", 2, HandleEquals);
+    Define(runtime, bindings, "retainHandle", 1, RetainHandle);
 #ifndef NDEBUG
     Define(runtime, bindings, "testCreateProbe", 0, CreateProbe);
     Define(runtime, bindings, "testGetProbeReleaseCount", 0, GetProbeReleaseCount);

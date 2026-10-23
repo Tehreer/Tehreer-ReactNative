@@ -5,9 +5,10 @@ import type { NativeAttribute } from "../internal/NativeBindings.js";
 import type { Handle } from "../internal/NativeFunctions.js";
 import type { NativeObject } from "../internal/NativeObject.js";
 import { FontFeatures } from "../sfnt/FontFeatures.js";
+import { Replacement } from "./Replacement.js";
 import type { TextAttributeName, TextAttributes } from "./TextAttributes.js";
 
-type Kind = "typeface" | "float" | "color" | "boolean" | "count" | "tag" | "alignment" | "token" | "fontFeatures";
+type Kind = "typeface" | "float" | "color" | "boolean" | "count" | "tag" | "alignment" | "token" | "fontFeatures" | "replacement";
 
 /** The `TRAttributeType` and the kind of the value of every attribute, as TRAttribute.h lists them. */
 const ATTRIBUTES: Record<TextAttributeName, readonly [type: number, kind: Kind]> = {
@@ -17,6 +18,7 @@ const ATTRIBUTES: Record<TextAttributeName, readonly [type: number, kind: Kind]>
   scaleY: [4, "float"],
   baselineOffset: [5, "float"],
   obliqueness: [6, "float"],
+  replacement: [7, "replacement"],
   textAlignment: [8, "alignment"],
   firstLineHeadIndent: [9, "float"],
   headIndent: [10, "float"],
@@ -37,10 +39,6 @@ const ATTRIBUTES: Record<TextAttributeName, readonly [type: number, kind: Kind]>
   strikethrough: [25, "boolean"],
   decorationColor: [26, "color"],
 };
-
-// TRAttributeReplacement. Core can hold it, but the wrapper has no `Replacement` class before
-// issue #21, so a read drops it (and gives its reference back) instead of making up a half version.
-const DEFERRED_TYPES: ReadonlySet<number> = new Set([7]);
 
 const NAMES_BY_TYPE = new Map<number, TextAttributeName>(
   (Object.keys(ATTRIBUTES) as TextAttributeName[]).map((name) => [ATTRIBUTES[name][0], name]),
@@ -85,6 +83,11 @@ function prepareValue(name: TextAttributeName, kind: Kind, value: unknown): { va
     case "typeface":
       if (!(value instanceof Typeface)) {
         throw new TypeError(`${name} must be a Typeface.`);
+      }
+      return { value: value.nativeHandle };
+    case "replacement":
+      if (!(value instanceof Replacement)) {
+        throw new TypeError(`${name} must be a Replacement.`);
       }
       return { value: value.nativeHandle };
     case "fontFeatures":
@@ -203,8 +206,8 @@ export function readAttributeList(list: Handle<"TRAttributeList">): TextAttribut
       const kind = name === undefined ? undefined : ATTRIBUTES[name][1];
 
       if (name === undefined || kind === undefined) {
-        // An attribute without a member here: give its reference back.
-        if (DEFERRED_TYPES.has(type) && typeof value === "object") {
+        // Core has an attribute that this wrapper has no member for: give its reference back.
+        if (typeof value === "object") {
           b.disposeHandle(value);
         }
         continue;
@@ -215,6 +218,12 @@ export function readAttributeList(list: Handle<"TRAttributeList">): TextAttribut
           const typeface = Typeface.adopting(value as Handle<"TRTypeface">);
           made.push(typeface);
           attributes[name] = typeface;
+          break;
+        }
+        case "replacement": {
+          const replacement = Replacement.adopting(value as Handle<"TRReplacement">);
+          made.push(replacement);
+          attributes[name] = replacement;
           break;
         }
         case "fontFeatures": {

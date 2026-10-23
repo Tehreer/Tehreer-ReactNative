@@ -1,8 +1,7 @@
 import type { NativeBindings } from '../../src/internal/NativeBindings';
 import { FontFile } from '../../src/graphics/FontFile';
 import type { Typeface } from '../../src/graphics/Typeface';
-import { fontBytes as robotoBytes } from './fontData';
-import { colorFontBytes, variableFontBytes } from './graphicsFontData';
+import { fontBytes as robotoBytes, colorFontBytes, variableFontBytes } from './fontData';
 
 // The suite of FontFile and Typeface (issue #15). It runs the library classes against the real
 // bindings in Hermes, on Core's own fixtures: Roboto-Regular.abc (static), Roboto-Variable.abc

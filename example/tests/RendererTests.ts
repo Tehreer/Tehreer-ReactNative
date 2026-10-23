@@ -8,8 +8,7 @@ import type { Typeface } from '../../src/graphics/Typeface';
 import { SfntTag } from '../../src/sfnt/SfntTag';
 import { ShapingEngine } from '../../src/sfnt/ShapingEngine';
 import { WritingDirection } from '../../src/sfnt/enums';
-import { fontBytes as robotoBytes } from './fontData';
-import { colorFontBytes } from './graphicsFontData';
+import { fontBytes as robotoBytes, colorFontBytes } from './fontData';
 
 // The suite of issue #18: Renderer, GlyphCache and GlyphImage against the real bindings, on the
 // fixtures of Core. The expected values are the ones that Core's own RendererTests.cpp pins for the

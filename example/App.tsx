@@ -3,6 +3,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import { getVersion, initialize } from 'tehreer-react-native';
 import type { NativeBindings } from '../src/internal/NativeBindings';
 import { suites } from './tests';
+import { loadFonts } from './tests/fontData';
 import { runSuites } from './tests/runSuites';
 
 interface Result {
@@ -40,18 +41,21 @@ export default function App() {
   const [error, setError] = useState<string | undefined>();
 
   useEffect(() => {
-    try {
-      const outcome = run();
-      setResult(outcome);
-      // The device test scripts read this line from the system log.
-      console.log(
-        `TEHREER_RESULT version=${outcome.version} smokeTest=${outcome.smokeTest} suites=${outcome.suites} passed=${outcome.passed} total=${outcome.total}`,
-      );
-    } catch (e) {
-      const message = e instanceof Error ? e.message : String(e);
-      setError(message);
-      console.log(`TEHREER_RESULT error=${message}`);
-    }
+    // The fonts are fetched assets, so the suites wait for them; a font that cannot be fetched is an error.
+    loadFonts()
+      .then(() => {
+        const outcome = run();
+        setResult(outcome);
+        // The device test scripts read this line from the system log.
+        console.log(
+          `TEHREER_RESULT version=${outcome.version} smokeTest=${outcome.smokeTest} suites=${outcome.suites} passed=${outcome.passed} total=${outcome.total}`,
+        );
+      })
+      .catch((e: unknown) => {
+        const message = e instanceof Error ? e.message : String(e);
+        setError(message);
+        console.log(`TEHREER_RESULT error=${message}`);
+      });
   }, []);
 
   return (

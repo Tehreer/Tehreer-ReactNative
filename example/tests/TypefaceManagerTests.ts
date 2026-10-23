@@ -2,8 +2,7 @@ import type { NativeBindings } from '../../src/internal/NativeBindings';
 import { FontFile } from '../../src/graphics/FontFile';
 import type { Typeface } from '../../src/graphics/Typeface';
 import { TypefaceManager } from '../../src/graphics/TypefaceManager';
-import { fontBytes as robotoBytes } from './fontData';
-import { variableFontBytes } from './graphicsFontData';
+import { fontBytes as robotoBytes, variableFontBytes } from './fontData';
 
 // The suite of TypefaceManager and TypeFamily (issue #16), against the real registry of Core in
 // Hermes. The registry is shared by the whole process, so every test unregisters what it registered
