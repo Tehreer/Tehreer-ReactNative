@@ -56,6 +56,12 @@ function sameRoom(a: ReplacementRoom, b: ReplacementRoom): boolean {
  * is given plain data. The native state lives exactly as long as the Core replacement, and the
  * registry releases the text on {@link dispose}.
  *
+ * Lifetime: the registry share is dropped by {@link dispose}, and the shadow node's state keeps the
+ * text and the composed frame that it last used. A view that is replaced by another text frees the
+ * old state with the new one. A view that is unmounted while it still shows a replacement is freed
+ * only when React Native lets go of the last state of its node, which is not under the library's
+ * control (the device suite asserts the first case strictly, and not the second).
+ *
  * What is deferred (issue #29 says a replacement is "drawn by the delegate or by native views"):
  * only the first half exists. The delegate's `draw` is called once, here, with a context that records
  * `fillRect` and nothing else; `drawGlyphImage` throws an `Error` from this call (so from the

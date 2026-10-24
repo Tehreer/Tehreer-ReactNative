@@ -65,7 +65,7 @@ export interface TTextViewHandle {
    * from Core's caret math, so it is right inside right-to-left runs too.
    */
   getCaretPosition(index: number): CaretPosition | undefined;
-  /** Scrolls the line of a code unit to the top of the view. */
+  /** Scrolls the line of a code unit to the top of the view. Before the first frame the request waits for it. */
   scrollToCodeUnit(index: number): void;
   /** Scrolls to a distance from the top of the text, which is limited to what the text allows. */
   scrollToOffset(offset: number): void;
@@ -95,7 +95,7 @@ export const TTextView = forwardRef<TTextViewHandle, TTextViewProps>(function TT
   const [request, setRequest] = useState({ offset: 0, token: 0 });
 
   // What the scroll logic needs, all resolved here: the native view just goes where it is told.
-  const metrics = useRef({ content: 0, viewport: 0, pending: undefined as number | undefined });
+  const metrics = useRef({ content: 0, viewport: 0, pending: undefined as number | undefined, pendingCodeUnit: undefined as number | undefined });
   const send = useCallback((offset: number) => {
     const limit = Math.max(0, metrics.current.content - metrics.current.viewport);
     setRequest((previous) => ({ offset: Math.min(Math.max(0, offset), limit), token: previous.token + 1 }));
@@ -118,6 +118,11 @@ export const TTextView = forwardRef<TTextViewHandle, TTextViewProps>(function TT
     getSelectionRects: (fromIndex, toIndex) => withFrame(frameIdRef.current, (frame) => frame.getSelectionRects(fromIndex, toIndex)) ?? [],
     getCaretPosition: (index) => withFrame(frameIdRef.current, (frame) => getCaretPosition(frame, index)),
     scrollToCodeUnit: (index) => {
+      // Like an offset, a request that comes before the first frame waits for it.
+      if (frameIdRef.current === 0) {
+        metrics.current.pendingCodeUnit = index;
+        return;
+      }
       const top = withFrame(frameIdRef.current, (frame) => getLineTop(frame, index));
       if (top !== undefined) {
         scrollTo(top);
@@ -133,6 +138,14 @@ export const TTextView = forwardRef<TTextViewHandle, TTextViewProps>(function TT
       const pending = metrics.current.pending;
       metrics.current.pending = undefined;
       send(pending);
+    }
+    const waiting = metrics.current.pendingCodeUnit;
+    if (waiting !== undefined && event.nativeEvent.frameId !== 0) {
+      metrics.current.pendingCodeUnit = undefined;
+      const top = withFrame(event.nativeEvent.frameId, (frame) => getLineTop(frame, waiting));
+      if (top !== undefined) {
+        send(top);
+      }
     }
     onFrameReady?.(event.nativeEvent);
   }, [onFrameReady, send]);

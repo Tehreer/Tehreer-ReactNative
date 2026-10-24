@@ -148,6 +148,10 @@ export function LabelTestHost({ onDone }: { onDone: (report: SuiteReport) => voi
   const [setup, setSetup] = useState<Setup | undefined>();
   const [texts, setTexts] = useState<Record<string, TText>>({});
   const [stage, setStage] = useState<'labels' | 'views' | 'gone'>('labels');
+  // Set before a view is unmounted: the views that showed a replacement show plain text, so that
+  // their states hold no frame, text or replacement of the replacement any more.
+  const [plainLabel, setPlainLabel] = useState(false);
+  const [plainChip, setPlainChip] = useState(false);
   const [width, setWidth] = useState(300);
   const [selection, setSelection] = useState<{ fromIndex: number; toIndex: number } | undefined>();
   const [longText, setLongText] = useState<TText | undefined>();
@@ -290,6 +294,10 @@ export function LabelTestHost({ onDone }: { onDone: (report: SuiteReport) => voi
         }
       }
 
+      // Supersede the state of the label that showed a replacement before it goes.
+      setPlainLabel(true);
+      await sleep(700);
+
       // The text view.
       setStage('views');
       ok(await waitFor(() => view.current.frameId !== 0 && viewHandle.current !== null && chipHandle.current !== null && view.current.chipFrame !== 0), 'view: no frame');
@@ -388,20 +396,21 @@ export function LabelTestHost({ onDone }: { onDone: (report: SuiteReport) => voi
         ok((b.testGetViewCounts?.().replacements ?? 0) > baseline.replacements, 'replacement: no static replacement is alive while the views show one');
       }
 
-      // State released with the replacement: unmount everything and the native objects go.
+      // State released with the replacement: the view first shows plain text, which supersedes the
+      // state that held the frame, and then everything is unmounted.
+      setPlainChip(true);
+      await sleep(700);
       setStage('gone');
       if (baseline !== undefined) {
-        // The registry must be empty again: that is the structural part (the text is released with
-        // its view). The static replacements are another matter: the last composed frame of a view
-        // references them, and on both platforms something of the mounting layer still holds the
-        // state of the two views that showed one (observed: the count stays at 2 for 20 s, with
-        // the states' own share of the text taken out, so it is the frames), so the check is that
-        // no more than those two remain, and the sync suite `viewtext` proves the data is freed
-        // with the replacement itself. Tracked as an open item in the PR.
+        // Strict: with the states superseded nothing may remain, so any difference is a leak of
+        // the text, the frame or the replacement. A view that is unmounted *while it still shows* a
+        // replacement is another case: its last state (and the frame in it) lives until React
+        // Native lets go of the node's family, which is not in our hands (see the TSDoc of
+        // ViewText), and that case is not asserted here.
         const settled = () => {
           b.testCollectGarbage?.();
           const now = b.testGetViewCounts?.();
-          return now !== undefined && now.texts === baseline.texts && now.replacements <= baseline.replacements + 2;
+          return now !== undefined && now.texts === baseline.texts && now.replacements === baseline.replacements;
         };
         const ok2 = await waitFor(settled, 10000);
         const after = b.testGetViewCounts?.();
@@ -429,8 +438,8 @@ export function LabelTestHost({ onDone }: { onDone: (report: SuiteReport) => voi
             key={testCase.name}
             testID={`label-${testCase.name}`}
             ref={(handle) => { handles.current[testCase.name] = handle; }}
-            text={testCase.text}
-            attributedText={texts[testCase.name]}
+            text={plainLabel && testCase.replacementExtent !== undefined ? 'abc' : testCase.text}
+            attributedText={plainLabel && testCase.replacementExtent !== undefined ? undefined : texts[testCase.name]}
             typeface={testCase.face === 'roboto' ? setup.roboto : setup.nastaliq}
             textSize={testCase.size}
             textColor={testCase.color}
@@ -466,7 +475,8 @@ export function LabelTestHost({ onDone }: { onDone: (report: SuiteReport) => voi
           <TTextView
             testID="view-chip"
             ref={chipHandle}
-            attributedText={chipText}
+            text={plainChip ? 'abc' : undefined}
+            attributedText={plainChip ? undefined : chipText}
             typeface={setup.roboto}
             textSize={18}
             style={{ width: 200, height: 60 }}

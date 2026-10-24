@@ -65,8 +65,9 @@ TRReplacementRef StaticReplacements::Create(TRReplacementKind kind, TRReplacemen
     callbacks.computeRoom = &ComputeRoom;
     callbacks.finalize = &Finalize;
 
-    // The entry is in the table before Core can finalize the replacement, and the table lock is
-    // not held across the Core call (finalize takes it).
+    // The entry goes into the table right after Core returns. Until then nothing can reach the
+    // replacement (no text holds it, so no `computeRoom` or `finalize` can run), and the table lock
+    // is not held across the Core call, because `Finalize` takes it.
     Table &table = Shared();
     TRReplacementRef replacement = TRReplacementCreate(&callbacks, entry.get(), kind);
     if (replacement == nullptr) {
