@@ -12,7 +12,7 @@ import { layoutTestCount, runLayoutTests } from './LayoutTests';
 import { rendererTestCount, runRendererTests } from './RendererTests';
 import { runShapingTests, shapingTestCount } from './ShapingTests';
 import { runTextTests, textTestCount } from './TextTests';
-import { runViewTextTests, viewTextTestCount } from './ViewTextTests';
+import { runViewTypesetterTests, viewTypesetterTestCount } from './ViewTypesetterTests';
 import { runUnicodeTests, unicodeTestCount } from './UnicodeTests';
 import { assetTestCount, runAssetTests } from './AssetTests';
 import { fontBytes } from './fontData';
@@ -21,8 +21,8 @@ import { adopt } from '../../src/internal/Adopt';
 import { IndexedList } from '../../src/collections/IndexedList';
 import { coreIndices, coreNumbers, corePoints, coreStructs } from '../../src/collections/CoreList';
 
-// The suite of the Fabric view renders, so it is not an entry here: App.tsx mounts `ViewTestHost`
-// (ViewTests.tsx) after these and adds its report to the totals.
+// The suite of the Fabric views renders, so it is not an entry here: App.tsx mounts `LabelTestHost`
+// (LabelTests.tsx) after these and adds its report to the totals.
 
 // The registry of the device suites. Each package or issue adds one entry here; App.tsx runs all of
 // them and logs the outcome in the format documented in AGENTS.md (scripts/test-device.mjs reads it).
@@ -147,10 +147,10 @@ export const suites: readonly Suite[] = [
     },
   },
   {
-    name: 'viewtext',
+    name: 'viewtypesetter',
     run: (bindings) => {
-      const result = runViewTextTests(bindings);
-      return { passed: result.passed, total: viewTextTestCount, failures: result.failures };
+      const result = runViewTypesetterTests(bindings);
+      return { passed: result.passed, total: viewTypesetterTestCount, failures: result.failures };
     },
   },
   {

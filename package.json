@@ -83,8 +83,11 @@
         }
       },
       "components": {
-        "TehreerTextBase": {
-          "className": "TehreerTextBaseView"
+        "TLabel": {
+          "className": "TLabel"
+        },
+        "TTextView": {
+          "className": "TTextView"
         }
       }
     }

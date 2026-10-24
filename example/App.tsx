@@ -8,7 +8,6 @@ import { loadFonts } from './tests/fontData';
 import { runSuites } from './tests/runSuites';
 import type { SuiteReport } from './tests/runSuites';
 import { LabelTestHost } from './tests/LabelTests';
-import { ViewTestHost } from './tests/ViewTests';
 import { VisualCheck } from './tests/VisualCheck';
 
 interface Result {
@@ -59,7 +58,7 @@ export default function App() {
   const [pending, setPending] = useState<SyncRun | undefined>();
   // The screen that QA looks at; the tests run and report whether or not it is shown.
   const [visual, setVisual] = useState(false);
-  // The two rendering suites (the measuring component and the views) report separately.
+  // The rendering suite reports when it is done.
   const [viewReports, setViewReports] = useState<SuiteReport[]>([]);
   const addViewReport = useCallback((report: SuiteReport) => setViewReports((previous) => [...previous, report]), []);
 
@@ -95,7 +94,7 @@ export default function App() {
   );
 
   useEffect(() => {
-    if (__DEV__ && viewReports.length >= 2) {
+    if (__DEV__ && viewReports.length >= 1) {
       finish(viewReports);
     }
   }, [finish, viewReports]);
@@ -129,7 +128,6 @@ export default function App() {
           <Text style={styles.buttonText}>Show frames</Text>
         </Pressable>
       )}
-      {__DEV__ && pending !== undefined && <ViewTestHost onDone={addViewReport} />}
       {__DEV__ && pending !== undefined && <LabelTestHost onDone={addViewReport} />}
     </View>
   );

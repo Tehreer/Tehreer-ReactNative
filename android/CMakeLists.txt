@@ -30,7 +30,7 @@ find_package(fbjni REQUIRED CONFIG)
 file(GLOB TEHREER_SOURCES CONFIGURE_DEPENDS
     "${TEHREER_ROOT}/cpp/*.cpp"
     "${TEHREER_ROOT}/cpp/runtime/*.cpp"
-    "${TEHREER_ROOT}/cpp/fabric/*.cpp"
+    "${TEHREER_ROOT}/cpp/views/*.cpp"
     "${TEHREER_ROOT}/cpp/painter/*.cpp"
     "${TEHREER_ROOT}/android/src/main/cpp/*.cpp"
     "${TEHREER_ROOT}/cpp/generated/*.cpp"
@@ -73,6 +73,6 @@ target_link_libraries(tehreer_module
 )
 
 # This library is a static archive, and the linker only takes the members of an archive that
-# something refers to. Nothing in C++ refers to the JNI functions of the view painter (Java finds
-# them by name), so the first of them is required explicitly; it pulls in its whole file.
-target_link_options(tehreer_module INTERFACE "-Wl,--undefined=Java_com_tehreer_reactnative_TehreerPaintJni_create")
+# something refers to. Nothing in C++ refers to the JNI function that registers the natives of the
+# views (Java finds it by name), so it is required explicitly; it pulls in its whole file.
+target_link_options(tehreer_module INTERFACE "-Wl,--undefined=Java_com_tehreer_reactnative_JniBridge_nRegister")

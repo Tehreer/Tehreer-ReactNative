@@ -60,6 +60,6 @@ export type { VariationAxis } from "./graphics/VariationAxis.js";
 export { TLabel } from "./views/TLabel.js";
 export type { TLabelHandle, TLabelProps } from "./views/TLabel.js";
 export { TTextView } from "./views/TTextView.js";
-export type { TextSelection, TTextViewHandle, TTextViewProps } from "./views/TTextView.js";
+export type { TTextViewHandle, TTextViewProps } from "./views/TTextView.js";
 export type { CaretPosition } from "./views/FrameQueries.js";
-export type { ColorValue, TextViewLayout, TextViewSource } from "./views/useViewText.js";
+export type { ColorValue, ParagraphProps, RenderingProps, TextHighlight, TextSource } from "./views/shared.js";

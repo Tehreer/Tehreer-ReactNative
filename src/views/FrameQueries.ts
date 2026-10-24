@@ -1,4 +1,7 @@
 import type { ComposedFrame } from "../layout/ComposedFrame.js";
+import { FrameResolver } from "../layout/FrameResolver.js";
+import type { Typesetter } from "../layout/Typesetter.js";
+import type { FrameSettings } from "./shared.js";
 
 /** Where the insertion point of a code unit boundary is drawn: a vertical line from `y` down by `height`. */
 export interface CaretPosition {
@@ -117,4 +120,37 @@ export function checkScrollCodeUnit(index: number): number {
     throw new RangeError(`The code unit index ${index} is not a whole number from 0.`);
   }
   return index;
+}
+
+/**
+ * Makes the frame that the native view makes for the same typesetter, size and settings (the calls
+ * of `ComposeFrame` in `cpp/views/TextLayout.cpp`), so that hit testing and selection rectangles
+ * ask Core about the lines that are drawn. JavaScript makes it only when a query asks for it.
+ *
+ * @param isScrollable A scrolling view lays out the whole text, however tall, for the width.
+ */
+export function composeViewFrame(typesetter: Typesetter, width: number, height: number, settings: FrameSettings, isScrollable: boolean): ComposedFrame {
+  const resolver = new FrameResolver();
+  try {
+    // A slack far below a pixel keeps the last line that the measurement counted, which Yoga's
+    // rounding of the box to the pixel grid could drop.
+    const slack = 0.01;
+    resolver.typesetter = typesetter;
+    resolver.frameWidth = width + slack;
+    resolver.frameHeight = isScrollable ? Infinity : height + slack;
+    resolver.fitsHorizontally = false;
+    resolver.fitsVertically = isScrollable;
+    resolver.maxLines = settings.maxLines === 0 ? undefined : settings.maxLines;
+    resolver.textAlignment = settings.textAlignment;
+    resolver.isTruncationEnabled = settings.isTruncationEnabled;
+    resolver.truncationMode = settings.truncationMode;
+    resolver.truncationPlace = settings.truncationPlace;
+    resolver.extraLineSpacing = settings.extraLineSpacing;
+    resolver.lineHeightMultiplier = settings.lineHeightMultiplier;
+    resolver.isJustificationEnabled = settings.isJustificationEnabled;
+    resolver.justificationLevel = settings.justificationLevel;
+    return resolver.createFrame(0, typesetter.codeUnitCount);
+  } finally {
+    resolver.dispose();
+  }
 }

@@ -14,7 +14,7 @@ import com.facebook.react.uimanager.ViewManager
  */
 class TehreerPackage : BaseReactPackage() {
     override fun createViewManagers(reactContext: ReactApplicationContext): List<ViewManager<*, *>> =
-        listOf(TehreerTextBaseManager())
+        listOf(TLabelManager(), TTextViewManager())
 
     override fun getModule(name: String, reactContext: ReactApplicationContext): NativeModule? =
         if (name == TehreerAssetsModule.NAME) TehreerAssetsModule(reactContext) else null

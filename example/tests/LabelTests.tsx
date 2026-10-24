@@ -18,11 +18,11 @@ import type { Rect } from '../../src/geometry';
 import { fontBytes, nastaliqFontBytes } from './fontData';
 import type { SuiteReport } from './runSuites';
 
-// The suite of issues #27 to #29: TLabel and TTextView rendered. Each label case compares the frame
-// that the native view paints (acquired by the id in its onFrameReady) with the frame that the
-// JavaScript API makes for the same text and settings, line by line, which is the proof that the
-// props reach Core's settings unchanged. The text view is driven through its handle: hit testing and
-// carets are checked against selection rectangles, and scrolling must not lay the text out again.
+// The suite of issues #27 to #29: TLabel and TTextView rendered. The native view tells when it has
+// laid its text out (`onFrameReady`), and each label case compares that with the frame that the
+// JavaScript API makes for the same text, settings and size: the line count and the size must be the
+// same, which is the proof that the props reach Core's settings unchanged. The text view is driven
+// through its handle, and everything that mounts must be gone again when it is unmounted.
 
 export const labelSuiteName = 'labels';
 
@@ -51,9 +51,8 @@ interface LabelCase {
 }
 
 function mixed(setup: Setup): TText {
-  const text = new TMutableText(`Hello ${URDU} world 123 ${URDU}`);
-  const first = 'Hello '.length;
-  text.setAttributes(first, first + URDU.length, { typeface: setup.nastaliq, typeSize: 28 });
+  const text = new TMutableText(`abc ${URDU} cba 123 ${URDU}`);
+  text.setAttributes(4, 4 + URDU.length, { typeface: setup.nastaliq, typeSize: 28 });
   const second = text.length - URDU.length;
   text.setAttributes(second, text.length, { typeface: setup.nastaliq, typeSize: 22, foregroundColor: 0xffaa0000 });
   return text;
@@ -64,7 +63,7 @@ function withChip(extent: number) {
     const original = new Replacement({
       computeRoom: () => ({ ascent: 14, descent: 4, extent }),
       draw: (context) => context.fillRect({ x: 0, y: -14, width: extent, height: 18 }, 0xff2255cc),
-    });
+    }, ReplacementKind.Inline);
     const text = new TMutableText('ab ￼ cd ef gh ij');
     text.setAttributes(3, 4, { replacement: original });
     // Core keeps the replacement as an attribute, so the wrapper is not needed any more.
@@ -87,11 +86,9 @@ const labelCases: readonly LabelCase[] = [
 ];
 
 interface Seen {
-  /** The first event was a frame without lines, which is what Android sent before the real one. */
-  emptyFirst?: boolean;
   layout?: { width: number; height: number };
-  frameId?: number;
-  events: number;
+  /** What the native view said about each frame it laid out. */
+  frames: { lineCount: number; width: number; height: number }[];
 }
 
 const near = (a: number, b: number, tolerance = 0.02) => Math.abs(a - b) <= tolerance;
@@ -118,17 +115,17 @@ function waitFor(condition: () => boolean, timeoutMs = 8000): Promise<boolean> {
 
 const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 
-/** Makes the frame with the JavaScript API for the box that the view was laid out in. */
-function expectedFrame(testCase: LabelCase, setup: Setup, text: string | TText, box: { width: number; height: number }, scrollable: boolean): ComposedFrame {
+/** Makes the frame with the JavaScript API, by hand, for the box that the view was laid out in. */
+function expectedFrame(testCase: LabelCase, setup: Setup, text: string | TText, box: { width: number; height: number }): ComposedFrame {
   const typeface = testCase.face === 'roboto' ? setup.roboto : setup.nastaliq;
   const typesetter = new Typesetter(text, { typeface, typeSize: testCase.size });
   const resolver = new FrameResolver();
   try {
     resolver.typesetter = typesetter;
     resolver.frameWidth = box.width + 0.01;
-    resolver.frameHeight = scrollable ? Infinity : box.height + 0.01;
+    resolver.frameHeight = box.height + 0.01;
     resolver.fitsHorizontally = false;
-    resolver.fitsVertically = scrollable;
+    resolver.fitsVertically = false;
     resolver.textAlignment = testCase.align ?? TextAlignment.Leading;
     if (testCase.maxLines !== undefined) {
       resolver.maxLines = testCase.maxLines;
@@ -138,40 +135,69 @@ function expectedFrame(testCase: LabelCase, setup: Setup, text: string | TText, 
       resolver.truncationPlace = testCase.truncate;
       resolver.truncationMode = BreakMode.Line;
     }
-    const length = typeof text === 'string' ? text.length : text.length;
-    return resolver.createFrame(0, length);
+    return resolver.createFrame(0, typesetter.codeUnitCount);
   } finally {
     resolver.dispose();
     typesetter.dispose();
   }
 }
 
+/** How many of the code units hit a character whose rectangle does not hold the center of their own. */
+function hitDisagreements(handle: TLabelHandle | TTextViewHandle, length: number): { count: number; first: string } {
+  let count = 0;
+  let first = '';
+  for (let i = 0; i < length; i++) {
+    const rects = handle.getSelectionRects(i, i + 1);
+    if (rects.length !== 1 || rects[0]!.width < 1) {
+      continue;
+    }
+    const rect = rects[0]!;
+    const x = rect.x + rect.width / 2;
+    const y = rect.y + rect.height / 2;
+    const hit = handle.indexOfCodeUnit(x, y);
+    const hitRects = hit === undefined ? [] : handle.getSelectionRects(hit, hit + 1);
+    if (!hitRects.some((r) => rectContains(r, x, y))) {
+      count++;
+      first ||= `index ${i} rect ${JSON.stringify(rect)} hit ${hit}`;
+    }
+  }
+  return { count, first };
+}
+
+function runWidth(frame: ComposedFrame, lineIndex: number): number {
+  const line = frame.lines.get(lineIndex);
+  let width = -1;
+  for (let i = 0; i < line.runs.length; i++) {
+    const run = line.runs.get(i);
+    const attached = run.replacement;
+    if (attached !== undefined) {
+      width = run.width;
+      attached.dispose();
+    }
+    run.dispose();
+  }
+  line.dispose();
+  return width;
+}
+
 export function LabelTestHost({ onDone }: { onDone: (report: SuiteReport) => void }) {
   const [setup, setSetup] = useState<Setup | undefined>();
   const [texts, setTexts] = useState<Record<string, TText>>({});
   const [stage, setStage] = useState<'labels' | 'views' | 'cycle' | 'gone'>('labels');
-  const [cycling, setCycling] = useState(false);
-  const [cyclePlain, setCyclePlain] = useState(false);
   const [width, setWidth] = useState(300);
-  const [selection, setSelection] = useState<{ fromIndex: number; toIndex: number } | undefined>();
+  const [highlighted, setHighlighted] = useState(false);
+  const [cycling, setCycling] = useState(false);
+  const [tick, setTick] = useState(0);
   const [longText, setLongText] = useState<TText | undefined>();
   const [chipText, setChipText] = useState<TText | undefined>();
   const seen = useRef<Record<string, Seen>>({});
   const handles = useRef<Record<string, TLabelHandle | null>>({});
   const viewHandle = useRef<TTextViewHandle | null>(null);
   const chipHandle = useRef<TTextViewHandle | null>(null);
-  const view = useRef<{ events: number; frameId: number; offsets: number[]; lastOffset: number; chipFrame: number }>({ events: 0, frameId: 0, offsets: [], lastOffset: -1, chipFrame: 0 });
+  const view = useRef({ frames: 0, offsets: [] as number[], lastOffset: -1, chipFrames: 0, earlyOffset: -1, earlyFrames: 0 });
   const started = useRef(false);
-  const [tick, setTick] = useState(0);
-  useEffect(() => {
-    if (stage !== 'gone') {
-      return undefined;
-    }
-    const timer = setInterval(() => setTick((value) => value + 1), 100);
-    return () => clearInterval(timer);
-  }, [stage]);
   // Counted before anything of this suite is registered.
-  const baselineRef = useRef<{ texts: number; replacements: number } | undefined>(undefined);
+  const baselineRef = useRef<{ typesetters: number; replacements: number } | undefined>(undefined);
 
   useEffect(() => {
     baselineRef.current = getNativeBindings().testGetViewCounts?.();
@@ -183,7 +209,7 @@ export function LabelTestHost({ onDone }: { onDone: (report: SuiteReport) => voi
         built[testCase.name] = testCase.attributed(made);
       }
     }
-    // Thirty paragraphs of Latin with a run of Urdu in each: long enough to scroll many screens.
+    // Many paragraphs of Latin with a run of Urdu in each: long enough to scroll many screens.
     const long = new TMutableText('');
     for (let index = 0; index < 120; index++) {
       const lead = `${index}: ${LATIN} `;
@@ -202,6 +228,14 @@ export function LabelTestHost({ onDone }: { onDone: (report: SuiteReport) => voi
   }, []);
 
   useEffect(() => {
+    if (stage !== 'gone') {
+      return undefined;
+    }
+    const timer = setInterval(() => setTick((value) => value + 1), 100);
+    return () => clearInterval(timer);
+  }, [stage]);
+
+  useEffect(() => {
     if (setup === undefined || longText === undefined || chipText === undefined || started.current) {
       return;
     }
@@ -218,229 +252,187 @@ export function LabelTestHost({ onDone }: { onDone: (report: SuiteReport) => voi
     const baseline = baselineRef.current;
 
     (async () => {
-      // Labels: wait until every one has its layout and its frame.
-      const ready = await waitFor(() => labelCases.every((c) => seen.current[c.name]?.frameId));
-      ok(ready, 'labels: not every label received a frame');
+      // Labels: wait until every one has its layout and its first frame.
+      ok(await waitFor(() => labelCases.every((c) => (seen.current[c.name]?.frames.length ?? 0) > 0)), 'labels: not every label laid its text out');
 
       for (const testCase of labelCases) {
         const entry = seen.current[testCase.name];
-        if (entry?.layout === undefined || !entry.frameId) {
+        const handle = handles.current[testCase.name];
+        if (entry?.layout === undefined || entry.frames.length === 0 || handle === null || handle === undefined) {
           ok(false, `${testCase.name}: no layout or frame`);
           continue;
         }
-        ok(entry.emptyFirst !== true, `${testCase.name}/events: the first onFrameReady was an empty frame`);
-        const handle = handles.current[testCase.name];
-        const actual = handle?.getComposedFrame();
-        if (actual === undefined) {
-          ok(false, `${testCase.name}: the frame of the view is gone`);
-          continue;
-        }
         const source: string | TText = testCase.text ?? (texts[testCase.name] as TText);
-        const expected = expectedFrame(testCase, setup, source, entry.layout, false);
+        const expected = expectedFrame(testCase, setup, source, entry.layout);
         try {
-          ok(actual.lines.length === expected.lines.length && actual.lines.length > 0,
-            `${testCase.name}/lines: the view has ${actual.lines.length}, the API ${expected.lines.length}`);
-          let difference = '';
-          for (let i = 0; difference === '' && i < Math.min(actual.lines.length, expected.lines.length); i++) {
-            const a = actual.lines.get(i);
+          // The native label and the JavaScript API lay the same text out the same way.
+          const first = entry.frames[0]!;
+          const last = entry.frames[entry.frames.length - 1]!;
+          ok(first.lineCount > 0, `${testCase.name}/events: the first onFrameReady was an empty frame`);
+          ok(last.lineCount === expected.lines.length && last.lineCount > 0, `${testCase.name}/lines: the view has ${last.lineCount}, the API ${expected.lines.length}`);
+          ok(near(last.height, expected.height, 0.05) && near(last.width, expected.width, 0.05),
+            `${testCase.name}/size: the view ${last.width}x${last.height}, the API ${expected.width}x${expected.height}`);
+
+          // The frame that JavaScript makes for the handle is the same, line by line.
+          const own = handle.composedFrame;
+          let difference = own === undefined ? 'no frame' : '';
+          for (let i = 0; own !== undefined && difference === '' && i < Math.min(own.lines.length, expected.lines.length); i++) {
+            const a = own.lines.get(i);
             const e = expected.lines.get(i);
             if (!(a.startIndex === e.startIndex && a.endIndex === e.endIndex && near(a.origin.x, e.origin.x) && near(a.origin.y, e.origin.y) && a.isTruncated === e.isTruncated)) {
-              difference = `line ${i}: view ${a.startIndex}-${a.endIndex} at ${a.origin.x},${a.origin.y} truncated ${a.isTruncated}; API ${e.startIndex}-${e.endIndex} at ${e.origin.x},${e.origin.y} truncated ${e.isTruncated}`;
+              difference = `line ${i}: ${a.startIndex}-${a.endIndex} at ${a.origin.x},${a.origin.y}; API ${e.startIndex}-${e.endIndex} at ${e.origin.x},${e.origin.y}`;
             }
             a.dispose();
             e.dispose();
           }
-          ok(difference === '', `${testCase.name}/geometry: ${difference}`);
-          if (testCase.truncate !== undefined) {
-            const last = actual.lines.get(actual.lines.length - 1);
-            ok(last.isTruncated, `${testCase.name}/truncation: the last line is not truncated`);
-            last.dispose();
+          ok(difference === '' && own?.lines.length === expected.lines.length, `${testCase.name}/geometry: ${difference}`);
+
+          if (testCase.truncate !== undefined && own !== undefined) {
+            const lastLine = own.lines.get(own.lines.length - 1);
+            ok(lastLine.isTruncated, `${testCase.name}/truncation: the last line is not truncated`);
+            lastLine.dispose();
           }
-          // Hit testing agrees with the selection rectangles of the very same frame, also for Urdu.
-          let disagreements = 0;
-          let firstBad = '';
-          const length = actual.endIndex;
-          for (let i = actual.startIndex; i < length; i++) {
-            const rects = handle!.getSelectionRects(i, i + 1);
+          const disagreement = hitDisagreements(handle, expected.endIndex);
+          ok(disagreement.count === 0, `${testCase.name}/hit: ${disagreement.count} code units hit another character; first ${disagreement.first}`);
+          if (testCase.replacementExtent !== undefined && own !== undefined) {
+            const room = runWidth(own, 0);
+            ok(near(room, testCase.replacementExtent, 0.01), `${testCase.name}/replacement: the run is ${room} wide, the room is ${testCase.replacementExtent}`);
+          }
+        } finally {
+          expected.dispose();
+        }
+      }
+    })()
+      .then(async () => {
+        // Bad positions never reach a frame.
+        let refused = false;
+        try {
+          handles.current.left?.indexOfCodeUnit(Number.NaN, 1);
+        } catch (e) {
+          refused = e instanceof RangeError;
+        }
+        total++;
+        if (!refused) {
+          failures.push('label/NaN: indexOfCodeUnit(NaN, 1) is not a RangeError');
+        }
+
+        // The text view.
+        setStage('views');
+        ok(await waitFor(() => view.current.frames > 0 && viewHandle.current !== null && view.current.chipFrames > 0 && view.current.earlyFrames > 0), 'view: no frame');
+        const handle = viewHandle.current;
+        if (handle === null) {
+          ok(false, 'view: no handle');
+          return;
+        }
+        const frame = handle.composedFrame;
+        ok(frame !== undefined, 'view: no frame handle');
+        if (frame !== undefined) {
+          ok(frame.lines.length > 200, `view: ${frame.lines.length} lines for 120 paragraphs`);
+          ok(frame.height > 1000 && frame.width <= width + 1, `view: frame ${frame.width}x${frame.height}`);
+        }
+        // Sampled hit tests and carets, in the Latin and the Urdu part of the lines.
+        let bad = 0;
+        let badCaret = 0;
+        for (let paragraph = 0; paragraph < 120; paragraph += 7) {
+          const start = longText.string.indexOf(`${paragraph}: `, 0);
+          const urduStart = longText.string.indexOf(URDU, start);
+          for (const i of [start + 4, urduStart + 3, urduStart + 6]) {
+            const rects = handle.getSelectionRects(i, i + 1);
             if (rects.length !== 1 || rects[0]!.width < 1) {
               continue;
             }
             const rect = rects[0]!;
-            const hit = handle!.indexOfCodeUnit(rect.x + rect.width / 2, rect.y + rect.height / 2);
-            const hitRects = hit === undefined ? [] : handle!.getSelectionRects(hit, hit + 1);
-            if (!hitRects.some((r) => rectContains(r, rect.x + rect.width / 2, rect.y + rect.height / 2))) {
-              disagreements++;
-              firstBad ||= `frame ${actual.width}x${actual.height} lines ${actual.lines.length} index ${i} rect ${JSON.stringify(rect)} hit ${hit} hitRects ${JSON.stringify(hitRects)}`;
+            const hit = handle.indexOfCodeUnit(rect.x + rect.width / 2, rect.y + rect.height / 2);
+            const hitRect = hit === undefined ? undefined : handle.getSelectionRects(hit, hit + 1)[0];
+            if (hitRect === undefined || !rectContains(hitRect, rect.x + rect.width / 2, rect.y + rect.height / 2)) {
+              bad++;
+            }
+            const caret = handle.getCaretPosition(i);
+            if (caret === undefined || !(near(caret.x, rect.x, 0.6) || near(caret.x, rect.x + rect.width, 0.6)) || caret.y > rect.y + rect.height || caret.y + caret.height < rect.y) {
+              badCaret++;
             }
           }
-          ok(disagreements === 0, `${testCase.name}/hit: ${disagreements} code units whose center hits a character with another rectangle; first ${firstBad}`);
-          if (testCase.replacementExtent !== undefined) {
-            const line = actual.lines.get(0);
-            let width = -1;
-            for (let i = 0; i < line.runs.length; i++) {
-              const run = line.runs.get(i);
-              const attached = run.replacement;
-              if (attached !== undefined) {
-                width = run.width;
-                attached.dispose();
-              }
-              run.dispose();
-            }
-            line.dispose();
-            ok(near(width, testCase.replacementExtent, 0.01), `${testCase.name}/replacement: the run is ${width} wide, the room is ${testCase.replacementExtent}`);
-          }
-        } finally {
-          actual.dispose();
-          expected.dispose();
         }
-      }
+        ok(bad === 0, `view/hit: ${bad} samples whose center hits another character`);
+        ok(badCaret === 0, `view/caret: ${badCaret} carets that are not at an edge of their code unit`);
+        ok(handle.indexOfCodeUnit(-5, 5) === undefined && handle.indexOfCodeUnit(5, -5) === undefined, 'view/hit: outside the text is no character');
 
-      // The text view.
-      setStage('views');
-      ok(await waitFor(() => view.current.frameId !== 0 && viewHandle.current !== null && chipHandle.current !== null && view.current.chipFrame !== 0), 'view: no frame');
-      const handle = viewHandle.current;
-      if (handle !== null && view.current.frameId !== 0) {
-        const frame = handle.getComposedFrame();
-        ok(frame !== undefined, 'view: no frame handle');
-        if (frame !== undefined) {
-          ok(frame.lines.length > 200, `view: ${frame.lines.length} lines for 120 paragraphs`);
-          // The box is the size Yoga chose, which is rounded up to the pixel grid of the display.
-          ok(frame.height > 1000 && frame.width <= width + 1, `view: frame ${frame.width}x${frame.height}`);
-          // Sampled hit tests and carets, in the Latin and the Urdu part of the lines.
-          let bad = 0;
-          let badCaret = 0;
-          for (let paragraph = 0; paragraph < 120; paragraph += 7) {
-            const start = longText.string.indexOf(`${paragraph}: `, 0);
-            const urduStart = longText.string.indexOf(URDU, start);
-            for (const i of [start + 4, urduStart + 3, urduStart + 6]) {
-              const rects = handle.getSelectionRects(i, i + 1);
-              if (rects.length !== 1 || rects[0]!.width < 1) {
-                continue;
-              }
-              const rect = rects[0]!;
-              const hit = handle.indexOfCodeUnit(rect.x + rect.width / 2, rect.y + rect.height / 2);
-              const hitRect = hit === undefined ? undefined : handle.getSelectionRects(hit, hit + 1)[0];
-              if (hitRect === undefined || !rectContains(hitRect, rect.x + rect.width / 2, rect.y + rect.height / 2)) {
-                bad++;
-              }
-              const caret = handle.getCaretPosition(i);
-              // The boundary before a code unit is at a vertical edge of its rectangle, and lies in the line.
-              if (caret === undefined || !(near(caret.x, rect.x, 0.6) || near(caret.x, rect.x + rect.width, 0.6)) || caret.y > rect.y + rect.height || caret.y + caret.height < rect.y) {
-                badCaret++;
-              }
-            }
-          }
-          ok(bad === 0, `view/hit: ${bad} samples whose center hits another character`);
-          ok(badCaret === 0, `view/caret: ${badCaret} carets that are not at an edge of their code unit`);
-          ok(handle.indexOfCodeUnit(-5, 5) === undefined && handle.indexOfCodeUnit(5, -5) === undefined, 'view/hit: outside the text is no character');
-          frame.dispose();
+        // Bad requests never reach the native view, where NaN is a geometry error.
+        for (const bad of [Number.NaN, Number.POSITIVE_INFINITY]) {
+          let thrown = false;
+          try { handle.scrollToOffset(bad); } catch (e) { thrown = e instanceof RangeError; }
+          ok(thrown, `view/scroll: scrollToOffset(${bad}) is not a RangeError`);
         }
+        let thrown = false;
+        try { handle.scrollToCodeUnit(Number.NaN); } catch (e) { thrown = e instanceof RangeError; }
+        ok(thrown, 'view/scroll: scrollToCodeUnit(NaN) is not a RangeError');
 
-        // Scrolling must not lay the text out again: the state, and so the event, stays as it is.
-        const eventsBefore = view.current.events;
-        const frameBefore = view.current.frameId;
+        // The text was laid out once; scrolling must not lay it out again.
+        const framesBefore = view.current.frames;
         handle.scrollToOffset(1200);
         ok(await waitFor(() => near(view.current.lastOffset, 1200, 1)), `view/scroll: the offset is ${view.current.lastOffset}, not 1200`);
-        const second = handle.getComposedFrame();
         const mid = longText.string.indexOf('60: ');
-        const top = second === undefined ? undefined : handle.getCaretPosition(mid)?.y;
-        second?.dispose();
+        const top = handle.getCaretPosition(mid)?.y;
         ok(top !== undefined, 'view/scroll: no caret for a code unit');
         if (top !== undefined) {
           handle.scrollToCodeUnit(mid);
           ok(await waitFor(() => near(view.current.lastOffset, top, 1)), `view/scrollToCodeUnit: ${view.current.lastOffset}, wanted ${top}`);
-          const first = handle.firstVisibleCodeUnitIndex;
-          ok(first !== undefined && first <= mid && mid - first < 80, `view/firstVisible: ${first} for ${mid}`);
+          const firstVisible = handle.firstVisibleCodeUnitIndex;
+          ok(firstVisible !== undefined && firstVisible <= mid && mid - firstVisible < 80, `view/firstVisible: ${firstVisible} for ${mid}`);
         }
         handle.scrollToOffset(0);
         await waitFor(() => view.current.lastOffset === 0);
-        ok(view.current.events === eventsBefore && view.current.frameId === frameBefore, `view/relayout: ${view.current.events - eventsBefore} frames were composed while scrolling`);
+        ok(view.current.frames === framesBefore, `view/relayout: ${view.current.frames - framesBefore} frames were laid out while scrolling`);
 
-        // A selection only paints.
-        setSelection({ fromIndex: 3, toIndex: 40 });
+        // Highlights only repaint.
+        setHighlighted(true);
         await sleep(400);
-        ok(view.current.events === eventsBefore && view.current.frameId === frameBefore, 'view/selection: a selection laid the text out again');
+        ok(view.current.frames === framesBefore, 'view/highlights: a highlight laid the text out again');
+
+        // A request that came before the first frame was kept until there was one.
+        ok(near(view.current.earlyOffset, 300, 1), `view/early: a scroll requested before the first frame went to ${view.current.earlyOffset}, not 300`);
 
         // A new width does lay it out, once.
         setWidth(240);
-        ok(await waitFor(() => view.current.frameId !== frameBefore), 'view/width: no new frame for a new width');
-        const narrow = handle.getComposedFrame();
+        ok(await waitFor(() => view.current.frames === framesBefore + 1), 'view/width: no new frame for a new width');
+        const narrow = handle.composedFrame;
         ok(narrow !== undefined && narrow.lines.length > 200, 'view/width: the narrow frame has lines');
-        narrow?.dispose();
-      }
 
-      // Replacement in the text view: laid out with its room.
-      const chip = chipHandle.current?.getComposedFrame();
-      if (chip === undefined) {
-        ok(false, 'chip view: no frame');
-      } else {
-        const line = chip.lines.get(0);
-        let width = -1;
-        for (let i = 0; i < line.runs.length; i++) {
-          const run = line.runs.get(i);
-          const attached = run.replacement;
-          if (attached !== undefined) {
-            width = run.width;
-            attached.dispose();
-          }
-          run.dispose();
+        // Replacement in the text view: laid out with its room.
+        const chip = chipHandle.current?.composedFrame;
+        ok(chip !== undefined && near(runWidth(chip, 0), 36, 0.01), 'chip view: the replacement run is not as wide as its room');
+        if (baseline !== undefined) {
+          ok((b.testGetViewCounts?.().replacements ?? 0) > baseline.replacements, 'replacement: no holder is alive while the views show one');
         }
-        line.dispose();
-        chip.dispose();
-        ok(near(width, 36, 0.01), `chip view: the replacement run is ${width} wide, the room is 36`);
-      }
-      if (baseline !== undefined) {
-        ok((b.testGetViewCounts?.().replacements ?? 0) > baseline.replacements, 'replacement: no static replacement is alive while the views show one');
-      }
 
-      // A view that shows a replacement is mounted and unmounted again and again: each cycle must
-      // give back its text, its frame and its static replacement, and the counts must not climb.
-      setStage('cycle');
-      const during: string[] = [];
-      for (let cycle = 0; cycle < 6; cycle++) {
-        setCyclePlain(cycle >= 3);
-        setCycling(true);
-        await sleep(350);
-        const live = b.testGetViewCounts?.();
-        setCycling(false);
-        await sleep(350);
-        b.testCollectGarbage?.();
-        const idle = b.testGetViewCounts?.();
-        during.push(`${cycle}: live ${JSON.stringify(live)} idle ${JSON.stringify(idle)}`);
-      }
-      if (baseline !== undefined) {
-        const settledCycles = () => {
-          b.testCollectGarbage?.();
-          const now = b.testGetViewCounts?.();
-          return now !== undefined && now.replacements === baseline.replacements;
-        };
-        ok(await waitFor(settledCycles, 6000), `cycles: counts after 6 cycles ${JSON.stringify(b.testGetViewCounts?.())}, baseline ${JSON.stringify(baseline)}; ${during.join(' | ')}`);
-      }
-
-      // Everything is unmounted while it still shows its replacements, which must free all of it.
-      setStage('gone');
-      if (baseline !== undefined) {
-        // Strict: with the states superseded nothing may remain, so any difference is a leak of
-        // the text, the frame or the replacement. A view that is unmounted *while it still shows* a
-        // replacement is another case: its last state (and the frame in it) lives until React
-        // Native lets go of the node's family, which is not in our hands (see the TSDoc of
-        // ViewText), and that case is not asserted here.
-        const settled = () => {
-          b.testCollectGarbage?.();
-          const now = b.testGetViewCounts?.();
-          return now !== undefined && now.texts === baseline.texts && now.replacements === baseline.replacements;
-        };
-        const ok2 = await waitFor(settled, 10000);
-        const after = b.testGetViewCounts?.();
-        ok(ok2, `release: texts ${baseline.texts} -> ${after?.texts}, replacements ${baseline.replacements} -> ${after?.replacements}`);
-      }
-    })()
+        // A view that shows a replacement is mounted and unmounted again and again; each cycle must give
+        // everything back, so the counts are checked at the end, strictly.
+        setStage('cycle');
+        for (let cycle = 0; cycle < 8; cycle++) {
+          setCycling(true);
+          await sleep(300);
+          setCycling(false);
+          await sleep(300);
+        }
+        // Everything is unmounted while it still shows its replacements.
+        setStage('gone');
+        if (baseline !== undefined) {
+          const settled = () => {
+            b.testCollectGarbage?.();
+            const now = b.testGetViewCounts?.();
+            return now !== undefined && now.typesetters === baseline.typesetters && now.replacements === baseline.replacements;
+          };
+          const released = await waitFor(settled, 10000);
+          const after = b.testGetViewCounts?.();
+          ok(released, `release: typesetters ${baseline.typesetters} -> ${after?.typesetters}, replacements ${baseline.replacements} -> ${after?.replacements}`);
+        }
+      })
       .catch((e: unknown) => failures.push(`(suite): ${e instanceof Error ? (e.stack ?? e.message) : String(e)}`))
       .finally(() => onDone({ name: labelSuiteName, passed: Math.max(0, total - failures.length), total: Math.max(total, failures.length), failures }));
-  }, [setup, texts, longText, chipText, onDone]);
+  }, [setup, texts, longText, chipText, width, onDone]);
 
   if (stage === 'gone') {
-    // The mounting layer lets go of the removed views with the next commit, so something keeps changing.
+    // Something keeps changing, so that React Native commits and lets go of what was removed.
     return <View testID="labelTests"><Text>{tick}</Text></View>;
   }
   if (setup === undefined || longText === undefined || chipText === undefined) {
@@ -467,21 +459,19 @@ export function LabelTestHost({ onDone }: { onDone: (report: SuiteReport) => voi
             truncationPlace={testCase.truncate}
             style={{ minWidth: testCase.width, maxWidth: testCase.width, alignSelf: 'flex-start', marginBottom: 2 }}
             onLayout={(e) => {
-              const entry = (seen.current[testCase.name] ??= { events: 0 });
+              const entry = (seen.current[testCase.name] ??= { frames: [] });
               entry.layout = { width: e.nativeEvent.layout.width, height: e.nativeEvent.layout.height };
             }}
             onFrameReady={(e) => {
-              const entry = (seen.current[testCase.name] ??= { events: 0 });
-              if (entry.events === 0 && e.lineCount === 0) {
-                entry.emptyFirst = true;
-              }
-              entry.events++;
-              entry.frameId = e.frameId;
+              (seen.current[testCase.name] ??= { frames: [] }).frames.push({ ...e });
             }}
           />
         ))}
       {stage === 'cycle' && cycling && (
-        <TLabel testID="cycle-label" text={cyclePlain ? 'abc abc' : undefined} attributedText={cyclePlain ? undefined : chipText} typeface={setup.roboto} textSize={18} style={{ maxWidth: 200 }} />
+        <>
+          <TLabel testID="cycle-label" attributedText={chipText} typeface={setup.roboto} textSize={18} style={{ maxWidth: 200 }} />
+          <TTextView testID="cycle-view" attributedText={chipText} typeface={setup.roboto} textSize={18} style={{ width: 200, height: 60 }} />
+        </>
       )}
       {stage === 'views' && (
         <>
@@ -491,10 +481,11 @@ export function LabelTestHost({ onDone }: { onDone: (report: SuiteReport) => voi
             attributedText={longText}
             typeface={setup.roboto}
             textSize={16}
-            selection={selection}
+            highlights={highlighted ? [{ fromIndex: 3, toIndex: 40 }, { fromIndex: 100, toIndex: 130, color: '#44aa0000' }] : undefined}
+            separatorColor="#22000000"
             style={{ width, height: 220 }}
             onScroll={(offset) => { view.current.lastOffset = offset; view.current.offsets.push(offset); }}
-            onFrameReady={(e) => { view.current.events++; view.current.frameId = e.frameId; }}
+            onFrameReady={() => { view.current.frames++; }}
           />
           <TTextView
             testID="view-chip"
@@ -503,7 +494,17 @@ export function LabelTestHost({ onDone }: { onDone: (report: SuiteReport) => voi
             typeface={setup.roboto}
             textSize={18}
             style={{ width: 200, height: 60 }}
-            onFrameReady={() => { view.current.chipFrame++; }}
+            onFrameReady={() => { view.current.chipFrames++; }}
+          />
+          <TTextView
+            testID="view-early"
+            ref={(handle) => { handle?.scrollToOffset(300); }}
+            attributedText={longText}
+            typeface={setup.roboto}
+            textSize={16}
+            style={{ width: 200, height: 60 }}
+            onScroll={(offset) => { view.current.earlyOffset = offset; }}
+            onFrameReady={() => { view.current.earlyFrames++; }}
           />
         </>
       )}

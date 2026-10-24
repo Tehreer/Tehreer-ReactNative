@@ -1,13 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Image, PixelRatio, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import type { Typeface } from '../../src/graphics/Typeface';
-import { TypefaceManager } from '../../src/graphics/TypefaceManager';
 import type { NativeBindings } from '../../src/internal/NativeBindings';
 import { adopt } from '../../src/internal/Adopt';
 import type { ReplacementBounds } from '../../src/drawing/ReplacementDelegate';
 import type { DrawingContext } from '../../src/drawing/DrawingContext';
 import { Replacement } from '../../src/layout/Replacement';
-import { TextBase } from '../../src/views/TextBase';
 import { TLabel } from '../../src/views/TLabel';
 import { TTextView } from '../../src/views/TTextView';
 import { TMutableText } from '../../src/layout/TMutableText';
@@ -21,8 +19,6 @@ import type { Scene } from './paintFixtures';
 // frames of every kind that the painters handle, drawn by the same painter onto an offscreen canvas
 // at the display scale (the debug hook `testPaintFrame`) and shown as images.
 
-const ROBOTO_TAG = 9201;
-const NASTALIQ_TAG = 9202;
 const URDU = 'تحریر ایک متنی انجن ہے';
 
 interface Picture {
@@ -115,20 +111,8 @@ export function VisualCheck({ onClose }: { onClose: () => void }) {
     }
   }, []);
 
-  // The Fabric component finds its typeface by tag in the manager, when it is measured, so it is
-  // mounted only once the tags are registered.
-  const [registered, setRegistered] = useState(false);
   const samples = useMemo(() => makeSamples(faces), [faces]);
   useEffect(() => () => Object.values(samples).forEach((text) => text.dispose()), [samples]);
-  useEffect(() => {
-    TypefaceManager.registerTypeface(faces.roboto, ROBOTO_TAG);
-    TypefaceManager.registerTypeface(faces.nastaliq, NASTALIQ_TAG);
-    setRegistered(true);
-    return () => {
-      TypefaceManager.unregisterTypeface(faces.roboto);
-      TypefaceManager.unregisterTypeface(faces.nastaliq);
-    };
-  }, [faces]);
 
   return (
     <View style={styles.screen} testID="visualCheck">
@@ -136,13 +120,6 @@ export function VisualCheck({ onClose }: { onClose: () => void }) {
         <Text style={styles.closeText}>Close</Text>
       </Pressable>
       <ScrollView contentContainerStyle={styles.content}>
-        <Text style={styles.caption}>Fabric view (TehreerTextBase paints the frame)</Text>
-        {registered && (
-          <View style={styles.box}>
-            <TextBase text="abc abc abc abc" typefaceTag={ROBOTO_TAG} typeSize={34} style={styles.view} />
-            <TextBase text={URDU} typefaceTag={NASTALIQ_TAG} typeSize={34} style={[styles.view, { maxWidth: 200 }]} />
-          </View>
-        )}
         <Text style={styles.caption}>TLabel: Urdu, mixed, alignment, truncation, replacement</Text>
         <View style={styles.box}>
           <TLabel text={URDU} typeface={faces.nastaliq} textSize={34} textColor="#aa1122" style={[styles.view, { minWidth: 300, maxWidth: 300 }]} />
@@ -151,9 +128,9 @@ export function VisualCheck({ onClose }: { onClose: () => void }) {
           <TLabel text="abc abc abc abc abc abc abc abc abc abc" typeface={faces.roboto} textSize={22} maxLines={2} isTruncationEnabled truncationPlace={TruncationPlace.End} style={[styles.view, { maxWidth: 220 }]} />
           <TLabel attributedText={samples.inline} typeface={faces.roboto} textSize={20} style={[styles.view, { maxWidth: 300 }]} />
         </View>
-        <Text style={styles.caption}>TTextView (scrolls, selection 10..60)</Text>
+        <Text style={styles.caption}>TTextView (line views, highlight 10..60, separators)</Text>
         <View style={styles.box}>
-          <TTextView attributedText={samples.long} typeface={faces.roboto} textSize={16} selection={{ fromIndex: 10, toIndex: 60 }} style={{ width: 320, height: 200 }} />
+          <TTextView attributedText={samples.long} typeface={faces.roboto} textSize={16} highlights={[{ fromIndex: 10, toIndex: 60 }]} separatorColor="#33000000" style={{ width: 320, height: 200 }} />
         </View>
         {error !== undefined && <Text style={styles.error}>{error}</Text>}
         {pictures.map(({ scene, uri }) => (

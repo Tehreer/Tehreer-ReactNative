@@ -1,6 +1,6 @@
 #include "PaintCallbacks.h"
 
-#include "../fabric/StaticReplacements.h"
+#include "../views/ReplacementHolder.h"
 
 namespace tehreer::painter {
 namespace {
@@ -79,11 +79,12 @@ private:
     void *_userData;
 };
 
-// Fills the rectangles of a static replacement; every other call goes to the platform target. The
-// scale turns layout units into pixels, which the target takes.
-class ReplacementTarget final : public PaintTarget {
+// Draws the replacements for Core, as `ReplacementDrawer` does in Tehreer-Android: one that a holder
+// made is filled from what the holder recorded, anything else goes to the target. The scale turns
+// layout units into pixels, which the target takes.
+class ReplacementDrawer final : public PaintTarget {
 public:
-    ReplacementTarget(PaintTarget &inner, float scale) : _inner(inner), _scale(scale) {}
+    ReplacementDrawer(PaintTarget &inner, float scale) : _inner(inner), _scale(scale) {}
 
     void DrawGlyphImage(TRGlyphImageRef image, TRPoint origin, TRFloat scaleX, TRFloat scaleY, TRColor color,
                         const TRRect *clip) override {
@@ -97,15 +98,13 @@ public:
 
     void DrawReplacement(const struct _TRGlyphRun *run, TRPoint origin) override {
         TRReplacementRef replacement = TRGlyphRunGetReplacement(run);
-        if (replacement == nullptr) {
-            return;
-        }
-        auto paint = fabric::StaticReplacements::FindPaint(replacement);
-        if (!paint) {
+        const views::ReplacementHolder *holder = replacement == nullptr ? nullptr : views::ReplacementHolder::Find(replacement);
+        if (holder == nullptr) {
+            _inner.DrawReplacement(run, origin);
             return;
         }
         // The origin is the start of the run on its baseline, in pixels.
-        for (const fabric::ReplacementRect &rect : paint->rects) {
+        for (const views::ReplacementRect &rect : holder->rects) {
             TRRect pixels;
             pixels.origin.x = origin.x + rect.x * _scale;
             pixels.origin.y = origin.y + rect.y * _scale;
@@ -119,34 +118,6 @@ private:
     PaintTarget &_inner;
     float _scale;
 };
-
-struct SelectionContext {
-    PaintTarget *target;
-    float scale;
-    TRColor color;
-};
-
-void FillSelection(void *userData, TRRect rect, TRBoolean *) {
-    auto *context = static_cast<SelectionContext *>(userData);
-    rect.origin.x *= context->scale;
-    rect.origin.y *= context->scale;
-    rect.size.width *= context->scale;
-    rect.size.height *= context->scale;
-    context->target->FillRect(rect, context->color);
-}
-
-struct LineContext {
-    TRComposedFrameRef frame;
-    TRRendererRef renderer;
-};
-
-void DrawLine(void *userData, TRUInteger lineIndex, TRBoolean *) {
-    auto *context = static_cast<LineContext *>(userData);
-    if (TRComposedLineRef line = TRComposedFrameGetLine(context->frame, lineIndex)) {
-        // A line takes the origin of its container, which is the top left of the frame.
-        TRComposedLineDraw(line, context->renderer, TRPoint{0, 0});
-    }
-}
 
 } // namespace
 
@@ -165,71 +136,15 @@ const TRDrawCallbacks &PaintCallbacks() {
 }
 
 void DrawFrame(TRComposedFrameRef frame, TRRendererRef renderer, PaintTarget &target, TRPoint origin) {
-    CallbacksScope scope(renderer, PaintCallbacks(), &target);
+    ReplacementDrawer drawer(target, TRRendererGetRenderScale(renderer));
+    CallbacksScope scope(renderer, PaintCallbacks(), &drawer);
     TRComposedFrameDraw(frame, renderer, origin);
 }
 
-FramePainter::FramePainter() : _renderer(TRRendererCreate()) {}
-
-void FramePainter::ReleaseLocator() {
-    if (_locator != nullptr) {
-        TRLineLocatorRelease(_locator);
-        _locator = nullptr;
-    }
-    if (_locatorFrame != nullptr) {
-        TRComposedFrameRelease(_locatorFrame);
-        _locatorFrame = nullptr;
-    }
-}
-
-FramePainter::~FramePainter() {
-    ReleaseLocator();
-    if (_renderer != nullptr) {
-        TRRendererRelease(_renderer);
-    }
-}
-
-void FramePainter::Draw(TRComposedFrameRef frame, PaintTarget &target, float renderScale) {
-    Draw(frame, target, renderScale, FramePaint{});
-}
-
-void FramePainter::Draw(TRComposedFrameRef frame, PaintTarget &target, float renderScale, const FramePaint &paint) {
-    if (_renderer == nullptr || frame == nullptr) {
-        return;
-    }
-
-    TRRendererSetRenderScale(_renderer, renderScale);
-    TRRendererSetForegroundColor(_renderer, paint.textColor);
-
-    // The selection lies behind the text, so it is filled first.
-    if (paint.selectionStart >= 0 && paint.selectionEnd > paint.selectionStart) {
-        SelectionContext selection{&target, renderScale, paint.selectionColor};
-        TRComposedFrameEnumerateSelection(frame, static_cast<TRUInteger>(paint.selectionStart),
-                                          static_cast<TRUInteger>(paint.selectionEnd - paint.selectionStart),
-                                          &FillSelection, &selection);
-    }
-
-    ReplacementTarget replacements(target, renderScale);
-    if (!paint.isWindowed) {
-        DrawFrame(frame, _renderer, replacements, TRPoint{0, 0});
-        return;
-    }
-
-    if (_locator == nullptr || _locatorFrame != frame || _locatorScale != renderScale) {
-        ReleaseLocator();
-        _locator = TRLineLocatorCreate(frame, _renderer);
-        if (_locator == nullptr) {
-            // The locator cannot bound the lines (a frame this tall in pixels): paint all of them.
-            DrawFrame(frame, _renderer, replacements, TRPoint{0, 0});
-            return;
-        }
-        _locatorFrame = TRComposedFrameRetain(frame);
-        _locatorScale = renderScale;
-    }
-
-    LineContext lines{frame, _renderer};
-    CallbacksScope scope(_renderer, PaintCallbacks(), &replacements);
-    TRLineLocatorEnumerateLines(_locator, paint.visible, &DrawLine, &lines);
+void DrawLine(TRComposedLineRef line, TRRendererRef renderer, PaintTarget &target, TRPoint origin) {
+    ReplacementDrawer drawer(target, TRRendererGetRenderScale(renderer));
+    CallbacksScope scope(renderer, PaintCallbacks(), &drawer);
+    TRComposedLineDraw(line, renderer, origin);
 }
 
 } // namespace tehreer::painter
