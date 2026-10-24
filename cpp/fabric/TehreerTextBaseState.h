@@ -46,8 +46,9 @@ public:
     TehreerTextBaseStateData(
         TehreerTextBaseFrameKey key,
         tehreer::fabric::ComposeStatus status,
-        std::shared_ptr<const tehreer::fabric::ComposedFrameBox> frame)
-        : key(std::move(key)), status(status), frame(std::move(frame)) {
+        std::shared_ptr<const tehreer::fabric::ComposedFrameBox> frame,
+        std::shared_ptr<const tehreer::fabric::ViewText> text)
+        : key(std::move(key)), status(status), frame(std::move(frame)), text(std::move(text)) {
         // The Kotlin view and JavaScript (`acquireViewFrame`) find the frame by this id.
         tehreer::fabric::FrameRegistry::Register(this->frame);
     }
@@ -56,12 +57,18 @@ public:
     tehreer::fabric::ComposeStatus status{tehreer::fabric::ComposeStatus::EmptyText};
     /** Null unless `status` is `Composed`. */
     std::shared_ptr<const tehreer::fabric::ComposedFrameBox> frame;
+    /**
+     * The attributed text the frame was composed from (null for a plain string). It is what makes
+     * the lifetime of the text structural: unregistering an id never empties a node that already
+     * has its state, however long that node lives and whatever makes it compose again.
+     */
+    std::shared_ptr<const tehreer::fabric::ViewText> text;
 
 #ifdef RN_SERIALIZABLE_STATE
     // The Android state contract wants these. Java never writes this state, so the update from a
     // dynamic keeps the previous data.
     TehreerTextBaseStateData(const TehreerTextBaseStateData &previous, folly::dynamic /*data*/)
-        : key(previous.key), status(previous.status), frame(previous.frame) {}
+        : key(previous.key), status(previous.status), frame(previous.frame), text(previous.text) {}
 
     folly::dynamic getDynamic() const {
         return folly::dynamic::object("status", static_cast<int>(status))("lineCount", lineCount())("width", frameWidth())(

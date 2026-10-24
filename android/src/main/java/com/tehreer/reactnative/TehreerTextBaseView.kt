@@ -14,7 +14,8 @@ import kotlin.math.min
  * its canvas to the native painter: Core does all the layout and drawing math.
  *
  * A scrollable view scrolls its own canvas: the frame is laid out once, scrolling moves the canvas
- * and the painter visits only the lines in view, so nothing is laid out again per frame.
+ * and the painter visits only the lines in view, so nothing is laid out again per frame. Unlike the
+ * iOS view, it does not bounce past the ends: the scroll stops at them.
  */
 class TehreerTextBaseView(context: Context) : View(context) {
     private var painter: Long = TehreerPaintJni.create()
@@ -46,7 +47,7 @@ class TehreerTextBaseView(context: Context) : View(context) {
 
     // The height of the frame, in layout units, which is how far the text scrolls.
     private var contentHeight = 0f
-    private var pendingOffset = -1f
+    private var scrollRemainder = 0f
 
     private val detector = GestureDetector(
         context,
@@ -64,7 +65,11 @@ class TehreerTextBaseView(context: Context) : View(context) {
 
             override fun onScroll(e1: MotionEvent?, e2: MotionEvent, distanceX: Float, distanceY: Float): Boolean {
                 if (!isScrollable) return false
-                scrollTo(0, clampOffset(scrollY + distanceY.toInt()))
+                // Keep the fraction of a drag so that slow drags are not lost to rounding.
+                scrollRemainder += distanceY
+                val whole = scrollRemainder.toInt()
+                scrollRemainder -= whole
+                scrollTo(0, clampOffset(scrollY + whole))
                 return true
             }
 
@@ -86,12 +91,7 @@ class TehreerTextBaseView(context: Context) : View(context) {
         if (painter != 0L) {
             TehreerPaintJni.setFrame(painter, frameId)
             contentHeight = frameHeight
-            if (pendingOffset >= 0f) {
-                scrollTo(0, clampOffset((pendingOffset * density).toInt()))
-                pendingOffset = -1f
-            } else {
-                scrollTo(0, clampOffset(scrollY))
-            }
+            scrollTo(0, clampOffset(scrollY))
             invalidate()
         }
     }
@@ -110,13 +110,9 @@ class TehreerTextBaseView(context: Context) : View(context) {
         }
     }
 
-    /** Scrolls to an offset in layout units; a request that comes before the first frame waits for it. */
+    /** Scrolls to an offset in layout units, which JavaScript has resolved; the view only keeps it inside the content. */
     fun scrollToOffset(offset: Float) {
-        if (contentHeight <= 0f) {
-            pendingOffset = offset
-        } else {
-            scrollTo(0, clampOffset((offset * density).toInt()))
-        }
+        scrollTo(0, clampOffset((offset * density).toInt()))
     }
 
     override fun onTouchEvent(event: MotionEvent): Boolean {

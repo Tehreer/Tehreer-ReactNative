@@ -97,7 +97,7 @@ test("the Kotlin manager reads the frame id from the key that the state writes",
 // Issues #27 to #29: attributed text, scrolling, selection and static replacements.
 test("every prop of the component reaches the code that reads it", () => {
   const spec = read("src/specs/TehreerTextBaseNativeComponent.ts");
-  const props = [...spec.matchAll(/^  (\w+)\?: CodegenTypes\./gm)].map((match) => match[1] as string);
+  const props = [...spec.matchAll(/^ {2}(\w+)\?: CodegenTypes\./gm)].map((match) => match[1] as string);
   const shadow = read("cpp/fabric/TehreerTextBaseShadowNode.cpp") + read("cpp/fabric/TehreerTextBaseState.h");
   const manager = read("android/src/main/java/com/tehreer/reactnative/TehreerTextBaseManager.kt");
   const view = read("ios/TehreerTextBaseView.mm");
@@ -147,11 +147,12 @@ test("the view bindings that TypeScript declares are defined in C++", () => {
 });
 
 test("the composer refuses text with a replacement that JavaScript would have to measure", () => {
-  const composer = read("cpp/fabric/TextFrameComposer.cpp");
-  assert.match(composer, /TRAttributeReplacement && !StaticReplacements::IsStatic/);
-  assert.match(composer, /ComposeStatus::ForeignReplacement/);
-  // The same check guards the registry, so a text that cannot be measured is refused at the source.
-  assert.match(read("cpp/runtime/ViewBindings.cpp"), /TextHasOnlyStaticReplacements\(text\)/);
+  // The only way to make a ViewText checks once, at registration; the composer never walks the text.
+  const box = read("cpp/fabric/ViewText.cpp");
+  assert.match(box, /TRAttributeReplacement \|\| StaticReplacements::IsStatic/);
+  assert.match(read("cpp/fabric/ViewText.h"), /private:\n {4}ViewText\(/);
+  assert.match(read("cpp/runtime/ViewBindings.cpp"), /fabric::ViewText::Make\(/);
+  assert.ok(!/IsStatic/.test(read("cpp/fabric/TextFrameComposer.cpp")), "the composer must not re-walk the text");
 });
 
 test("a scrolling view paints a window of lines found by Core's line locator, not the whole frame", () => {

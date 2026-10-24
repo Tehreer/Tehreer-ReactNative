@@ -24,7 +24,8 @@ using tehreer::fabric::ViewTextRegistry;
 
 tehreer::fabric::FrameSettings MakeSettings(const TehreerTextBaseProps &props) {
     tehreer::fabric::FrameSettings settings;
-    settings.maxLines = props.maxLines < 0 ? 0 : static_cast<std::uint32_t>(props.maxLines);
+    // JavaScript has normalized every value (a whole number from 0 for maxLines, enum members).
+    settings.maxLines = static_cast<std::uint32_t>(props.maxLines);
     settings.textAlignment = static_cast<std::uint32_t>(props.textAlignment);
     settings.truncationEnabled = props.truncationEnabled;
     settings.truncationMode = static_cast<std::uint32_t>(props.truncationMode);
@@ -43,15 +44,28 @@ bool SameFrameProps(const TehreerTextBaseProps &a, const TehreerTextBaseProps &b
         a.scrollable == b.scrollable && MakeSettings(a) == MakeSettings(b);
 }
 
-TextFrameSpec MakeSpec(const std::u16string &text, const TehreerTextBaseProps &props) {
+// The registry first; an id that was unregistered since (the JavaScript side moved on to another
+// text while this revision is still alive) is served by the share that the state keeps.
+std::shared_ptr<const tehreer::fabric::ViewText> ResolveText(const TehreerTextBaseProps &props, const TehreerTextBaseStateData &data) {
+    if (props.textId <= 0) {
+        return nullptr;
+    }
+    if (auto found = ViewTextRegistry::Find(static_cast<std::uint32_t>(props.textId))) {
+        return found;
+    }
+    return data.key.textId == props.textId ? data.text : nullptr;
+}
+
+TextFrameSpec MakeSpec(const std::u16string &text, const TehreerTextBaseProps &props,
+                       std::shared_ptr<const tehreer::fabric::ViewText> attributed) {
     TextFrameSpec spec;
     spec.text = text;
     spec.typefaceTag = props.typefaceTag < 0 ? 0 : static_cast<std::uint32_t>(props.typefaceTag);
     spec.typeSize = props.typeSize;
     spec.settings = MakeSettings(props);
     if (props.textId > 0) {
-        // An id that is not registered (any more) finds nothing, and the text is empty.
-        spec.attributed = ViewTextRegistry::Find(static_cast<std::uint32_t>(props.textId));
+        // An id that nothing resolves shows nothing.
+        spec.attributed = std::move(attributed);
         spec.text = std::u16string_view();
     }
     return spec;
@@ -85,7 +99,7 @@ Size TehreerTextBaseShadowNode::measureContent(const LayoutContext &, const Layo
     const auto &props = getConcreteProps();
     const std::u16string text = tehreer::fabric::Utf8ToUtf16(props.text);
 
-    TextFrameSpec spec = MakeSpec(text, props);
+    TextFrameSpec spec = MakeSpec(text, props, ResolveText(props, getStateData()));
     // An unbounded constraint is infinity in Yoga, which is also what Core takes as unbounded.
     spec.width = static_cast<float>(layoutConstraints.maximumSize.width);
     // The whole text of a scroll view counts, whatever height the style allows: the style clamps
@@ -120,7 +134,8 @@ void TehreerTextBaseShadowNode::layout(LayoutContext layoutContext) {
     }
 
     const std::u16string text = tehreer::fabric::Utf8ToUtf16(props.text);
-    TextFrameSpec spec = MakeSpec(text, props);
+    auto attributed = ResolveText(props, getStateData());
+    TextFrameSpec spec = MakeSpec(text, props, attributed);
     // The box is the size Yoga chose from the measurement, or a size the style forced. The lines
     // keep their alignment inside it, so it is not shrunk to the lines.
     // Yoga's rounding to the pixel grid can leave the box a hair below the measured frame
@@ -134,7 +149,7 @@ void TehreerTextBaseShadowNode::layout(LayoutContext layoutContext) {
     spec.fitsHeight = props.scrollable;
 
     TextFrame result = Compose(spec);
-    setStateData(TehreerTextBaseStateData{std::move(key), result.status, std::move(result.frame)});
+    setStateData(TehreerTextBaseStateData{std::move(key), result.status, std::move(result.frame), std::move(attributed)});
 
     ConcreteViewShadowNode::layout(layoutContext);
 }

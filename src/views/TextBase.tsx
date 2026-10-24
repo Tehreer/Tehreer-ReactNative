@@ -21,8 +21,8 @@ import TehreerTextBase from "../specs/TehreerTextBaseNativeComponent.js";
  *
  * Replacements: a `computeRoom` is JavaScript, which Core runs only on the thread of the runtime,
  * never on the thread that Yoga measures on (Core would get a room of zero without any error). So
- * the native side refuses text that holds one (`registerViewText` returns 0, and the composer
- * reports `ForeignReplacement`); `ViewText` makes the replacements static first (#29).
+ * the native side refuses text that holds one (`registerViewText` returns 0; a `ViewText` box can
+ * only be made from static replacements); `ViewText` makes the replacements static first (#29).
  *
  * @internal
  */

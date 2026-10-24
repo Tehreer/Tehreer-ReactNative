@@ -29,25 +29,35 @@ jsi::Value BindRegisterViewText(jsi::Runtime &rt, const jsi::Value &, const jsi:
         : marshal::ToHandle<TRTypefaceRef>(rt, typefaceArg, kFunction, "typeface", false);
     float typeSize = marshal::ToNumber<float>(rt, marshal::ArgAt(args, count, 2), kFunction, "typeSize");
 
-    // A replacement of JavaScript would be measured with a room of zero on the Yoga thread.
-    if (!fabric::TextHasOnlyStaticReplacements(text)) {
-        return jsi::Value(0);
-    }
-
-    // The box owns one reference of each; the handles keep their own.
+    // The box owns one reference of each; the handles keep their own. Make takes nothing when it
+    // refuses, so the references are given back: a replacement of JavaScript would be measured with
+    // a room of zero on the Yoga thread.
     TRTextRetain(text);
     if (typeface != nullptr) {
         TRTypefaceRetain(typeface);
     }
+    std::shared_ptr<const fabric::ViewText> box;
     std::uint32_t id = 0;
     try {
-        id = fabric::ViewTextRegistry::Register(std::make_shared<const fabric::ViewText>(text, typeface, typeSize));
+        box = fabric::ViewText::Make(text, typeface, typeSize);
+        if (box) {
+            id = fabric::ViewTextRegistry::Register(box);
+        }
     } catch (...) {
+        if (!box) {
+            TRTextRelease(text);
+            if (typeface != nullptr) {
+                TRTypefaceRelease(typeface);
+            }
+        }
+        throw;
+    }
+    if (!box) {
         TRTextRelease(text);
         if (typeface != nullptr) {
             TRTypefaceRelease(typeface);
         }
-        throw;
+        return jsi::Value(0);
     }
     return jsi::Value(static_cast<double>(id));
 }

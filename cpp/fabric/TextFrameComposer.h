@@ -17,8 +17,8 @@ struct FrameSettings {
     std::uint32_t maxLines = 0;
     std::uint32_t textAlignment = TRTextAlignmentLeading;
     bool truncationEnabled = false;
-    std::uint32_t truncationMode = 0;
-    std::uint32_t truncationPlace = 2;
+    std::uint32_t truncationMode = TRBreakModeLine;
+    std::uint32_t truncationPlace = TRTruncationPlaceEnd;
     float extraLineSpacing = 0;
     float lineHeightMultiplier = 1;
     bool justificationEnabled = false;
@@ -38,8 +38,8 @@ struct TextFrameSpec {
     float typeSize = 0;
     /**
      * Attributed text, which replaces `text` when it is set. Its typeface and size are the
-     * defaults of the typesetter (`typefaceTag` and `typeSize` are not used), and every
-     * replacement in it must be a static one.
+     * defaults of the typesetter (`typefaceTag` and `typeSize` are not used); a `ViewText` holds
+     * only static replacements by construction.
      */
     std::shared_ptr<const ViewText> attributed;
     FrameSettings settings;
@@ -63,8 +63,6 @@ enum class ComposeStatus {
     MissingTypeface,
     /** Zero, negative or not a finite number. */
     InvalidTypeSize,
-    /** The text has a replacement that is not static, whose room only JavaScript can give. */
-    ForeignReplacement,
     /** Core returned `NULL`, which it does when it is out of memory. */
     Failed,
 };
@@ -87,8 +85,5 @@ struct TextFrame {
  * Yoga measures on. A caller that composes attributed text must refuse text with a replacement.
  */
 TextFrame ComposeFrame(const TextFrameSpec &spec);
-
-/** Whether every replacement in the text was made by `StaticReplacements::Create`. */
-bool TextHasOnlyStaticReplacements(TRTextRef text);
 
 } // namespace tehreer::fabric

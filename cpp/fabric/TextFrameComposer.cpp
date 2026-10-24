@@ -1,7 +1,5 @@
 #include "TextFrameComposer.h"
 
-#include "StaticReplacements.h"
-
 #include <Tehreer/Tehreer.h>
 
 #include <cmath>
@@ -80,49 +78,7 @@ TypefaceOwner AcquireTypeface(std::uint32_t tag) {
     return TypefaceOwner(search.found);
 }
 
-/**
- * Whether every replacement of the text is static. A replacement made in JavaScript has a
- * `computeRoom` that Core could only call on the thread of the runtime, so it would get a room of
- * zero here without any error: such text is refused instead of laid out wrongly.
- */
-bool HasOnlyStaticReplacements(TRTextRef text) {
-    const TRUInteger length = TRTextGetLength(text);
-    TRUInteger index = 0;
-    while (index < length) {
-        TRUInteger runLength = 0;
-        // Owned list, released on every path out of this iteration.
-        TRAttributeListRef list = TRTextCopyAttributes(text, index, &runLength);
-        if (list == nullptr || runLength == 0) {
-            if (list != nullptr) {
-                TRAttributeListRelease(list);
-            }
-            // No list or no progress cannot be told apart from a failure: refuse.
-            return false;
-        }
-
-        bool isStatic = true;
-        const TRUInteger count = TRAttributeListGetCount(list);
-        for (TRUInteger i = 0; i < count; i++) {
-            const TRAttribute *attribute = TRAttributeListGetItem(list, i);
-            if (attribute->type == TRAttributeReplacement && !StaticReplacements::IsStatic(attribute->value.replacement)) {
-                isStatic = false;
-                break;
-            }
-        }
-        TRAttributeListRelease(list);
-        if (!isStatic) {
-            return false;
-        }
-        index += runLength;
-    }
-    return true;
-}
-
 } // namespace
-
-bool TextHasOnlyStaticReplacements(TRTextRef text) {
-    return HasOnlyStaticReplacements(text);
-}
 
 TextFrame ComposeFrame(const TextFrameSpec &spec) {
     TextFrame result;
@@ -157,11 +113,8 @@ TextFrame ComposeFrame(const TextFrameSpec &spec) {
     TextOwner owned;
     TRTextRef text = nullptr;
     if (isAttributed) {
+        // Only a `ViewText` can be here, and it holds nothing but static replacements.
         text = spec.attributed->text();
-        if (!HasOnlyStaticReplacements(text)) {
-            result.status = ComposeStatus::ForeignReplacement;
-            return result;
-        }
     } else {
         // Core copies the code units, so the view the caller gave may die after this call.
         owned = TextOwner(TRTextCreate(spec.text.data(), spec.text.size(), TRStringEncodingUTF16));

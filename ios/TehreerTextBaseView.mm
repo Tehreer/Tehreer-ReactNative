@@ -41,8 +41,6 @@ using namespace facebook::react;
   std::unique_ptr<tehreer::painter::FramePainter> _painter;
   UIScrollView *_scrollView;
   TehreerTextCanvas *_canvas;
-  CGFloat _pendingOffset;
-  BOOL _hasPendingOffset;
 }
 
 + (ComponentDescriptorProvider)componentDescriptorProvider
@@ -81,10 +79,10 @@ using namespace facebook::react;
 
   [self setUpScrollingFor:next.scrollable];
 
-  if (previous && next.scrollToToken != previous->scrollToToken) {
-    _pendingOffset = next.scrollToOffset;
-    _hasPendingOffset = YES;
-    [self applyPendingOffset];
+  // JavaScript resolves the offset (it knows the frame and the size of the view); a new token only
+  // asks the scroll view to go there.
+  if (_scrollView != nil && previous && next.scrollToToken != previous->scrollToToken) {
+    [_scrollView setContentOffset:CGPointMake(0, next.scrollToOffset) animated:NO];
   }
   // Color and selection only paint; the frame stays as it is.
   [self redraw];
@@ -92,6 +90,9 @@ using namespace facebook::react;
 
 - (void)setUpScrollingFor:(BOOL)scrollable
 {
+  if (scrollable == (_scrollView != nil)) {
+    return;
+  }
   if (scrollable && _scrollView == nil) {
     _scrollView = [[UIScrollView alloc] initWithFrame:self.bounds];
     _scrollView.delegate = self;
@@ -138,27 +139,12 @@ using namespace facebook::react;
   }
 }
 
-- (void)applyPendingOffset
-{
-  if (_scrollView == nil || !_hasPendingOffset) {
-    return;
-  }
-  CGFloat limit = std::max<CGFloat>(0, _scrollView.contentSize.height - self.bounds.size.height);
-  // A request that arrives before the first frame waits for the content size.
-  if (limit == 0 && _scrollView.contentSize.height == 0) {
-    return;
-  }
-  _hasPendingOffset = NO;
-  [_scrollView setContentOffset:CGPointMake(0, std::min<CGFloat>(std::max<CGFloat>(0, _pendingOffset), limit)) animated:NO];
-}
-
 - (void)updateState:(const State::Shared &)state oldState:(const State::Shared &)oldState
 {
   _state = std::static_pointer_cast<const TehreerTextBaseShadowNode::ConcreteState>(state);
   if (_scrollView != nil) {
     const auto &frame = _state ? _state->getData().frame : nullptr;
     _scrollView.contentSize = CGSizeMake(self.bounds.size.width, frame ? frame->height() : 0);
-    [self applyPendingOffset];
     [self updateCanvasFrame];
   }
   [self redraw];
@@ -238,7 +224,6 @@ using namespace facebook::react;
 - (void)prepareForRecycle
 {
   _state.reset();
-  _hasPendingOffset = NO;
   [self setUpScrollingFor:NO];
   [self setNeedsDisplay];
   [super prepareForRecycle];

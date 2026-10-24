@@ -44,8 +44,7 @@ function makeFrame(lines: FakeLine[]) {
             return line.isRtl ? line.endIndex - slot : line.startIndex + slot;
           },
           getCodeUnitDistance: (index: number) => {
-            const count = line.endIndex - line.startIndex;
-            return line.isRtl ? (line.endIndex - index) * 10 : (index - line.startIndex) * 10 + (count < 0 ? 0 : 0);
+            return line.isRtl ? (line.endIndex - index) * 10 : (index - line.startIndex) * 10;
           },
           dispose: () => { line.disposed += 1; },
         };
@@ -81,7 +80,8 @@ test("a position finds the code unit of its line, and no character outside the t
   assert.equal(queries.indexOfCodeUnit(frame, -1, 5), undefined);
   assert.equal(queries.indexOfCodeUnit(frame, 5, -1), undefined, "above the frame");
   assert.equal(queries.indexOfCodeUnit(frame, 5, 41), undefined, "below the frame");
-  assert.ok(lines.every((l) => l.disposed >= 0));
+  // Both lines that were read (the hits, and the miss on the shorter line) were given back.
+  assert.deepEqual(lines.map((l) => l.disposed), [3, 3]);
 });
 
 test("a frame without lines has no character and no caret", () => {

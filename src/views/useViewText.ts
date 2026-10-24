@@ -52,11 +52,20 @@ export function toNativeColor(value: ColorValue | undefined, fallback: number): 
 
 export type { BreakMode, TruncationPlace };
 
+/** How many times a view may make its text again because a room depends on the width. */
+const MAX_WIDTH_REBUILDS = 3;
+
 /**
  * Makes the text of a view and keeps it registered for as long as it is shown. The text is made in
- * a layout effect, so it is on the first commit that the user sees; an older one is released a
- * moment after it was replaced, because the shadow node of the previous revision may still be
- * measuring it on another thread.
+ * a layout effect, so it is on the first commit that the user sees (the very first render has
+ * `textId` 0 and shows nothing; the layout effect re-renders before anything is painted). It is
+ * released as soon as it is replaced or the view goes: a node that is still alive keeps its own
+ * share of the text in its state, so there is nothing to wait for.
+ *
+ * Replacements ask their delegate for the room with the width the view last reported (0 before the
+ * first layout). When a room depends on the width, the text is made again with the new width, at
+ * most {@link MAX_WIDTH_REBUILDS} times per view, which stops a delegate whose room changes the
+ * width it is asked with from looping.
  *
  * @internal
  */
@@ -65,8 +74,11 @@ export function useViewText(source: TextViewSource): { viewText: ViewText | unde
   const [layoutWidth, setLayoutWidth] = useState(0);
   const [viewText, setViewText] = useState<ViewText | undefined>();
   const current = useRef<ViewText | undefined>(undefined);
+  const rebuilds = useRef(0);
 
   useLayoutEffect(() => {
+    // A throw below must not leave a text that was already disposed as the current one.
+    current.current = undefined;
     const created = ViewText.create({ text, attributedText, typeface, textSize }, layoutWidth);
     current.current = created;
     setViewText(created);
@@ -74,7 +86,7 @@ export function useViewText(source: TextViewSource): { viewText: ViewText | unde
       if (current.current === created) {
         current.current = undefined;
       }
-      setTimeout(() => created.dispose(), 250);
+      created.dispose();
     };
   }, [text, attributedText, typeface, textSize, layoutWidth]);
 
@@ -83,7 +95,8 @@ export function useViewText(source: TextViewSource): { viewText: ViewText | unde
       const width = event.nativeEvent.layout.width;
       const made = current.current;
       // The delegates are asked again only when the width really changes a room.
-      if (made !== undefined && made.hasReplacements && width !== layoutWidth && made.roomsDifferAt(width)) {
+      if (made !== undefined && made.hasReplacements && width !== layoutWidth && rebuilds.current < MAX_WIDTH_REBUILDS && made.roomsDifferAt(width)) {
+        rebuilds.current++;
         setLayoutWidth(width);
       }
     },

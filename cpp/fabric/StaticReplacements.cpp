@@ -9,6 +9,8 @@ namespace tehreer::fabric {
 namespace {
 
 struct Entry {
+    /** The key of this entry in the table; set before the entry is inserted. */
+    const void *replacement = nullptr;
     TRReplacementRoom room;
     std::shared_ptr<const ReplacementPaint> paint;
 };
@@ -35,13 +37,14 @@ void Finalize(void *userData) noexcept {
     Table &table = Shared();
     std::shared_ptr<Entry> dropped;
     {
+        // Constant time under the lock: the entry names its own key. An entry that never got into
+        // the table (a failed Create) finds nothing, which is fine.
+        const void *key = static_cast<const Entry *>(userData)->replacement;
         std::lock_guard<std::mutex> lock(table.mutex);
-        for (auto it = table.entries.begin(); it != table.entries.end(); ++it) {
-            if (it->second.get() == userData) {
-                dropped = std::move(it->second);
-                table.entries.erase(it);
-                break;
-            }
+        auto found = table.entries.find(key);
+        if (found != table.entries.end() && found->second.get() == userData) {
+            dropped = std::move(found->second);
+            table.entries.erase(found);
         }
     }
 }
@@ -51,7 +54,9 @@ void Finalize(void *userData) noexcept {
 TRReplacementRef StaticReplacements::Create(TRReplacementKind kind, TRReplacementRoom room, std::shared_ptr<const ReplacementPaint> paint) {
     std::shared_ptr<Entry> entry;
     try {
-        entry = std::make_shared<Entry>(Entry{room, std::move(paint)});
+        entry = std::make_shared<Entry>();
+        entry->room = room;
+        entry->paint = std::move(paint);
     } catch (const std::bad_alloc &) {
         return nullptr;
     }
@@ -67,6 +72,7 @@ TRReplacementRef StaticReplacements::Create(TRReplacementKind kind, TRReplacemen
     if (replacement == nullptr) {
         return nullptr;
     }
+    entry->replacement = replacement;
     try {
         std::lock_guard<std::mutex> lock(table.mutex);
         table.entries.emplace(replacement, entry);

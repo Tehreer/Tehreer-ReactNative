@@ -56,6 +56,13 @@ function sameRoom(a: ReplacementRoom, b: ReplacementRoom): boolean {
  * is given plain data. The native state lives exactly as long as the Core replacement, and the
  * registry releases the text on {@link dispose}.
  *
+ * What is deferred (issue #29 says a replacement is "drawn by the delegate or by native views"):
+ * only the first half exists. The delegate's `draw` is called once, here, with a context that records
+ * `fillRect` and nothing else; `drawGlyphImage` throws an `Error` from this call (so from the
+ * `useLayoutEffect` of the view, where an error boundary catches it). Replacements drawn by React
+ * Native views placed at the replacement's position are not implemented, and neither is a `draw`
+ * that depends on anything but the room it is given: the drawing is a snapshot, like the room.
+ *
  * @internal
  */
 export class ViewText {

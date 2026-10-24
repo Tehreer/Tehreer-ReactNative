@@ -94,9 +94,20 @@ export const TTextView = forwardRef<TTextViewHandle, TTextViewProps>(function TT
   const offsetRef = useRef(0);
   const [request, setRequest] = useState({ offset: 0, token: 0 });
 
-  const scrollTo = useCallback((offset: number) => {
-    setRequest((previous) => ({ offset: Math.max(0, offset), token: previous.token + 1 }));
+  // What the scroll logic needs, all resolved here: the native view just goes where it is told.
+  const metrics = useRef({ content: 0, viewport: 0, pending: undefined as number | undefined });
+  const send = useCallback((offset: number) => {
+    const limit = Math.max(0, metrics.current.content - metrics.current.viewport);
+    setRequest((previous) => ({ offset: Math.min(Math.max(0, offset), limit), token: previous.token + 1 }));
   }, []);
+  const scrollTo = useCallback((offset: number) => {
+    // A request that comes before the first frame waits for it, because the limit is not known yet.
+    if (metrics.current.content <= 0) {
+      metrics.current.pending = offset;
+    } else {
+      send(offset);
+    }
+  }, [send]);
 
   useImperativeHandle(ref, () => ({
     getComposedFrame: () => acquireFrame(frameIdRef.current),
@@ -116,9 +127,20 @@ export const TTextView = forwardRef<TTextViewHandle, TTextViewProps>(function TT
   }), [scrollTo]);
 
   const handleFrameReady = useCallback((event: NativeSyntheticEvent<{ lineCount: number; width: number; height: number; frameId: number }>) => {
+    metrics.current.content = event.nativeEvent.height;
     setFrameId(event.nativeEvent.frameId);
+    if (metrics.current.pending !== undefined && metrics.current.content > 0) {
+      const pending = metrics.current.pending;
+      metrics.current.pending = undefined;
+      send(pending);
+    }
     onFrameReady?.(event.nativeEvent);
-  }, [onFrameReady]);
+  }, [onFrameReady, send]);
+
+  const handleLayout = useCallback((event: LayoutChangeEvent) => {
+    metrics.current.viewport = event.nativeEvent.layout.height;
+    onLayout(event);
+  }, [onLayout]);
 
   const handleTap = useCallback((event: NativeSyntheticEvent<{ x: number; y: number }>) => {
     if (onTap !== undefined) {
@@ -148,7 +170,7 @@ export const TTextView = forwardRef<TTextViewHandle, TTextViewProps>(function TT
       selectionColor={toNativeColor(selectionColor, 0x553390ff)}
       scrollToOffset={request.offset}
       scrollToToken={request.token}
-      onLayout={onLayout}
+      onLayout={handleLayout}
       onFrameReady={handleFrameReady}
       onTextTap={onTap === undefined ? undefined : handleTap}
       onTextScroll={handleScroll}
