@@ -21,6 +21,22 @@ internal object TehreerPaintJni {
     /** Takes the frame of the id that the shadow node's state carries; 0 or an unknown id clears it. */
     @JvmStatic external fun setFrame(painter: Long, frameId: Int)
 
-    /** Draws the frame with its top left at the origin of the canvas; `density` is pixels per layout unit. */
-    @JvmStatic external fun draw(painter: Long, canvas: Canvas, density: Float)
+    /**
+     * Draws the frame with its top left at the origin of the canvas; `density` is pixels per layout
+     * unit. When `isWindowed` is set only the lines that meet the window (in layout units, from the
+     * top of the text) are drawn, which is how a scrolling view avoids visiting a long text.
+     */
+    @JvmStatic external fun draw(
+        painter: Long,
+        canvas: Canvas,
+        density: Float,
+        textColor: Int,
+        selectionStart: Int,
+        selectionEnd: Int,
+        selectionColor: Int,
+        isWindowed: Boolean,
+        visibleTop: Float,
+        visibleWidth: Float,
+        visibleHeight: Float,
+    )
 }

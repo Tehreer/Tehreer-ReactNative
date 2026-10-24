@@ -24,7 +24,11 @@ struct TehreerTextBaseFrameKey {
     std::string text;
     int typefaceTag{0};
     Float typeSize{0};
-    int maxLines{0};
+    /** The attributed text, 0 for the plain string above. */
+    int textId{0};
+    tehreer::fabric::FrameSettings settings;
+    /** A scrollable view lays the text out as tall as it is, not as tall as its box. */
+    bool scrollable{false};
     /** The size of the box (the content frame that Yoga chose). */
     Size size{};
 
@@ -44,10 +48,8 @@ public:
         tehreer::fabric::ComposeStatus status,
         std::shared_ptr<const tehreer::fabric::ComposedFrameBox> frame)
         : key(std::move(key)), status(status), frame(std::move(frame)) {
-#ifdef RN_SERIALIZABLE_STATE
-        // The Kotlin view finds the frame by this id (the state can only hand it numbers).
+        // The Kotlin view and JavaScript (`acquireViewFrame`) find the frame by this id.
         tehreer::fabric::FrameRegistry::Register(this->frame);
-#endif
     }
 
     TehreerTextBaseFrameKey key;

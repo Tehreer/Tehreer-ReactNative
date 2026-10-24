@@ -9,6 +9,7 @@
 #include <algorithm>
 #include <cmath>
 #include <exception>
+#include <limits>
 
 namespace facebook::react {
 
@@ -19,13 +20,40 @@ namespace {
 using tehreer::fabric::ComposeStatus;
 using tehreer::fabric::TextFrame;
 using tehreer::fabric::TextFrameSpec;
+using tehreer::fabric::ViewTextRegistry;
+
+tehreer::fabric::FrameSettings MakeSettings(const TehreerTextBaseProps &props) {
+    tehreer::fabric::FrameSettings settings;
+    settings.maxLines = props.maxLines < 0 ? 0 : static_cast<std::uint32_t>(props.maxLines);
+    settings.textAlignment = static_cast<std::uint32_t>(props.textAlignment);
+    settings.truncationEnabled = props.truncationEnabled;
+    settings.truncationMode = static_cast<std::uint32_t>(props.truncationMode);
+    settings.truncationPlace = static_cast<std::uint32_t>(props.truncationPlace);
+    settings.extraLineSpacing = static_cast<float>(props.extraLineSpacing);
+    settings.lineHeightMultiplier = static_cast<float>(props.lineHeightMultiplier);
+    settings.justificationEnabled = props.justificationEnabled;
+    settings.justificationLevel = static_cast<float>(props.justificationLevel);
+    return settings;
+}
+
+// The props that decide the text, the metrics and the lines; everything else (colors, selection,
+// scroll requests) only paints, so a change of it must not measure or compose again.
+bool SameFrameProps(const TehreerTextBaseProps &a, const TehreerTextBaseProps &b) {
+    return a.text == b.text && a.typefaceTag == b.typefaceTag && a.typeSize == b.typeSize && a.textId == b.textId &&
+        a.scrollable == b.scrollable && MakeSettings(a) == MakeSettings(b);
+}
 
 TextFrameSpec MakeSpec(const std::u16string &text, const TehreerTextBaseProps &props) {
     TextFrameSpec spec;
     spec.text = text;
     spec.typefaceTag = props.typefaceTag < 0 ? 0 : static_cast<std::uint32_t>(props.typefaceTag);
     spec.typeSize = props.typeSize;
-    spec.maxLines = props.maxLines < 0 ? 0 : static_cast<std::uint32_t>(props.maxLines);
+    spec.settings = MakeSettings(props);
+    if (props.textId > 0) {
+        // An id that is not registered (any more) finds nothing, and the text is empty.
+        spec.attributed = ViewTextRegistry::Find(static_cast<std::uint32_t>(props.textId));
+        spec.text = std::u16string_view();
+    }
     return spec;
 }
 
@@ -41,9 +69,16 @@ TextFrame Compose(const TextFrameSpec &spec) noexcept {
 
 } // namespace
 
-bool TehreerTextBaseShadowNode::shouldNewRevisionDirtyMeasurement(const ShadowNode &, const ShadowNodeFragment &fragment) const {
-    // Only new props can change the text; a new state or children cannot.
-    return fragment.props != nullptr;
+bool TehreerTextBaseShadowNode::shouldNewRevisionDirtyMeasurement(const ShadowNode &sourceShadowNode, const ShadowNodeFragment &fragment) const {
+    // Only new props can change the text; a new state or children cannot. A prop that only paints
+    // (selection, color, scroll request) keeps the measurement, so selecting in a long text does
+    // not lay it out again.
+    if (fragment.props == nullptr) {
+        return false;
+    }
+    const auto &before = static_cast<const TehreerTextBaseProps &>(*sourceShadowNode.getProps());
+    const auto &after = static_cast<const TehreerTextBaseProps &>(*fragment.props);
+    return !SameFrameProps(before, after);
 }
 
 Size TehreerTextBaseShadowNode::measureContent(const LayoutContext &, const LayoutConstraints &layoutConstraints) const {
@@ -53,7 +88,9 @@ Size TehreerTextBaseShadowNode::measureContent(const LayoutContext &, const Layo
     TextFrameSpec spec = MakeSpec(text, props);
     // An unbounded constraint is infinity in Yoga, which is also what Core takes as unbounded.
     spec.width = static_cast<float>(layoutConstraints.maximumSize.width);
-    spec.height = static_cast<float>(layoutConstraints.maximumSize.height);
+    // The whole text of a scroll view counts, whatever height the style allows: the style clamps
+    // the view, and the rest scrolls.
+    spec.height = props.scrollable ? std::numeric_limits<float>::infinity() : static_cast<float>(layoutConstraints.maximumSize.height);
     spec.fitsWidth = true;
     spec.fitsHeight = true;
 
@@ -61,6 +98,11 @@ Size TehreerTextBaseShadowNode::measureContent(const LayoutContext &, const Layo
     Size size{};
     if (result.status == ComposeStatus::Composed) {
         size = Size{result.frame->width(), result.frame->height()};
+        // A scroll view is as wide as it is allowed, so that the alignment of the lines holds in
+        // the width of the view, and as tall as its text unless the style limits it.
+        if (props.scrollable && std::isfinite(layoutConstraints.maximumSize.width)) {
+            size.width = layoutConstraints.maximumSize.width;
+        }
     }
     return layoutConstraints.clamp(size);
 }
@@ -71,7 +113,7 @@ void TehreerTextBaseShadowNode::layout(LayoutContext layoutContext) {
     const auto &props = getConcreteProps();
     const Size box = getLayoutMetrics().getContentFrame().size;
 
-    TehreerTextBaseFrameKey key{props.text, props.typefaceTag, props.typeSize, props.maxLines, box};
+    TehreerTextBaseFrameKey key{props.text, props.typefaceTag, props.typeSize, props.textId, MakeSettings(props), props.scrollable, box};
     if (getStateData().key == key) {
         ConcreteViewShadowNode::layout(layoutContext);
         return;
@@ -86,9 +128,10 @@ void TehreerTextBaseShadowNode::layout(LayoutContext layoutContext) {
     // below a pixel keeps what the measurement counted without letting another word in.
     constexpr float kSlack = 0.01f;
     spec.width = static_cast<float>(box.width) + kSlack;
-    spec.height = static_cast<float>(box.height) + kSlack;
+    // A scroll view shows the whole text, however tall, and scrolls what does not fit its box.
+    spec.height = props.scrollable ? std::numeric_limits<float>::infinity() : static_cast<float>(box.height) + kSlack;
     spec.fitsWidth = false;
-    spec.fitsHeight = false;
+    spec.fitsHeight = props.scrollable;
 
     TextFrame result = Compose(spec);
     setStateData(TehreerTextBaseStateData{std::move(key), result.status, std::move(result.frame)});

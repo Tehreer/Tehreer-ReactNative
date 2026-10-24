@@ -12,6 +12,7 @@ import { layoutTestCount, runLayoutTests } from './LayoutTests';
 import { rendererTestCount, runRendererTests } from './RendererTests';
 import { runShapingTests, shapingTestCount } from './ShapingTests';
 import { runTextTests, textTestCount } from './TextTests';
+import { runViewTextTests, viewTextTestCount } from './ViewTextTests';
 import { runUnicodeTests, unicodeTestCount } from './UnicodeTests';
 import { assetTestCount, runAssetTests } from './AssetTests';
 import { fontBytes } from './fontData';
@@ -143,6 +144,13 @@ export const suites: readonly Suite[] = [
     run: (bindings) => {
       const result = runPainterTests(bindings);
       return { passed: result.passed, total: painterTestCount, failures: result.failures };
+    },
+  },
+  {
+    name: 'viewtext',
+    run: (bindings) => {
+      const result = runViewTextTests(bindings);
+      return { passed: result.passed, total: viewTextTestCount, failures: result.failures };
     },
   },
   {

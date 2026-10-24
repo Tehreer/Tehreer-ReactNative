@@ -10,6 +10,7 @@
 #include "SheenBidiBindings.h"
 #include "StructCodecs.h"
 #include "TextBindings.h"
+#include "ViewBindings.h"
 
 #include <Tehreer/Tehreer.h>
 
@@ -240,6 +241,7 @@ void InstallBindings(jsi::Runtime &runtime) {
     InstallCallbackBindings(runtime, bindings);
     InstallDrawBindings(runtime, bindings);
     InstallTextBindings(runtime, bindings);
+    InstallViewBindings(runtime, bindings);
     InstallPointerBindings(runtime, bindings);
     InstallSheenBidiBindings(runtime, bindings);
 
@@ -265,6 +267,7 @@ void InstallBindings(jsi::Runtime &runtime) {
     InstallGlyphImageTestHooks(runtime, bindings);
     InstallPaintTestHooks(runtime, bindings);
     InstallPointerTestHooks(runtime, bindings);
+    InstallViewTestHooks(runtime, bindings);
     InstallSheenBidiTestHooks(runtime, bindings);
 #endif
 

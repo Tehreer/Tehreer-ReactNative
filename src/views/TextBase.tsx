@@ -3,8 +3,9 @@ import TehreerTextBase from "../specs/TehreerTextBaseNativeComponent.js";
 
 /**
  * The Fabric component that issue #26 builds: a native view whose size is measured by Core, in C++,
- * synchronously, with no JavaScript involved. It is the base that `TLabel` (#27) grows from, and
- * not public API yet: it paints only a colored box.
+ * synchronously, with no JavaScript involved. `TLabel` (#27) and `TTextView` (#28) are this
+ * component with props set; it is not public API. The text is a plain string (`text`,
+ * `typefaceTag`, `typeSize`) or attributed text registered by `registerViewText` (`textId`).
  *
  * Measurement. Yoga's measure function lays `text` out with Core (`Typesetter`, `FrameResolver`
  * with a frame that fits its lines, `ComposedFrame`) in the width and height that Yoga allows, and
@@ -18,10 +19,10 @@ import TehreerTextBase from "../specs/TehreerTextBaseNativeComponent.js";
  * component whose props did not change). A missing or unknown tag, an empty text
  * or a type size that is not positive measures 0 by 0, and nothing is thrown.
  *
- * Replacements are not supported here: the text is a plain string, and a `computeRoom` is
- * JavaScript, which Core runs only on the thread of the runtime, never on the thread that Yoga
- * measures on (Core then gets a room of zero without any error). Attributed text in `TLabel` must
- * refuse a replacement instead of measuring it wrongly.
+ * Replacements: a `computeRoom` is JavaScript, which Core runs only on the thread of the runtime,
+ * never on the thread that Yoga measures on (Core would get a room of zero without any error). So
+ * the native side refuses text that holds one (`registerViewText` returns 0, and the composer
+ * reports `ForeignReplacement`); `ViewText` makes the replacements static first (#29).
  *
  * @internal
  */

@@ -48,7 +48,9 @@ JNIEXPORT void JNICALL Java_com_tehreer_reactnative_TehreerPaintJni_setFrame(JNI
     }
 }
 
-JNIEXPORT void JNICALL Java_com_tehreer_reactnative_TehreerPaintJni_draw(JNIEnv *env, jclass, jlong handle, jobject canvas, jfloat density) {
+JNIEXPORT void JNICALL Java_com_tehreer_reactnative_TehreerPaintJni_draw(
+    JNIEnv *env, jclass, jlong handle, jobject canvas, jfloat density, jint textColor, jint selectionStart, jint selectionEnd,
+    jint selectionColor, jboolean isWindowed, jfloat visibleTop, jfloat visibleWidth, jfloat visibleHeight) {
     ViewPainter *painter = Painter(handle);
     if (painter == nullptr || !painter->frame || canvas == nullptr) {
         return;
@@ -58,7 +60,16 @@ JNIEXPORT void JNICALL Java_com_tehreer_reactnative_TehreerPaintJni_draw(JNIEnv 
     // the canvas is only valid during onDraw.
     tehreer::android::CanvasPainter target(env, canvas);
     if (target.IsReady()) {
-        painter->framePainter.Draw(painter->frame->get(), target, density);
+        tehreer::painter::FramePaint paint;
+        paint.textColor = static_cast<TRColor>(textColor);
+        paint.selectionStart = selectionStart;
+        paint.selectionEnd = selectionEnd;
+        paint.selectionColor = static_cast<TRColor>(selectionColor);
+        // The canvas of a scrolled view is already moved by the scroll, so the frame is drawn at
+        // its own origin and only the lines in view are visited. The window is in layout units.
+        paint.isWindowed = isWindowed != JNI_FALSE;
+        paint.visible = TRRect{TRPoint{0, visibleTop}, TRSize{visibleWidth, visibleHeight}};
+        painter->framePainter.Draw(painter->frame->get(), target, density, paint);
     }
 }
 

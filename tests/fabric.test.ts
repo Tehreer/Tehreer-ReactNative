@@ -64,7 +64,8 @@ test("the component name agrees in the spec, C++, Kotlin and the codegen config"
 // The painters of issues #24 and #25: the parts that need no engine or device are compiled here, and
 // the names that Kotlin, C++ and the build files must agree on are pinned.
 test("the platform independent painter and the frame registry compile against the headers of Core alone", { skip }, async () => {
-  for (const file of ["cpp/painter/PaintCallbacks.cpp", "cpp/fabric/FrameRegistry.cpp"]) {
+  const files = ["cpp/painter/PaintCallbacks.cpp", "cpp/fabric/FrameRegistry.cpp", "cpp/fabric/ViewText.cpp", "cpp/fabric/StaticReplacements.cpp"];
+  for (const file of files) {
     const result = await checkSyntax(compiler as string, join(root, file), [join(root, "cpp"), coreHeaders], { standard: "c++20" });
     assert.ok(result.ok, `${file}: ${result.output}`);
   }
@@ -88,5 +89,74 @@ test("every JNI function that Kotlin declares is defined in C++ with the same na
 test("the Kotlin manager reads the frame id from the key that the state writes", () => {
   const state = read("cpp/fabric/TehreerTextBaseState.h");
   assert.match(state, /builder\.putInt\(6, frame \? static_cast<int>\(frame->id\(\)\) : 0\)/);
-  assert.match(read("android/src/main/java/com/tehreer/reactnative/TehreerTextBaseManager.kt"), /view\.setComposedFrame\(state\.getInt\(6\)\)/);
+  assert.match(read("android/src/main/java/com/tehreer/reactnative/TehreerTextBaseManager.kt"), /view\.setComposedFrame\(state\.getInt\(6\), state\.getDouble\(3\)\.toFloat\(\)\)/);
+  // The height of the frame (key 3) is how far a scrolling view scrolls.
+  assert.match(state, /builder\.putDouble\(3, frameHeight\(\)\)/);
+});
+
+// Issues #27 to #29: attributed text, scrolling, selection and static replacements.
+test("every prop of the component reaches the code that reads it", () => {
+  const spec = read("src/specs/TehreerTextBaseNativeComponent.ts");
+  const props = [...spec.matchAll(/^  (\w+)\?: CodegenTypes\./gm)].map((match) => match[1] as string);
+  const shadow = read("cpp/fabric/TehreerTextBaseShadowNode.cpp") + read("cpp/fabric/TehreerTextBaseState.h");
+  const manager = read("android/src/main/java/com/tehreer/reactnative/TehreerTextBaseManager.kt");
+  const view = read("ios/TehreerTextBaseView.mm");
+  // Props that lay the text out are read by the shadow node; props that only paint by the views.
+  const layout = ["text", "typefaceTag", "typeSize", "maxLines", "textId", "textAlignment", "truncationEnabled", "truncationMode", "truncationPlace",
+    "extraLineSpacing", "lineHeightMultiplier", "justificationEnabled", "justificationLevel", "scrollable"];
+  const paint = ["textColor", "selectionStart", "selectionEnd", "selectionColor", "scrollToOffset", "scrollToToken", "scrollable"];
+  const events = ["onFrameReady", "onTextTap", "onTextScroll"];
+  for (const name of props) {
+    if (events.includes(name)) {
+      continue;
+    }
+    assert.ok(layout.includes(name) || paint.includes(name), `${name} is not classified in this test`);
+    if (layout.includes(name)) {
+      assert.match(shadow, new RegExp(`props\\.${name}\\b`), `${name} is not read by the shadow node`);
+    }
+    if (paint.includes(name)) {
+      assert.match(manager, new RegExp(`name = "${name}"`), `${name} has no ReactProp in Kotlin`);
+      assert.match(view, new RegExp(`(props|next)\\.${name}\\b`), `${name} is not read by the iOS view`);
+    }
+  }
+  for (const name of ["textId", "scrollable", "selectionStart"]) {
+    assert.ok(props.includes(name), name);
+  }
+});
+
+test("events agree in the spec, Kotlin and the iOS view", () => {
+  const manager = read("android/src/main/java/com/tehreer/reactnative/TehreerTextBaseManager.kt");
+  const view = read("ios/TehreerTextBaseView.mm");
+  for (const [native, js, emit] of [["topFrameReady", "onFrameReady", "onFrameReady"], ["topTextTap", "onTextTap", "onTextTap"], ["topTextScroll", "onTextScroll", "onTextScroll"]]) {
+    assert.match(manager, new RegExp(`"${native}" to mapOf\\("registrationName" to "${js}"\\)`));
+    assert.match(view, new RegExp(`->${emit}\\(`));
+  }
+  // JavaScript reads the id of the frame from the event of both platforms.
+  assert.match(manager, /putInt\("frameId", frameId\)/);
+  assert.match(view, /\.frameId = /);
+});
+
+test("the view bindings that TypeScript declares are defined in C++", () => {
+  const cpp = read("cpp/runtime/ViewBindings.cpp");
+  const ts = read("src/internal/NativeBindings.ts");
+  for (const name of ["registerViewText", "unregisterViewText", "createStaticReplacement", "acquireViewFrame"]) {
+    assert.match(ts, new RegExp(`\\b${name}\\(`), `${name} is not declared in NativeBindings.ts`);
+    assert.match(cpp, new RegExp(`Define\\(runtime, target, "${name}"`), `${name} is not installed`);
+  }
+  assert.match(read("cpp/runtime/TehreerBindings.cpp"), /InstallViewBindings\(runtime, bindings\)/);
+});
+
+test("the composer refuses text with a replacement that JavaScript would have to measure", () => {
+  const composer = read("cpp/fabric/TextFrameComposer.cpp");
+  assert.match(composer, /TRAttributeReplacement && !StaticReplacements::IsStatic/);
+  assert.match(composer, /ComposeStatus::ForeignReplacement/);
+  // The same check guards the registry, so a text that cannot be measured is refused at the source.
+  assert.match(read("cpp/runtime/ViewBindings.cpp"), /TextHasOnlyStaticReplacements\(text\)/);
+});
+
+test("a scrolling view paints a window of lines found by Core's line locator, not the whole frame", () => {
+  const painter = read("cpp/painter/PaintCallbacks.cpp");
+  assert.match(painter, /TRLineLocatorEnumerateLines\(_locator, paint\.visible/);
+  assert.match(read("android/src/main/cpp/TextBaseJni.cpp"), /paint\.isWindowed/);
+  assert.match(read("ios/TehreerTextBaseView.mm"), /paint\.isWindowed = true/);
 });

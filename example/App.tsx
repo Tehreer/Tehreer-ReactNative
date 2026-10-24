@@ -7,6 +7,7 @@ import { prepareAssetTests } from './tests/AssetTests';
 import { loadFonts } from './tests/fontData';
 import { runSuites } from './tests/runSuites';
 import type { SuiteReport } from './tests/runSuites';
+import { LabelTestHost } from './tests/LabelTests';
 import { ViewTestHost } from './tests/ViewTests';
 import { VisualCheck } from './tests/VisualCheck';
 
@@ -58,6 +59,9 @@ export default function App() {
   const [pending, setPending] = useState<SyncRun | undefined>();
   // The screen that QA looks at; the tests run and report whether or not it is shown.
   const [visual, setVisual] = useState(false);
+  // The two rendering suites (the measuring component and the views) report separately.
+  const [viewReports, setViewReports] = useState<SuiteReport[]>([]);
+  const addViewReport = useCallback((report: SuiteReport) => setViewReports((previous) => [...previous, report]), []);
 
   useEffect(() => {
     // The fonts are fetched assets, so the suites wait for them; a font that cannot be fetched is an error.
@@ -75,11 +79,11 @@ export default function App() {
   }, []);
 
   const finish = useCallback(
-    (report?: SuiteReport) => {
+    (reports: SuiteReport[] = []) => {
       if (pending === undefined || result !== undefined) {
         return;
       }
-      const outcome = summarize(pending, report === undefined ? [] : [report]);
+      const outcome = summarize(pending, reports);
       // The host stays mounted, so the boxes can be looked at in a screenshot.
       setResult(outcome);
       // The device test scripts read this line from the system log.
@@ -89,6 +93,12 @@ export default function App() {
     },
     [pending, result],
   );
+
+  useEffect(() => {
+    if (__DEV__ && viewReports.length >= 2) {
+      finish(viewReports);
+    }
+  }, [finish, viewReports]);
 
   // A release build has no debug hooks for the view suite, so it runs only the release suites.
   useEffect(() => {
@@ -119,7 +129,8 @@ export default function App() {
           <Text style={styles.buttonText}>Show frames</Text>
         </Pressable>
       )}
-      {__DEV__ && pending !== undefined && <ViewTestHost onDone={finish} />}
+      {__DEV__ && pending !== undefined && <ViewTestHost onDone={addViewReport} />}
+      {__DEV__ && pending !== undefined && <LabelTestHost onDone={addViewReport} />}
     </View>
   );
 }

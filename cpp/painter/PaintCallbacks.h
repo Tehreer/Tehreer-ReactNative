@@ -21,6 +21,22 @@ const TRDrawCallbacks &PaintCallbacks();
  */
 void DrawFrame(TRComposedFrameRef frame, TRRendererRef renderer, PaintTarget &target, TRPoint origin);
 
+/** What a view paints besides the frame itself; none of it changes the layout. */
+struct FramePaint {
+    /** The foreground color of the text that has none of its own. */
+    TRColor textColor = 0xFF000000u;
+    /** The range of code units to cover with `selectionColor` before the text, or -1 for none. */
+    long selectionStart = -1;
+    long selectionEnd = -1;
+    TRColor selectionColor = 0x553390FFu;
+    /**
+     * Draws only the lines whose boxes meet `visible` (in the coordinates of the frame, layout
+     * units) when `isWindowed` is set: a scrolling view paints the lines in view and nothing else.
+     */
+    bool isWindowed = false;
+    TRRect visible = {};
+};
+
 /**
  * The renderer of a view: the default one (black text, no shadow) with the render scale of the
  * display. A renderer must not be used by two threads at once, so a view has its own and draws on
@@ -40,8 +56,24 @@ public:
      */
     void Draw(TRComposedFrameRef frame, PaintTarget &target, float renderScale);
 
+    /**
+     * As above, with the selection, the text color and, for a scrolling view, the visible window.
+     * The replacements of the frame are static ones (`StaticReplacements`), whose rectangles are
+     * filled through the target; a replacement of another kind draws nothing.
+     */
+    void Draw(TRComposedFrameRef frame, PaintTarget &target, float renderScale, const FramePaint &paint);
+
 private:
+    void ReleaseLocator();
+
     TRRendererRef _renderer;
+    /**
+     * The locator of the last windowed frame, and a reference of that frame (a locator does not
+     * keep it, and a new frame can have the address of a freed one). Rebuilt when either changes.
+     */
+    TRLineLocatorRef _locator = nullptr;
+    TRComposedFrameRef _locatorFrame = nullptr;
+    float _locatorScale = 0;
 };
 
 } // namespace tehreer::painter

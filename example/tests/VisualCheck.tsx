@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Image, PixelRatio, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import type { Typeface } from '../../src/graphics/Typeface';
 import { TypefaceManager } from '../../src/graphics/TypefaceManager';
 import type { NativeBindings } from '../../src/internal/NativeBindings';
 import { adopt } from '../../src/internal/Adopt';
@@ -7,6 +8,10 @@ import type { ReplacementBounds } from '../../src/drawing/ReplacementDelegate';
 import type { DrawingContext } from '../../src/drawing/DrawingContext';
 import { Replacement } from '../../src/layout/Replacement';
 import { TextBase } from '../../src/views/TextBase';
+import { TLabel } from '../../src/views/TLabel';
+import { TTextView } from '../../src/views/TTextView';
+import { TMutableText } from '../../src/layout/TMutableText';
+import { TextAlignment, TruncationPlace } from '../../src/layout/enums';
 import { encodePng, toBase64 } from '../../tests/device/png';
 import { buildScene, findClippedScene, loadFaces, scenes } from './paintFixtures';
 import type { Scene } from './paintFixtures';
@@ -73,6 +78,31 @@ function makePictures(): Picture[] {
   });
 }
 
+// The labels and the text view that QA screenshots: Urdu, mixed right-to-left and left-to-right runs,
+// truncation, alignment, a replacement and a scrolling view with a selection.
+function makeSamples(faces: { roboto: Typeface; nastaliq: Typeface }) {
+  const mixed = new TMutableText(`Hello ${URDU} world 123 ${URDU}`);
+  mixed.setAttributes(6, 6 + URDU.length, { typeface: faces.nastaliq, typeSize: 28, foregroundColor: 0xff0a7a3d });
+  const chip = new Replacement({
+    computeRoom: () => ({ ascent: 16, descent: 5, extent: 44 }),
+    draw: (context) => {
+      context.fillRect({ x: 0, y: -16, width: 44, height: 21 }, 0xff2255cc);
+      context.fillRect({ x: 3, y: -13, width: 38, height: 15 }, 0xffaaccff);
+    },
+  });
+  const inline = new TMutableText('before \uFFFC after the inline object that has its own width');
+  inline.setAttributes(7, 8, { replacement: chip });
+  chip.dispose();
+  const long = new TMutableText('');
+  for (let index = 0; index < 80; index++) {
+    const lead = `${index + 1}. abc abc abc abc abc abc `;
+    const at = long.length;
+    long.append(`${lead}${URDU}\n`);
+    long.setAttributes(at + lead.length, at + lead.length + URDU.length, { typeface: faces.nastaliq, typeSize: 20 });
+  }
+  return { mixed, inline, long };
+}
+
 export function VisualCheck({ onClose }: { onClose: () => void }) {
   const [faces] = useState(loadFaces);
   const [error, setError] = useState<string | undefined>();
@@ -88,6 +118,8 @@ export function VisualCheck({ onClose }: { onClose: () => void }) {
   // The Fabric component finds its typeface by tag in the manager, when it is measured, so it is
   // mounted only once the tags are registered.
   const [registered, setRegistered] = useState(false);
+  const samples = useMemo(() => makeSamples(faces), [faces]);
+  useEffect(() => () => Object.values(samples).forEach((text) => text.dispose()), [samples]);
   useEffect(() => {
     TypefaceManager.registerTypeface(faces.roboto, ROBOTO_TAG);
     TypefaceManager.registerTypeface(faces.nastaliq, NASTALIQ_TAG);
@@ -111,6 +143,18 @@ export function VisualCheck({ onClose }: { onClose: () => void }) {
             <TextBase text={URDU} typefaceTag={NASTALIQ_TAG} typeSize={34} style={[styles.view, { maxWidth: 200 }]} />
           </View>
         )}
+        <Text style={styles.caption}>TLabel: Urdu, mixed, alignment, truncation, replacement</Text>
+        <View style={styles.box}>
+          <TLabel text={URDU} typeface={faces.nastaliq} textSize={34} textColor="#aa1122" style={[styles.view, { minWidth: 300, maxWidth: 300 }]} />
+          <TLabel attributedText={samples.mixed} typeface={faces.roboto} textSize={22} style={[styles.view, { maxWidth: 300 }]} />
+          <TLabel text="abc abc abc abc abc abc abc" typeface={faces.roboto} textSize={22} textAlignment={TextAlignment.Right} style={[styles.view, { minWidth: 300, maxWidth: 300 }]} />
+          <TLabel text="abc abc abc abc abc abc abc abc abc abc" typeface={faces.roboto} textSize={22} maxLines={2} isTruncationEnabled truncationPlace={TruncationPlace.End} style={[styles.view, { maxWidth: 220 }]} />
+          <TLabel attributedText={samples.inline} typeface={faces.roboto} textSize={20} style={[styles.view, { maxWidth: 300 }]} />
+        </View>
+        <Text style={styles.caption}>TTextView (scrolls, selection 10..60)</Text>
+        <View style={styles.box}>
+          <TTextView attributedText={samples.long} typeface={faces.roboto} textSize={16} selection={{ fromIndex: 10, toIndex: 60 }} style={{ width: 320, height: 200 }} />
+        </View>
         {error !== undefined && <Text style={styles.error}>{error}</Text>}
         {pictures.map(({ scene, uri }) => (
           <View key={scene.name}>

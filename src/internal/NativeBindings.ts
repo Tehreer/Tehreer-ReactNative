@@ -90,6 +90,30 @@ export interface NativeBindings extends NativeFunctions, SheenBidiFunctions {
   /** Puts the callbacks back that {@link installDrawContext} replaced. Idempotent. */
   restoreDrawContext(scope: DrawScope): void;
   /**
+   * Gives the shadow node of the views an immutable text with the defaults of its typesetter and
+   * returns the id that the `textId` prop carries. Both handles keep their own references, so they
+   * may be disposed afterwards. Returns 0, registering nothing, when the text holds a replacement
+   * that was not made by {@link createStaticReplacement}: Yoga measures on a thread that cannot run
+   * JavaScript, so Core would get a room of zero from it.
+   */
+  registerViewText(text: Handle<"TRText">, typeface: Handle<"TRTypeface"> | undefined, typeSize: number): number;
+  /** Drops the registry's share of a text. Idempotent; an unknown id is ignored. */
+  unregisterViewText(id: number): void;
+  /**
+   * A replacement whose room is `{ ascent, descent, extent }` and whose drawing is the flat list
+   * `rects` (x, y, width, height and `0xAARRGGBB` color of each filled rectangle, relative to its
+   * start on the baseline, in layout units). Both are plain data, so a view lays out and paints it
+   * on any thread. The data lives exactly as long as the Core replacement.
+   */
+  createStaticReplacement(kind: number, ascent: number, descent: number, extent: number, rects: readonly number[]): Handle<"TRReplacement"> | undefined;
+  /**
+   * A handle with a reference of its own to the frame that a view paints (the id comes from its
+   * `onFrameReady` event), or `undefined` when the view has replaced it.
+   */
+  acquireViewFrame(frameId: number): Handle<"TRComposedFrame"> | undefined;
+  /** Debug builds: the number of registered view texts and of live static replacements. */
+  testGetViewCounts?(): { texts: number; replacements: number };
+  /**
    * `TRTextSetAttribute`, bound by hand because its argument is a union. The text copies the
    * attribute and retains the typeface or font features that it holds, so the caller may dispose
    * them afterwards. Returns false when the range is not within the text. Throws `RangeError` for a

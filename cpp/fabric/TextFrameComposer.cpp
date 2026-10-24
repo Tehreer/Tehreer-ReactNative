@@ -1,5 +1,7 @@
 #include "TextFrameComposer.h"
 
+#include "StaticReplacements.h"
+
 #include <Tehreer/Tehreer.h>
 
 #include <cmath>
@@ -20,6 +22,16 @@ public:
     }
     Owned(const Owned &) = delete;
     Owned &operator=(const Owned &) = delete;
+    Owned(Owned &&other) noexcept : _ref(other.release()) {}
+    Owned &operator=(Owned &&other) noexcept {
+        if (this != &other) {
+            if (_ref != nullptr) {
+                Release(_ref);
+            }
+            _ref = other.release();
+        }
+        return *this;
+    }
 
     Ref get() const noexcept { return _ref; }
     explicit operator bool() const noexcept { return _ref != nullptr; }
@@ -68,41 +80,110 @@ TypefaceOwner AcquireTypeface(std::uint32_t tag) {
     return TypefaceOwner(search.found);
 }
 
+/**
+ * Whether every replacement of the text is static. A replacement made in JavaScript has a
+ * `computeRoom` that Core could only call on the thread of the runtime, so it would get a room of
+ * zero here without any error: such text is refused instead of laid out wrongly.
+ */
+bool HasOnlyStaticReplacements(TRTextRef text) {
+    const TRUInteger length = TRTextGetLength(text);
+    TRUInteger index = 0;
+    while (index < length) {
+        TRUInteger runLength = 0;
+        // Owned list, released on every path out of this iteration.
+        TRAttributeListRef list = TRTextCopyAttributes(text, index, &runLength);
+        if (list == nullptr || runLength == 0) {
+            if (list != nullptr) {
+                TRAttributeListRelease(list);
+            }
+            // No list or no progress cannot be told apart from a failure: refuse.
+            return false;
+        }
+
+        bool isStatic = true;
+        const TRUInteger count = TRAttributeListGetCount(list);
+        for (TRUInteger i = 0; i < count; i++) {
+            const TRAttribute *attribute = TRAttributeListGetItem(list, i);
+            if (attribute->type == TRAttributeReplacement && !StaticReplacements::IsStatic(attribute->value.replacement)) {
+                isStatic = false;
+                break;
+            }
+        }
+        TRAttributeListRelease(list);
+        if (!isStatic) {
+            return false;
+        }
+        index += runLength;
+    }
+    return true;
+}
+
 } // namespace
+
+bool TextHasOnlyStaticReplacements(TRTextRef text) {
+    return HasOnlyStaticReplacements(text);
+}
 
 TextFrame ComposeFrame(const TextFrameSpec &spec) {
     TextFrame result;
 
-    if (spec.text.empty()) {
+    const bool isAttributed = static_cast<bool>(spec.attributed);
+    if (isAttributed ? TRTextGetLength(spec.attributed->text()) == 0 : spec.text.empty()) {
         result.status = ComposeStatus::EmptyText;
         return result;
     }
 
-    TypefaceOwner typeface = AcquireTypeface(spec.typefaceTag);
-    if (!typeface) {
-        result.status = ComposeStatus::MissingTypeface;
-        return result;
+    TypefaceOwner typeface;
+    float typeSize = spec.typeSize;
+    if (isAttributed) {
+        // Retained here so that the typesetter's defaults stay valid even if the box goes first.
+        if (spec.attributed->typeface() != nullptr) {
+            typeface = TypefaceOwner(TRTypefaceRetain(spec.attributed->typeface()));
+        }
+        typeSize = spec.attributed->typeSize();
+    } else {
+        typeface = AcquireTypeface(spec.typefaceTag);
+        if (!typeface) {
+            result.status = ComposeStatus::MissingTypeface;
+            return result;
+        }
     }
 
-    if (!std::isfinite(spec.typeSize) || spec.typeSize <= 0) {
+    if (!std::isfinite(typeSize) || typeSize <= 0) {
         result.status = ComposeStatus::InvalidTypeSize;
         return result;
     }
 
-    // Core copies the code units, so the view the caller gave may die after this call.
-    TextOwner text(TRTextCreate(spec.text.data(), spec.text.size(), TRStringEncodingUTF16));
-    if (!text) {
-        return result;
+    TextOwner owned;
+    TRTextRef text = nullptr;
+    if (isAttributed) {
+        text = spec.attributed->text();
+        if (!HasOnlyStaticReplacements(text)) {
+            result.status = ComposeStatus::ForeignReplacement;
+            return result;
+        }
+    } else {
+        // Core copies the code units, so the view the caller gave may die after this call.
+        owned = TextOwner(TRTextCreate(spec.text.data(), spec.text.size(), TRStringEncodingUTF16));
+        if (!owned) {
+            return result;
+        }
+        text = owned.get();
     }
 
     TRAttribute defaults[2] = {};
-    defaults[0].type = TRAttributeTypeface;
-    defaults[0].value.typeface = typeface.get();
-    defaults[1].type = TRAttributeTypeSize;
-    defaults[1].value.typeSize = spec.typeSize;
+    TRUInteger defaultCount = 0;
+    if (typeface) {
+        defaults[defaultCount].type = TRAttributeTypeface;
+        defaults[defaultCount].value.typeface = typeface.get();
+        defaultCount++;
+    }
+    defaults[defaultCount].type = TRAttributeTypeSize;
+    defaults[defaultCount].value.typeSize = typeSize;
+    defaultCount++;
 
     // The typesetter retains the typeface it was given, so ours is released on return.
-    TypesetterOwner typesetter(TRTypesetterCreate(text.get(), defaults, 2));
+    TypesetterOwner typesetter(TRTypesetterCreate(text, defaults, defaultCount));
     if (!typesetter) {
         return result;
     }
@@ -119,9 +200,18 @@ TextFrame ComposeFrame(const TextFrameSpec &spec) {
     TRFrameResolverSetFrameSize(resolver.get(), size);
     TRFrameResolverSetFitsHorizontally(resolver.get(), spec.fitsWidth ? TRTrue : TRFalse);
     TRFrameResolverSetFitsVertically(resolver.get(), spec.fitsHeight ? TRTrue : TRFalse);
-    TRFrameResolverSetMaxLines(resolver.get(), spec.maxLines);
+    const FrameSettings &settings = spec.settings;
+    TRFrameResolverSetMaxLines(resolver.get(), settings.maxLines);
+    TRFrameResolverSetTextAlignment(resolver.get(), settings.textAlignment);
+    TRFrameResolverSetTruncationEnabled(resolver.get(), settings.truncationEnabled ? TRTrue : TRFalse);
+    TRFrameResolverSetTruncationMode(resolver.get(), settings.truncationMode);
+    TRFrameResolverSetTruncationPlace(resolver.get(), settings.truncationPlace);
+    TRFrameResolverSetExtraLineSpacing(resolver.get(), settings.extraLineSpacing);
+    TRFrameResolverSetLineHeightMultiplier(resolver.get(), settings.lineHeightMultiplier);
+    TRFrameResolverSetJustificationEnabled(resolver.get(), settings.justificationEnabled ? TRTrue : TRFalse);
+    TRFrameResolverSetJustificationLevel(resolver.get(), settings.justificationLevel);
 
-    FrameOwner frame(TRFrameResolverCreateFrame(resolver.get(), 0, spec.text.size()));
+    FrameOwner frame(TRFrameResolverCreateFrame(resolver.get(), 0, TRTextGetLength(text)));
     if (!frame) {
         return result;
     }

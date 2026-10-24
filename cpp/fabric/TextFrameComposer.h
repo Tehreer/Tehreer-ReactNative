@@ -1,13 +1,31 @@
 #pragma once
 
 #include "ComposedFrameBox.h"
+#include "ViewText.h"
 
 #include <cstdint>
 #include <limits>
 #include <memory>
 #include <string_view>
+#include <string>
 
 namespace tehreer::fabric {
+
+/** The settings of the frame resolver that a view exposes as props; the defaults are Core's. */
+struct FrameSettings {
+    /** 0 means no limit, as in `TRFrameResolverSetMaxLines`. */
+    std::uint32_t maxLines = 0;
+    std::uint32_t textAlignment = TRTextAlignmentLeading;
+    bool truncationEnabled = false;
+    std::uint32_t truncationMode = 0;
+    std::uint32_t truncationPlace = 2;
+    float extraLineSpacing = 0;
+    float lineHeightMultiplier = 1;
+    bool justificationEnabled = false;
+    float justificationLevel = 1;
+
+    bool operator==(const FrameSettings &other) const = default;
+};
 
 /**
  * Everything the frame of a plain string depends on. The text is UTF-16, the indices of the frame
@@ -18,8 +36,13 @@ struct TextFrameSpec {
     /** The tag of a typeface in Core's `TRTypefaceManager`; 0 means none. */
     std::uint32_t typefaceTag = 0;
     float typeSize = 0;
-    /** 0 means no limit, as in `TRFrameResolverSetMaxLines`. */
-    std::uint32_t maxLines = 0;
+    /**
+     * Attributed text, which replaces `text` when it is set. Its typeface and size are the
+     * defaults of the typesetter (`typefaceTag` and `typeSize` are not used), and every
+     * replacement in it must be a static one.
+     */
+    std::shared_ptr<const ViewText> attributed;
+    FrameSettings settings;
     /** The size of the frame; infinity is unbounded (a NaN or negative one Core takes as zero). */
     float width = std::numeric_limits<float>::infinity();
     float height = std::numeric_limits<float>::infinity();
@@ -40,6 +63,8 @@ enum class ComposeStatus {
     MissingTypeface,
     /** Zero, negative or not a finite number. */
     InvalidTypeSize,
+    /** The text has a replacement that is not static, whose room only JavaScript can give. */
+    ForeignReplacement,
     /** Core returned `NULL`, which it does when it is out of memory. */
     Failed,
 };
@@ -62,5 +87,8 @@ struct TextFrame {
  * Yoga measures on. A caller that composes attributed text must refuse text with a replacement.
  */
 TextFrame ComposeFrame(const TextFrameSpec &spec);
+
+/** Whether every replacement in the text was made by `StaticReplacements::Create`. */
+bool TextHasOnlyStaticReplacements(TRTextRef text);
 
 } // namespace tehreer::fabric
