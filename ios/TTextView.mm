@@ -70,6 +70,9 @@ void CollectRect(void *userData, TRRect rect, TRBoolean *)
     _scrollView.delegate = self;
     _scrollView.showsHorizontalScrollIndicator = NO;
     _scrollView.alwaysBounceVertical = YES;
+    // The text starts at the top of the view, not below the status bar: no inset is added, or the view
+    // would start at a negative offset and tell JavaScript so.
+    _scrollView.contentInsetAdjustmentBehavior = UIScrollViewContentInsetAdjustmentNever;
     [self addSubview:_scrollView];
     self.clipsToBounds = YES;
 
@@ -314,7 +317,7 @@ void CollectRect(void *userData, TRRect rect, TRBoolean *)
 {
   [self layoutLines];
   if (_eventEmitter) {
-    std::static_pointer_cast<const TTextViewEventEmitter>(_eventEmitter)->onTextScroll({.x = 0, .y = static_cast<Float>(scrollView.contentOffset.y)});
+    std::static_pointer_cast<const TTextViewEventEmitter>(_eventEmitter)->onTextScroll({.x = 0, .y = static_cast<Float>(std::max<CGFloat>(0, scrollView.contentOffset.y))});
   }
 }
 

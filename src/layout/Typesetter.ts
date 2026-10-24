@@ -10,28 +10,6 @@ import { disposeTemporaries, prepareAttributes } from "./TextAttributeCodec.js";
 import type { TextAttributes } from "./TextAttributes.js";
 import { TText, UTF16, toCodeUnits } from "./TText.js";
 
-function holdsReplacement(text: TText | string, defaults: TextAttributes | undefined): boolean {
-  if (defaults?.replacement !== undefined) {
-    return true;
-  }
-  if (typeof text === "string") {
-    return false;
-  }
-  for (let index = 0; index < text.length; ) {
-    const run = text.getAttributeRun(index);
-    if (run === undefined || run.length <= 0) {
-      break;
-    }
-    const replacement = run.attributes.replacement;
-    if (replacement !== undefined) {
-      replacement.dispose();
-      return true;
-    }
-    index += run.length;
-  }
-  return false;
-}
-
 function create(text: TText | string, defaultAttributes: TextAttributes | undefined): Handle<"TRTypesetter"> {
   if (typeof text !== "string" && !(text instanceof TText)) {
     throw new TypeError("text must be a string or a TText.");
@@ -73,8 +51,6 @@ function create(text: TText | string, defaultAttributes: TextAttributes | undefi
  * `fromIndex` up to but not including `toIndex`.
  */
 export class Typesetter extends NativeObject<"TRTypesetter"> {
-  private readonly _hasReplacements: boolean;
-
   /**
    * Makes a typesetter for a text.
    *
@@ -97,21 +73,7 @@ export class Typesetter extends NativeObject<"TRTypesetter"> {
   /** @internal */
   constructor(token: typeof adopt, handle: Handle<"TRTypesetter">);
   constructor(text: TText | string | typeof adopt, defaultAttributes?: TextAttributes | Handle<"TRTypesetter">) {
-    // Looked at before the call: a `computeRoom` that runs during it may dispose the text.
-    const hasReplacements = text !== adopt && holdsReplacement(text, defaultAttributes as TextAttributes | undefined);
     super(text === adopt ? (defaultAttributes as Handle<"TRTypesetter">) : create(text, defaultAttributes as TextAttributes | undefined));
-    this._hasReplacements = hasReplacements;
-  }
-
-  /**
-   * Whether the text or the defaults had a replacement when it was made. A view refuses such a
-   * typesetter: the replacements of a view have to be holders (see `ViewTypesetter`), and one cannot
-   * be told from another through a typesetter.
-   *
-   * @internal
-   */
-  get hasReplacements(): boolean {
-    return this._hasReplacements;
   }
 
   /** The number of code units of the text. */

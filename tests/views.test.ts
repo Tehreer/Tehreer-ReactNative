@@ -54,7 +54,8 @@ function makeFrame(lines: FakeLine[]) {
         };
       },
     },
-    getLineIndexAtPosition: (_x: number, y: number) => Math.min(lines.length - 1, Math.max(0, Math.floor(y / 20))),
+    // As Core: the line whose top and bottom have the y, or the last line if there is none (also above the frame).
+    getLineIndexAtPosition: (_x: number, y: number) => (y < 0 ? lines.length - 1 : Math.min(lines.length - 1, Math.floor(y / 20))),
     getLineIndexForCodeUnit: (index: number) => lines.findIndex((line) => index >= line.startIndex && index < line.endIndex || (index === frame.endIndex && line === lines[lines.length - 1])),
   };
   return frame;
@@ -158,4 +159,15 @@ test("scroll requests that would reach a native view as NaN or infinity are refu
     assert.throws(() => queries.checkScrollCodeUnit(bad), RangeError);
   }
   assert.equal(queries.checkScrollCodeUnit(0), 0);
+});
+
+test("an offset above the text (a bounce) is the top, and a scroll to a code unit has to be inside the text", () => {
+  const frame = makeFrame([line(0, 5, 0), line(5, 9, 20)]) as never;
+  assert.equal(queries.getCodeUnitAtOffset(frame, -4), 0, "a negative offset must not give the last line");
+  assert.equal(queries.getCodeUnitAtOffset(frame, 0), 0);
+  assert.equal(queries.checkScrollCodeUnit(8, 9), 8);
+  for (const [index, length] of [[9, 9], [12000, 9], [-1, 9], [1.5, 9]] as const) {
+    assert.throws(() => queries.checkScrollCodeUnit(index, length), RangeError);
+  }
+  assert.equal(queries.checkScrollCodeUnit(12000), 12000, "without a length only the shape is checked");
 });

@@ -31,12 +31,17 @@ export function useTextView(source: TextSource & RenderingProps, settings: Frame
   onLayout: (event: LayoutChangeEvent) => void;
   /** The frame of the view at the size of its last layout, made when asked for; the view owns it. */
   getComposedFrame: () => ComposedFrame | undefined;
+  /** How many code units the text of the view has, or 0 while there is no text. */
+  getCodeUnitCount: () => number;
 } {
   const { text, attributedText, typesetter, typeface, textSize = DEFAULT_TEXT_SIZE } = source;
   const [layoutWidth, setLayoutWidth] = useState(0);
   const [made, setMade] = useState<ViewTypesetter | undefined>();
   const current = useRef<ViewTypesetter | undefined>(undefined);
   const rebuilds = useRef(0);
+  // An error that a delegate throws when the width of the view changes a room: it comes from an event, where
+  // nothing could catch it, so it is thrown by the next render, where an error boundary can.
+  const [failure, setFailure] = useState<{ error: unknown } | undefined>();
   // What the commit of this view has adopted: the cleanup of a layout effect that was not committed disposes its own.
   const adopted = useRef(new WeakSet<ViewTypesetter>()).current;
   const box = useRef({ width: 0, height: 0 });
@@ -94,9 +99,15 @@ export function useTextView(source: TextSource & RenderingProps, settings: Frame
       box.current = { width, height };
       const known = current.current;
       // The delegates are asked again only when the width really changes a room.
-      if (known !== undefined && known.hasReplacements && width !== layoutWidth && rebuilds.current < MAX_WIDTH_REBUILDS && known.roomsDifferAt(width)) {
-        rebuilds.current++;
-        setLayoutWidth(width);
+      if (known !== undefined && known.hasReplacements && width !== layoutWidth && rebuilds.current < MAX_WIDTH_REBUILDS) {
+        try {
+          if (known.roomsDifferAt(width)) {
+            rebuilds.current++;
+            setLayoutWidth(width);
+          }
+        } catch (error) {
+          setFailure({ error });
+        }
       }
     },
     [layoutWidth],
@@ -117,5 +128,11 @@ export function useTextView(source: TextSource & RenderingProps, settings: Frame
     return frame.current.frame;
   }, [releaseFrame, settingsKey]);
 
-  return { typesetter: made, onLayout, getComposedFrame };
+  const getCodeUnitCount = useCallback(() => current.current?.typesetter.codeUnitCount ?? 0, []);
+
+  if (failure !== undefined) {
+    throw failure.error;
+  }
+
+  return { typesetter: made, onLayout, getComposedFrame, getCodeUnitCount };
 }

@@ -73,14 +73,10 @@ export class ViewTypesetter {
    * @param layoutWidth What the delegates of the replacements get as the layout width.
    * @returns `undefined` when there is nothing to show: a plain text without a typeface, as in the
    *   other wrappers (an attributed text has to give every range a typeface, or the call throws).
-   * @throws Error if Core refuses the typesetter, a given typesetter holds a replacement, or a
-   *   delegate throws (its error is rethrown).
+   * @throws Error if Core refuses the typesetter, or a delegate throws (its error is rethrown).
    */
   static create(source: TextSource & { readonly typeface?: Typeface; readonly textSize: number }, layoutWidth: number): ViewTypesetter | undefined {
     if (source.typesetter !== undefined) {
-      if (source.typesetter.hasReplacements) {
-        throw new Error("A typesetter with a replacement cannot be shown in a view: give the text as attributedText, and the view makes the replacements.");
-      }
       const id = getNativeBindings().registerTypesetter(source.typesetter.nativeHandle);
       if (id === 0) {
         throw new Error("Could not register the typesetter of a view.");

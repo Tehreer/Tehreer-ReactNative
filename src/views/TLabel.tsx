@@ -53,7 +53,8 @@ export interface TLabelHandle {
 }
 
 /**
- * A label that draws text with Tehreer. Core lays the text out natively in the measure function of
+ * A label that draws text with Tehreer. What the stroke or the shadow draws beyond the box of the
+ * label is clipped at its bounds (there is no padding to draw it in), so leave room with the style. Core lays the text out natively in the measure function of
  * the layout, so the label has its size on the first pass and no JavaScript is involved while it is
  * measured. The typeface, size, color, alignment, line limit and truncation are Core's settings of
  * the frame resolver, set as they are.

@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from 'react';
+import { Component, useEffect, useRef, useState } from 'react';
+import type { ReactNode } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { FontFile } from '../../src/graphics/FontFile';
 import type { Typeface } from '../../src/graphics/Typeface';
@@ -15,7 +16,6 @@ import type { TLabelHandle } from '../../src/views/TLabel';
 import { TTextView } from '../../src/views/TTextView';
 import type { TTextViewHandle } from '../../src/views/TTextView';
 import { getNativeBindings } from '../../src/internal/NativeBindings';
-import { ViewTypesetter } from '../../src/views/ViewTypesetter';
 import type { Rect } from '../../src/geometry';
 import { fontBytes, nastaliqFontBytes } from './fontData';
 import type { SuiteReport } from './runSuites';
@@ -192,6 +192,23 @@ function runWidth(frame: ComposedFrame, lineIndex: number): number {
   return width;
 }
 
+/** What an error boundary of an application is: it catches what a view throws while it renders. */
+class Catcher extends Component<{ children: ReactNode; onError: (error: unknown) => void }, { failed: boolean }> {
+  state = { failed: false };
+
+  static getDerivedStateFromError() {
+    return { failed: true };
+  }
+
+  componentDidCatch(error: unknown) {
+    this.props.onError(error);
+  }
+
+  render() {
+    return this.state.failed ? null : this.props.children;
+  }
+}
+
 export function LabelTestHost({ onDone }: { onDone: (report: SuiteReport) => void }) {
   const [setup, setSetup] = useState<Setup | undefined>();
   const [texts, setTexts] = useState<Record<string, TText>>({});
@@ -200,7 +217,11 @@ export function LabelTestHost({ onDone }: { onDone: (report: SuiteReport) => voi
   const [highlighted, setHighlighted] = useState(false);
   const [cycling, setCycling] = useState(false);
   const [rapid, setRapid] = useState(false);
+  const [rooms, setRooms] = useState(false);
+  const caught = useRef<unknown>(undefined);
   const [rapidText, setRapidText] = useState<TText | undefined>();
+  const [roomsText, setRoomsText] = useState<TText | undefined>();
+  const roomsHolder = useRef<TText | undefined>(undefined);
   const [tick, setTick] = useState(0);
   const [longText, setLongText] = useState<TText | undefined>();
   const [chipText, setChipText] = useState<TText | undefined>();
@@ -250,11 +271,19 @@ export function LabelTestHost({ onDone }: { onDone: (report: SuiteReport) => voi
     original.dispose();
     rapidHolder.current = many;
     setRapidText(many);
+    // A replacement whose delegate fails once it is asked for a width.
+    const failing = new Replacement({ computeRoom: (width) => { if (width > 0) { throw new Error('the width went wrong'); } return { ascent: 5, descent: 1, extent: 10 }; } });
+    const rooms = new TMutableText('ab \uFFFC cd');
+    rooms.setAttributes(3, 4, { replacement: failing });
+    failing.dispose();
+    roomsHolder.current = rooms;
+    setRoomsText(rooms);
     return () => {
       Object.values(built).forEach((text) => text.dispose());
       long.dispose();
       given.current?.dispose();
       rapidHolder.current?.dispose();
+      roomsHolder.current?.dispose();
     };
   }, []);
 
@@ -346,24 +375,6 @@ export function LabelTestHost({ onDone }: { onDone: (report: SuiteReport) => voi
         if (handles.current.noFace?.composedFrame !== undefined || (seen.current.noFace?.frames.length ?? 0) > 0) {
           failures.push('label/no typeface: a text without a typeface laid out');
         }
-        // A typesetter that holds a replacement is refused with a clear error.
-        total++;
-        {
-          const replaced = withChip(30)();
-          const face = setup.roboto;
-          const ts = new Typesetter(replaced, { typeface: face, typeSize: 14 });
-          try {
-            ViewTypesetter.create({ typesetter: ts, textSize: 14 }, 0)?.dispose();
-            failures.push('label/typesetter: a typesetter with a replacement was accepted');
-          } catch (e) {
-            if (!(e instanceof Error) || !/attributedText/.test(e.message)) {
-              failures.push(`label/typesetter: the error does not say what to do: ${String(e)}`);
-            }
-          } finally {
-            ts.dispose();
-            replaced.dispose();
-          }
-        }
         // Bad positions never reach a frame.
         let refused = false;
         try {
@@ -427,6 +438,14 @@ export function LabelTestHost({ onDone }: { onDone: (report: SuiteReport) => voi
         try { handle.scrollToCodeUnit(Number.NaN); } catch (e) { thrown = e instanceof RangeError; }
         ok(thrown, 'view/scroll: scrollToCodeUnit(NaN) is not a RangeError');
 
+        // The view starts at the top: no negative offset was reported (an inset would make one) and the
+        // first visible code unit is the first of the text.
+        ok(view.current.offsets.every((o) => o >= 0), `view/offset: the view reported ${view.current.offsets.find((o) => o < 0)}`);
+        ok(handle.firstVisibleCodeUnitIndex === 0, `view/firstVisible: ${handle.firstVisibleCodeUnitIndex} at the top`);
+        let beyond = false;
+        try { handle.scrollToCodeUnit(longText.length); } catch (e) { beyond = e instanceof RangeError; }
+        ok(beyond, 'view/scroll: scrollToCodeUnit past the end of the text is not a RangeError');
+
         // The text was laid out once; scrolling must not lay it out again.
         const framesBefore = view.current.frames;
         handle.scrollToOffset(1200);
@@ -452,9 +471,13 @@ export function LabelTestHost({ onDone }: { onDone: (report: SuiteReport) => voi
         // A request that came before the first frame was kept until there was one.
         ok(near(view.current.earlyOffset, 300, 1), `view/early: a scroll requested before the first frame went to ${view.current.earlyOffset}, not 300`);
 
-        // A new width does lay it out, once.
+        // A new width does lay it out, and then it is quiet: no layout follows another without a reason.
         setWidth(240);
-        ok(await waitFor(() => view.current.frames === framesBefore + 1), 'view/width: no new frame for a new width');
+        ok(await waitFor(() => view.current.frames > framesBefore), 'view/width: no new frame for a new width');
+        await sleep(700);
+        const settled = view.current.frames;
+        await sleep(700);
+        ok(view.current.frames === settled && settled - framesBefore <= 2, `view/width: ${settled - framesBefore} layouts for one change of width, and ${view.current.frames - settled} more afterwards`);
         const narrow = handle.composedFrame;
         ok(narrow !== undefined && narrow.lines.length > 200, 'view/width: the narrow frame has lines');
 
@@ -484,6 +507,13 @@ export function LabelTestHost({ onDone }: { onDone: (report: SuiteReport) => voi
           setRapid(false);
           await sleep(250);
         }
+        // A delegate that throws once the width is known (a later layout) is an error of the render, which
+        // a boundary catches, and not a fatal error of the app.
+        setRooms(true);
+        ok(await waitFor(() => caught.current !== undefined), 'rooms: the error of a delegate at a later layout never reached the error boundary');
+        ok(caught.current instanceof Error && /width went wrong/.test(caught.current.message), `rooms: ${String(caught.current)}`);
+        setRooms(false);
+
         // Everything is unmounted while it still shows its replacements.
         setStage('gone');
         if (baseline !== undefined) {
@@ -554,6 +584,11 @@ export function LabelTestHost({ onDone }: { onDone: (report: SuiteReport) => voi
           <TLabel testID="cycle-label" attributedText={chipText} typeface={setup.roboto} textSize={18} style={{ maxWidth: 200 }} />
           <TTextView testID="cycle-view" attributedText={chipText} typeface={setup.roboto} textSize={18} style={{ width: 200, height: 60 }} />
         </>
+      )}
+      {stage === 'cycle' && rooms && roomsText !== undefined && (
+        <Catcher onError={(error) => { caught.current = error; }}>
+          <TLabel testID="rooms-label" attributedText={roomsText} typeface={setup.roboto} textSize={18} style={{ maxWidth: 200 }} />
+        </Catcher>
       )}
       {stage === 'cycle' && rapid && rapidText !== undefined && (
         <TTextView testID="rapid-view" attributedText={rapidText} typeface={setup.roboto} textSize={16} style={{ width: 200, height: 100 }} />

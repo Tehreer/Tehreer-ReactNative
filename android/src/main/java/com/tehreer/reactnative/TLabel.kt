@@ -28,9 +28,16 @@ internal class TLabel(context: Context) : View(context) {
 
     /** How the text is drawn; see `Renderer.apply`. */
     fun setRendering(ints: IntArray, floats: FloatArray) {
+        // The manager hands the arrays over after every batch of props; most batches change nothing here.
+        if (ints.contentEquals(renderingInts) && floats.contentEquals(renderingFloats)) return
+        renderingInts = ints
+        renderingFloats = floats
         renderer.apply(ints, floats)
         invalidate()
     }
+
+    private var renderingInts = IntArray(0)
+    private var renderingFloats = FloatArray(0)
 
     /** Called with the line count, width and height of the frame, when the text has been laid out. */
     var onFrameReady: ((Int, Float, Float) -> Unit)? = null

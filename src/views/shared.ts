@@ -12,9 +12,11 @@ export type ColorValue = string | number;
 export interface TextSource {
   /**
    * A typesetter, which is preferred as it avoids making one; it stays owned by the caller, who keeps
-   * it alive while it is shown. It must hold no replacement (the view refuses one with an `Error`: a
-   * replacement of a view has to be made by the view from an `attributedText`, as the native side
-   * cannot call JavaScript). `typeface` and `textSize` are not used with it.
+   * it alive while it is shown. It must hold no replacement: the native side cannot call JavaScript,
+   * so a replacement of JavaScript in it gets a room of zero when the view lays the text out, and
+   * the view cannot tell (a typesetter does not say what it holds). Give a text with replacements as
+   * `attributedText`, and the view makes the replacements itself. `typeface` and `textSize` are not
+   * used with it.
    */
   readonly typesetter?: Typesetter;
   /** Plain text, which is shown in `typeface` at `textSize`. */
@@ -121,7 +123,13 @@ export function toNativeSettings(settings: FrameSettings): number[] {
   ];
 }
 
-/** The `highlights` prop of the native text view: `fromIndex`, `toIndex` and color of each range. */
+/**
+ * The `highlights` prop of the native text view: `fromIndex`, `toIndex` and color of each range.
+ *
+ * @throws RangeError if a range is not whole numbers from 0 with `fromIndex` not after `toIndex`. A
+ *   range that reaches past the end of the text is not an error, because the text of a render can be
+ *   the one before the text that the highlights were made for: Core covers nothing for it.
+ */
 export function toNativeHighlights(highlights: readonly TextHighlight[] | undefined, fallback: ColorValue | undefined): number[] {
   const flat: number[] = [];
   for (const range of highlights ?? []) {

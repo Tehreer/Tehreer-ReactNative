@@ -83,13 +83,17 @@ export function getLineTop(frame: ComposedFrame, index: number): number | undefi
   return getCaretPosition(frame, index)?.y;
 }
 
-/** The first code unit of the line at a vertical offset of the frame, or `undefined` when it has no lines. */
+/**
+ * The first code unit of the line at a vertical offset of the frame, or `undefined` when it has no
+ * lines. An offset above the text (a bounce) is the top: Core gives the last line for a y above the
+ * first, which is not what is in view.
+ */
 export function getCodeUnitAtOffset(frame: ComposedFrame, offset: number): number | undefined {
   const lines = frame.lines;
   if (lines.length === 0) {
     return undefined;
   }
-  const line = lines.get(frame.getLineIndexAtPosition(0, offset));
+  const line = lines.get(frame.getLineIndexAtPosition(0, Math.max(0, offset)));
   try {
     return line.startIndex;
   } finally {
@@ -113,11 +117,12 @@ export function checkScrollOffset(offset: number): number {
 /**
  * Checks the code unit index of a scroll request.
  *
- * @throws RangeError if the index is not a whole number that is not negative.
+ * @param length The number of code units of the text, when it is known: an index has to be inside it.
+ * @throws RangeError if the index is not a whole number from 0, or is not less than the length.
  */
-export function checkScrollCodeUnit(index: number): number {
-  if (!Number.isInteger(index) || index < 0) {
-    throw new RangeError(`The code unit index ${index} is not a whole number from 0.`);
+export function checkScrollCodeUnit(index: number, length?: number): number {
+  if (!Number.isInteger(index) || index < 0 || (length !== undefined && index >= length)) {
+    throw new RangeError(`The code unit index ${index} is not a whole number from 0 inside the text (${length ?? "unknown"} code units).`);
   }
   return index;
 }

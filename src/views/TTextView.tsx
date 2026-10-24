@@ -22,7 +22,9 @@ export interface TTextViewProps extends TextSource, RenderingProps, ParagraphPro
   readonly highlightColor?: ColorValue;
   /**
    * Ranges to cover with a color, behind the text, such as a selected verse. They only repaint: the
-   * text is not laid out again, so they can follow a finger.
+   * text is not laid out again, so they can follow a finger. A range that is not whole numbers from 0
+   * with `fromIndex` not after `toIndex` is a `RangeError`; one that reaches past the end of the text
+   * covers nothing, since the text may change in the same render.
    */
   readonly highlights?: readonly TextHighlight[];
   /** Whether the runs of the attributed text that have a `userData` are links. The default is `true`. */
@@ -75,7 +77,8 @@ export interface TTextViewHandle {
   /**
    * Scrolls the line of a code unit to the top of the view.
    *
-   * @throws RangeError if the index is not a whole number from 0.
+   * @throws RangeError if the index is not a whole number from 0 and less than the number of code units
+   *   of the text.
    */
   scrollToCodeUnit(index: number, smooth?: boolean): void;
   /**
@@ -96,6 +99,10 @@ export interface TTextViewHandle {
  *
  * Not mirrored from the other wrappers: the highlight of a pressed link and `onPressChange` /
  * `onHoverChange` of Web, and views in the text (a replacement is drawn from rectangles).
+ *
+ * A change of width keeps the pixel offset of the scroll, as a scroll view does, and not the line that
+ * was at the top (Tehreer-Android and Tehreer-Web keep an anchor for that; read
+ * `firstVisibleCodeUnitIndex` and `scrollToCodeUnit` to keep one yourself).
  */
 export const TTextView = forwardRef<TTextViewHandle, TTextViewProps>(function TTextView(props, ref) {
   const {
@@ -104,7 +111,7 @@ export const TTextView = forwardRef<TTextViewHandle, TTextViewProps>(function TT
   } = props;
   const renderer = toNativeRenderer(props);
   const settings = resolveFrameSettings(props);
-  const { typesetter, onLayout: onTextLayout, getComposedFrame } = useTextView(props, settings, true);
+  const { typesetter, onLayout: onTextLayout, getComposedFrame, getCodeUnitCount } = useTextView(props, settings, true);
   const links = useMemo(() => findLinks(attributedText), [attributedText]);
   const offset = useRef(0);
   const viewport = useRef(0);
@@ -154,9 +161,9 @@ export const TTextView = forwardRef<TTextViewHandle, TTextViewProps>(function TT
       const frame = getComposedFrame();
       return frame === undefined ? undefined : getCaretPosition(frame, index);
     },
-    scrollToCodeUnit: (index, smooth = false) => scrollToCodeUnit(checkScrollCodeUnit(index), smooth),
+    scrollToCodeUnit: (index, smooth = false) => scrollToCodeUnit(checkScrollCodeUnit(index, getCodeUnitCount()), smooth),
     scrollToOffset: (distance, smooth = false) => scrollToOffset(checkScrollOffset(distance), smooth),
-  }), [getComposedFrame, scrollToCodeUnit, scrollToOffset]);
+  }), [getComposedFrame, getCodeUnitCount, scrollToCodeUnit, scrollToOffset]);
 
   const handleLayout = useCallback((event: LayoutChangeEvent) => {
     viewport.current = event.nativeEvent.layout.height;
@@ -187,8 +194,9 @@ export const TTextView = forwardRef<TTextViewHandle, TTextViewProps>(function TT
   }, [getComposedFrame, onTap, isLinkInteractionEnabled, links, onLinkClick]);
 
   const handleScroll = useCallback((event: NativeSyntheticEvent<{ y: number }>) => {
-    offset.current = event.nativeEvent.y;
-    onScroll?.(event.nativeEvent.y);
+    // The text starts at 0; a bounce above it is still 0.
+    offset.current = Math.max(0, event.nativeEvent.y);
+    onScroll?.(offset.current);
   }, [onScroll]);
 
   if (typesetter === undefined) {

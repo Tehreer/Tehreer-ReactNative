@@ -31,6 +31,7 @@ internal class TextContainer(context: Context) : ViewGroup(context) {
 
     /** How the text is drawn, for every line view, those in the pool and those to come. */
     fun setRendering(ints: IntArray, floats: FloatArray) {
+        if (ints.contentEquals(rendererInts) && floats.contentEquals(rendererFloats)) return
         rendererInts = ints
         rendererFloats = floats
         attached.values.forEach { it.applyRendering(ints, floats) }
