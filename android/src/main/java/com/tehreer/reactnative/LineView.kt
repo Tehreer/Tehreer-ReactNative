@@ -39,11 +39,11 @@ internal class LineView(context: Context) : View(context) {
             }
         }
 
-    var textColor: Int
-        get() = renderer.foregroundColor
-        set(value) {
-            renderer.foregroundColor = value
-        }
+    /** Sets how the text is drawn; see `Renderer.apply`. */
+    fun applyRendering(ints: IntArray, floats: FloatArray) {
+        renderer.apply(ints, floats)
+        invalidate()
+    }
 
     var line: ComposedLine? = null
         set(value) {

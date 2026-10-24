@@ -2,13 +2,19 @@
 
 #include <Tehreer/Tehreer.h>
 
+#include "views/RendererSettings.h"
+
 #include <vector>
+
+namespace tehreer::ios {
 
 /** A rectangle of a highlight, in the coordinates of the text. */
 struct LineHighlight {
   TRRect rect;
   TRColor color;
 };
+
+} // namespace tehreer::ios
 
 /**
  * Draws one line of a text, as `LineView` of Tehreer-Cocoa does: the view is as big as the box of the
@@ -23,6 +29,7 @@ struct LineHighlight {
 @property (nonatomic) CGFloat layoutWidth;
 /** `0xAARRGGBB`; 0 for no separator. */
 @property (nonatomic) TRColor separatorColor;
-@property (nonatomic) TRColor textColor;
-- (void)setHighlights:(std::vector<LineHighlight>)highlights;
+/** How the text is drawn (color, style, stroke, shadow); see `RendererSettings`. */
+- (void)setRendering:(const tehreer::views::RendererSettings &)settings;
+- (void)setHighlights:(std::vector<tehreer::ios::LineHighlight>)highlights;
 @end

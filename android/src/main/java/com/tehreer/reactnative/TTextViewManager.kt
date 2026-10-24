@@ -12,6 +12,7 @@ internal class TTextViewManager : SimpleViewManager<TTextView>() {
     private val requestedOffset = HashMap<Int, Float>()
     private val appliedToken = HashMap<Int, Int>()
     private val requestedToken = HashMap<Int, Int>()
+    private val requestedAnimated = HashMap<Int, Boolean>()
 
     override fun getName(): String = NAME
 
@@ -35,8 +36,17 @@ internal class TTextViewManager : SimpleViewManager<TTextView>() {
     @ReactProp(name = "frameSettings")
     fun setFrameSettings(view: TTextView, settings: ReadableArray?) { view.frameSettings = TLabelManager.toFloats(settings) }
 
-    @ReactProp(name = "textColor", defaultInt = 0xFF000000.toInt())
-    fun setTextColor(view: TTextView, color: Int) { view.textColor = color }
+    private val renderInts = HashMap<Int, IntArray>()
+    private val renderFloats = HashMap<Int, FloatArray>()
+
+    @ReactProp(name = "rendererInts")
+    fun setRendererInts(view: TTextView, ints: ReadableArray?) { renderInts[view.id] = TLabelManager.toInts(ints) }
+
+    @ReactProp(name = "rendererFloats")
+    fun setRendererFloats(view: TTextView, floats: ReadableArray?) { renderFloats[view.id] = TLabelManager.toFloats(floats) }
+
+    @ReactProp(name = "scrollToAnimated", defaultBoolean = false)
+    fun setScrollToAnimated(view: TTextView, animated: Boolean) { requestedAnimated[view.id] = animated }
 
     @ReactProp(name = "separatorColor", defaultInt = 0)
     fun setSeparatorColor(view: TTextView, color: Int) { view.separatorColor = color }
@@ -54,11 +64,12 @@ internal class TTextViewManager : SimpleViewManager<TTextView>() {
 
     override fun onAfterUpdateTransaction(view: TTextView) {
         super.onAfterUpdateTransaction(view)
+        view.setRendering(renderInts[view.id] ?: IntArray(0), renderFloats[view.id] ?: FloatArray(0))
         view.update()
         val token = requestedToken[view.id] ?: 0
         if (token != 0 && token != appliedToken[view.id]) {
             appliedToken[view.id] = token
-            view.scrollToOffset(requestedOffset[view.id] ?: 0f)
+            view.scrollToOffset(requestedOffset[view.id] ?: 0f, requestedAnimated[view.id] ?: false)
         }
     }
 
@@ -66,6 +77,9 @@ internal class TTextViewManager : SimpleViewManager<TTextView>() {
 
     override fun onDropViewInstance(view: TTextView) {
         requestedOffset.remove(view.id)
+        requestedAnimated.remove(view.id)
+        renderInts.remove(view.id)
+        renderFloats.remove(view.id)
         requestedToken.remove(view.id)
         appliedToken.remove(view.id)
         view.release()

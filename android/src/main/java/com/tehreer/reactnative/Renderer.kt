@@ -10,11 +10,14 @@ internal class Renderer {
             nSetRenderScale(nativeRenderer, value)
         }
 
-    var foregroundColor: Int = 0xFF000000.toInt()
-        set(value) {
-            field = value
-            nSetForegroundColor(nativeRenderer, value)
-        }
+    /**
+     * Sets how the text is drawn, from the numbers of the `rendererInts` and `rendererFloats` props
+     * (the order of `RendererSettings` in `cpp/views/RendererSettings.h`): the foreground color, the
+     * draw style, the stroke and the shadow.
+     */
+    fun apply(ints: IntArray, floats: FloatArray) {
+        nApply(nativeRenderer, ints, floats)
+    }
 
     fun dispose() {
         nDispose(nativeRenderer)
@@ -28,6 +31,6 @@ internal class Renderer {
         @JvmStatic external fun nCreate(): Long
         @JvmStatic external fun nDispose(nativeRenderer: Long)
         @JvmStatic external fun nSetRenderScale(nativeRenderer: Long, renderScale: Float)
-        @JvmStatic external fun nSetForegroundColor(nativeRenderer: Long, color: Int)
+        @JvmStatic external fun nApply(nativeRenderer: Long, ints: IntArray, floats: FloatArray)
     }
 }

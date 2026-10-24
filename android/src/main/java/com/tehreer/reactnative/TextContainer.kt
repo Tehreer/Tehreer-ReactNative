@@ -26,11 +26,15 @@ internal class TextContainer(context: Context) : ViewGroup(context) {
     private var highlightRects = FloatArray(0)
     private var highlightColors = IntArray(0)
 
-    var textColor = 0xFF000000.toInt()
-        set(value) {
-            field = value
-            attached.values.forEach { it.textColor = value; it.invalidate() }
-        }
+    private var rendererInts = IntArray(0)
+    private var rendererFloats = FloatArray(0)
+
+    /** How the text is drawn, for every line view, those in the pool and those to come. */
+    fun setRendering(ints: IntArray, floats: FloatArray) {
+        rendererInts = ints
+        rendererFloats = floats
+        attached.values.forEach { it.applyRendering(ints, floats) }
+    }
 
     var separatorColor = 0
         set(value) {
@@ -91,7 +95,7 @@ internal class TextContainer(context: Context) : ViewGroup(context) {
         lineView.boxBottom = box[3]
         lineView.layoutWidth = frameWidth
         lineView.separatorColor = separatorColor
-        lineView.textColor = textColor
+        lineView.applyRendering(rendererInts, rendererFloats)
         lineView.highlightRects = highlightRects
         lineView.highlightColors = highlightColors
         lineView.line = line

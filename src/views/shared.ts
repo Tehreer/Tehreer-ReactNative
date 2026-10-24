@@ -1,13 +1,22 @@
 import { Color } from "../Color.js";
+import type { DrawStyle, StrokeCap, StrokeJoin } from "../graphics/enums.js";
 import type { Typeface } from "../graphics/Typeface.js";
 import { BreakMode, TextAlignment, TruncationPlace } from "../layout/enums.js";
+import type { Typesetter } from "../layout/Typesetter.js";
 import type { TText } from "../layout/TText.js";
 
 /** A color as `#rgb`, `#rrggbb` or `#aarrggbb` text (as `Color.parse()` reads it), or as an `0xAARRGGBB` number. */
 export type ColorValue = string | number;
 
-/** Where the text of a view comes from. An attributed text wins over a plain string. */
+/** Where the text of a view comes from. A typesetter wins over an attributed text, which wins over a plain string. */
 export interface TextSource {
+  /**
+   * A typesetter, which is preferred as it avoids making one; it stays owned by the caller, who keeps
+   * it alive while it is shown. It must hold no replacement (the view refuses one with an `Error`: a
+   * replacement of a view has to be made by the view from an `attributedText`, as the native side
+   * cannot call JavaScript). `typeface` and `textSize` are not used with it.
+   */
+  readonly typesetter?: Typesetter;
   /** Plain text, which is shown in `typeface` at `textSize`. */
   readonly text?: string;
   /**
@@ -29,6 +38,18 @@ export interface RenderingProps {
   readonly textSize?: number;
   /** The default color of text. The default is black. */
   readonly textColor?: ColorValue;
+  /** How the glyphs are drawn: filled, stroked, or both. Core's default is filled. */
+  readonly drawStyle?: DrawStyle;
+  readonly strokeColor?: ColorValue;
+  /** Half of the width of the stroke, in layout units. */
+  readonly strokeRadius?: number;
+  readonly strokeCap?: StrokeCap;
+  readonly strokeJoin?: StrokeJoin;
+  readonly strokeMiter?: number;
+  readonly shadowColor?: ColorValue;
+  readonly shadowRadius?: number;
+  readonly shadowDx?: number;
+  readonly shadowDy?: number;
 }
 
 /** The settings of the frame resolver that both views have, as in Tehreer-Android and Tehreer-Cocoa. */
@@ -110,4 +131,28 @@ export function toNativeHighlights(highlights: readonly TextHighlight[] | undefi
     flat.push(range.fromIndex, range.toIndex, toNativeColor(range.color ?? fallback, DEFAULT_HIGHLIGHT_COLOR));
   }
   return flat;
+}
+
+/**
+ * The `rendererInts` and `rendererFloats` props of the native views: what `RenderingProps` gives, as
+ * numbers in the order of `RendererSettings` in `cpp/views/RendererSettings.h`, where the mask says
+ * which of the optional ones were given (the others keep Core's defaults, as in Web's `createRenderer`).
+ */
+export function toNativeRenderer(props: RenderingProps): { ints: number[]; floats: number[] } {
+  const optional: (number | undefined)[] = [
+    props.drawStyle, props.strokeColor === undefined ? undefined : toColor(props.strokeColor), props.strokeCap, props.strokeJoin,
+    props.shadowColor === undefined ? undefined : toColor(props.shadowColor),
+    props.strokeRadius, props.strokeMiter, props.shadowRadius, props.shadowDx, props.shadowDy,
+  ];
+  let mask = 0;
+  optional.forEach((value, bit) => {
+    if (value !== undefined) {
+      mask |= 1 << bit;
+    }
+  });
+  const value = (index: number) => optional[index] ?? 0;
+  return {
+    ints: [mask, value(0) | 0, toNativeColor(props.textColor, 0xff000000), value(1) | 0, value(2) | 0, value(3) | 0, value(4) | 0],
+    floats: [value(5), value(6), value(7), value(8), value(9)],
+  };
 }

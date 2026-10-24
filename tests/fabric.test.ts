@@ -132,7 +132,8 @@ test("native holds nothing for the shadow thread but the id table and the holder
     const names = ["Typesetters.cpp", "ReplacementHolder.cpp", "TextLayout.cpp", "TTextView.mm", "TLabel.mm", "LineView.mm", "PaintCallbacks.cpp"];
     return names.filter((name) => existsSync(join(root, dir, name)) && /std::mutex|std::atomic|NSLock/.test(read(`${dir}/${name}`)));
   });
-  assert.deepEqual(mutexFiles.sort(), ["ReplacementHolder.cpp", "Typesetters.cpp"]);
+  // TTextView.mm: the generation that the layout queue reads to skip a layout that was replaced.
+  assert.deepEqual(mutexFiles.sort(), ["ReplacementHolder.cpp", "TTextView.mm", "Typesetters.cpp"]);
 });
 
 test("a text view keeps a view for each line in sight, found with Core's line locator", () => {

@@ -7,6 +7,7 @@ import { FrameResolver } from '../../src/layout/FrameResolver';
 import { Replacement } from '../../src/layout/Replacement';
 import { BreakMode, ReplacementKind, TextAlignment, TruncationPlace } from '../../src/layout/enums';
 import { TMutableText } from '../../src/layout/TMutableText';
+import { DrawStyle } from '../../src/graphics/enums';
 import { Typesetter } from '../../src/layout/Typesetter';
 import type { TText } from '../../src/layout/TText';
 import { TLabel } from '../../src/views/TLabel';
@@ -14,6 +15,7 @@ import type { TLabelHandle } from '../../src/views/TLabel';
 import { TTextView } from '../../src/views/TTextView';
 import type { TTextViewHandle } from '../../src/views/TTextView';
 import { getNativeBindings } from '../../src/internal/NativeBindings';
+import { ViewTypesetter } from '../../src/views/ViewTypesetter';
 import type { Rect } from '../../src/geometry';
 import { fontBytes, nastaliqFontBytes } from './fontData';
 import type { SuiteReport } from './runSuites';
@@ -48,6 +50,12 @@ interface LabelCase {
   attributed?: (setup: Setup) => TText;
   /** The room of the inline replacement in the text, to check its run. */
   replacementExtent?: number;
+  /** A text that has no code unit: no frame, and every query is empty. */
+  isEmpty?: boolean;
+  /** The view is given a typesetter of its own instead of the text. */
+  givesTypesetter?: boolean;
+  /** Stroke and shadow, which change how the text is drawn and not how it is laid out. */
+  isStyled?: boolean;
 }
 
 function mixed(setup: Setup): TText {
@@ -83,6 +91,10 @@ const labelCases: readonly LabelCase[] = [
   { name: 'truncate-middle', text: LATIN, face: 'roboto', size: 20, width: 100, maxLines: 1, truncate: TruncationPlace.Middle },
   { name: 'urdu-truncate', text: `${URDU} ${URDU} ${URDU}`, face: 'nastaliq', size: 26, width: 140, maxLines: 2, truncate: TruncationPlace.End },
   { name: 'replacement', attributed: withChip(40), face: 'roboto', size: 18, width: 160, replacementExtent: 40 },
+  { name: 'empty-text', text: '', face: 'roboto', size: 20, width: 100, isEmpty: true },
+  { name: 'emoji-mixed', text: 'abc \u{1F600} abc', face: 'roboto', size: 20, width: 60 },
+  { name: 'typesetter-prop', text: LATIN, face: 'roboto', size: 20, width: 120, givesTypesetter: true },
+  { name: 'stroke-shadow', text: LATIN, face: 'roboto', size: 20, width: 120, isStyled: true },
 ];
 
 interface Seen {
@@ -187,6 +199,8 @@ export function LabelTestHost({ onDone }: { onDone: (report: SuiteReport) => voi
   const [width, setWidth] = useState(300);
   const [highlighted, setHighlighted] = useState(false);
   const [cycling, setCycling] = useState(false);
+  const [rapid, setRapid] = useState(false);
+  const [rapidText, setRapidText] = useState<TText | undefined>();
   const [tick, setTick] = useState(0);
   const [longText, setLongText] = useState<TText | undefined>();
   const [chipText, setChipText] = useState<TText | undefined>();
@@ -196,6 +210,9 @@ export function LabelTestHost({ onDone }: { onDone: (report: SuiteReport) => voi
   const chipHandle = useRef<TTextViewHandle | null>(null);
   const view = useRef({ frames: 0, offsets: [] as number[], lastOffset: -1, chipFrames: 0, earlyOffset: -1, earlyFrames: 0 });
   const started = useRef(false);
+  // A typesetter that a label is given, which stays the caller's.
+  const given = useRef<Typesetter | undefined>(undefined);
+  const rapidHolder = useRef<TText | undefined>(undefined);
   // Counted before anything of this suite is registered.
   const baselineRef = useRef<{ typesetters: number; replacements: number } | undefined>(undefined);
 
@@ -217,13 +234,27 @@ export function LabelTestHost({ onDone }: { onDone: (report: SuiteReport) => voi
       long.append(`${lead}${URDU}\n`);
       long.setAttributes(at + lead.length, at + lead.length + URDU.length, { typeface: made.nastaliq, typeSize: 20 });
     }
+    given.current = new Typesetter(LATIN, { typeface: made.roboto, typeSize: 20 });
     setSetup(made);
     setTexts(built);
     setLongText(long);
     setChipText(withChip(36)());
+    // A long text with a replacement in every paragraph, to be unmounted while it is still being laid out.
+    const many = new TMutableText('');
+    const original = new Replacement({ computeRoom: () => ({ ascent: 12, descent: 3, extent: 20 }), draw: (context) => context.fillRect({ x: 0, y: -12, width: 20, height: 15 }, 0xff2255cc) });
+    for (let index = 0; index < 400; index++) {
+      const at = many.length;
+      many.append(`${LATIN} \uFFFC ${LATIN}\n`);
+      many.setAttributes(at + LATIN.length + 1, at + LATIN.length + 2, { replacement: original });
+    }
+    original.dispose();
+    rapidHolder.current = many;
+    setRapidText(many);
     return () => {
       Object.values(built).forEach((text) => text.dispose());
       long.dispose();
+      given.current?.dispose();
+      rapidHolder.current?.dispose();
     };
   }, []);
 
@@ -253,11 +284,17 @@ export function LabelTestHost({ onDone }: { onDone: (report: SuiteReport) => voi
 
     (async () => {
       // Labels: wait until every one has its layout and its first frame.
-      ok(await waitFor(() => labelCases.every((c) => (seen.current[c.name]?.frames.length ?? 0) > 0)), 'labels: not every label laid its text out');
+      ok(await waitFor(() => labelCases.every((c) => c.isEmpty === true ? seen.current[c.name]?.layout !== undefined : (seen.current[c.name]?.frames.length ?? 0) > 0)), 'labels: not every label laid its text out');
 
       for (const testCase of labelCases) {
         const entry = seen.current[testCase.name];
         const handle = handles.current[testCase.name];
+        if (testCase.isEmpty === true) {
+          // Core makes no frame of an empty range, so there is none, and nothing throws.
+          ok(entry?.layout !== undefined && entry.layout.height === 0 && entry.frames.length === 0, `${testCase.name}: an empty text is zero high and reports no frame`);
+          ok(handle?.composedFrame === undefined && handle?.indexOfCodeUnit(1, 1) === undefined && handle?.getSelectionRects(0, 0).length === 0, `${testCase.name}: the queries of an empty text are empty`);
+          continue;
+        }
         if (entry?.layout === undefined || entry.frames.length === 0 || handle === null || handle === undefined) {
           ok(false, `${testCase.name}: no layout or frame`);
           continue;
@@ -304,6 +341,29 @@ export function LabelTestHost({ onDone }: { onDone: (report: SuiteReport) => voi
       }
     })()
       .then(async () => {
+        // A plain text without a typeface shows nothing, as in the other wrappers, and queries are empty.
+        total++;
+        if (handles.current.noFace?.composedFrame !== undefined || (seen.current.noFace?.frames.length ?? 0) > 0) {
+          failures.push('label/no typeface: a text without a typeface laid out');
+        }
+        // A typesetter that holds a replacement is refused with a clear error.
+        total++;
+        {
+          const replaced = withChip(30)();
+          const face = setup.roboto;
+          const ts = new Typesetter(replaced, { typeface: face, typeSize: 14 });
+          try {
+            ViewTypesetter.create({ typesetter: ts, textSize: 14 }, 0)?.dispose();
+            failures.push('label/typesetter: a typesetter with a replacement was accepted');
+          } catch (e) {
+            if (!(e instanceof Error) || !/attributedText/.test(e.message)) {
+              failures.push(`label/typesetter: the error does not say what to do: ${String(e)}`);
+            }
+          } finally {
+            ts.dispose();
+            replaced.dispose();
+          }
+        }
         // Bad positions never reach a frame.
         let refused = false;
         try {
@@ -414,6 +474,16 @@ export function LabelTestHost({ onDone }: { onDone: (report: SuiteReport) => voi
           setCycling(false);
           await sleep(300);
         }
+        // A long text is unmounted again while its layout is still on the layout thread: that layout
+        // must free what it made, and the replacements of the text, though the view is gone.
+        // The view is shown for different times, so that some are gone before the layout starts, some while
+        // it runs and some after it ended.
+        for (const shown of [10, 30, 60, 90, 120, 160, 220, 300, 60, 90, 120, 160]) {
+          setRapid(true);
+          await sleep(shown);
+          setRapid(false);
+          await sleep(250);
+        }
         // Everything is unmounted while it still shows its replacements.
         setStage('gone');
         if (baseline !== undefined) {
@@ -448,11 +518,19 @@ export function LabelTestHost({ onDone }: { onDone: (report: SuiteReport) => voi
             key={testCase.name}
             testID={`label-${testCase.name}`}
             ref={(handle) => { handles.current[testCase.name] = handle; }}
-            text={testCase.text}
+            text={testCase.givesTypesetter === true ? undefined : testCase.text}
             attributedText={texts[testCase.name]}
             typeface={testCase.face === 'roboto' ? setup.roboto : setup.nastaliq}
             textSize={testCase.size}
             textColor={testCase.color}
+            typesetter={testCase.givesTypesetter === true ? given.current : undefined}
+            drawStyle={testCase.isStyled === true ? DrawStyle.FillStroke : undefined}
+            strokeColor={testCase.isStyled === true ? '#cc2200' : undefined}
+            strokeRadius={testCase.isStyled === true ? 1 : undefined}
+            shadowColor={testCase.isStyled === true ? '#66000000' : undefined}
+            shadowRadius={testCase.isStyled === true ? 2 : undefined}
+            shadowDx={testCase.isStyled === true ? 2 : undefined}
+            shadowDy={testCase.isStyled === true ? 2 : undefined}
             textAlignment={testCase.align}
             maxLines={testCase.maxLines}
             isTruncationEnabled={testCase.truncate !== undefined}
@@ -467,11 +545,18 @@ export function LabelTestHost({ onDone }: { onDone: (report: SuiteReport) => voi
             }}
           />
         ))}
+      {stage === 'labels' && (
+        <TLabel testID="label-no-typeface" ref={(handle) => { handles.current.noFace = handle; }} text="abc" textSize={20}
+          onFrameReady={(e) => { (seen.current.noFace ??= { frames: [] }).frames.push({ ...e }); }} />
+      )}
       {stage === 'cycle' && cycling && (
         <>
           <TLabel testID="cycle-label" attributedText={chipText} typeface={setup.roboto} textSize={18} style={{ maxWidth: 200 }} />
           <TTextView testID="cycle-view" attributedText={chipText} typeface={setup.roboto} textSize={18} style={{ width: 200, height: 60 }} />
         </>
+      )}
+      {stage === 'cycle' && rapid && rapidText !== undefined && (
+        <TTextView testID="rapid-view" attributedText={rapidText} typeface={setup.roboto} textSize={16} style={{ width: 200, height: 100 }} />
       )}
       {stage === 'views' && (
         <>

@@ -165,6 +165,9 @@ function fake(): Record<string, unknown> {
       return view.memory;
     },
     TRTextCreate: (units: Uint16Array | undefined, length: number) => handleOf(core("text", { length })),
+    // A typesetter looks at the runs of its text for replacements; these texts have no attributes.
+    TRTextGetLength: (handle: FakeHandle) => handle.core.data.length,
+    TRTextCopyAttributes: () => ({ result: undefined, outLength: 0 }),
     TRFontFeaturesCreate: () => handleOf(core("features")),
     TRRendererCreate: () => handleOf(core("renderer")),
     TRRendererRetain: retainer(),

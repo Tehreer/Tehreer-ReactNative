@@ -30,7 +30,9 @@ std::int32_t Typesetters::Register(TRTypesetterRef typesetter) {
         do {
             table.last = table.last >= std::numeric_limits<std::int32_t>::max() ? 1 : table.last + 1;
         } while (table.typesetters.count(table.last) != 0);
-        table.typesetters.emplace(table.last, TRTypesetterRetain(typesetter));
+        // Retained once it is in the table, so that a failure to grow it leaves no reference behind.
+        table.typesetters.emplace(table.last, typesetter);
+        TRTypesetterRetain(typesetter);
     } catch (const std::bad_alloc &) {
         return 0;
     }

@@ -57,8 +57,8 @@ TRComposedFrameRef ComposeFrame(TRTypesetterRef typesetter, float width, float h
                                 bool isScrollable, bool isMeasuring);
 
 /**
- * The size of the frame for the largest size Yoga allows, which is what the shadow node returns.
- * Zero by zero when there is no typesetter or no text.
+ * The size of the frame for the largest size Yoga allows, which is what the shadow node returns for
+ * a label. Zero by zero when there is no typesetter or no text.
  */
 TRSize MeasureText(TRTypesetterRef typesetter, float maxWidth, float maxHeight, const FrameSettings &settings, bool isScrollable);
 

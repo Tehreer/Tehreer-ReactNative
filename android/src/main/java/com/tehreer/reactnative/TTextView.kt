@@ -2,9 +2,12 @@ package com.tehreer.reactnative
 
 import android.content.Context
 import android.graphics.Canvas
+import android.os.Handler
+import android.os.Looper
 import android.view.GestureDetector
 import android.view.MotionEvent
 import android.widget.ScrollView
+import kotlin.jvm.Volatile
 
 /**
  * The native view of the `TTextView` component, as the text view of Tehreer-Android: a scroll view
@@ -14,12 +17,14 @@ import android.widget.ScrollView
 internal class TTextView(context: Context) : ScrollView(context) {
     private val density = resources.displayMetrics.density
     private val container = TextContainer(context)
+    private val mainHandler = Handler(Looper.getMainLooper())
 
     private var typesetter: Typesetter? = null
     private var typesetterId = 0
 
-    // A layout that is still running is told apart from an older one by its generation.
-    private var generation = 0
+    // A layout that is still running is told apart from an older one by its generation, which the layout
+    // thread reads (to skip one that was replaced while it waited), hence volatile.
+    @Volatile private var generation = 0
     private var laidOutWidth = 0.0f
     private var needsLayout = false
 
@@ -32,9 +37,10 @@ internal class TTextView(context: Context) : ScrollView(context) {
             }
         }
 
-    var textColor: Int
-        get() = container.textColor
-        set(value) { container.textColor = value }
+    /** How the text is drawn; see `Renderer.apply`. */
+    fun setRendering(ints: IntArray, floats: FloatArray) {
+        container.setRendering(ints, floats)
+    }
 
     var separatorColor: Int
         get() = container.separatorColor
@@ -83,8 +89,8 @@ internal class TTextView(context: Context) : ScrollView(context) {
     }
 
     /** Goes to an offset in layout units, which JavaScript has made a finite number inside the text. */
-    fun scrollToOffset(offset: Float) {
-        scrollTo(0, (offset * density).toInt())
+    fun scrollToOffset(offset: Float, animated: Boolean) {
+        if (animated) smoothScrollTo(0, (offset * density).toInt()) else scrollTo(0, (offset * density).toInt())
     }
 
     /** Applies what the props changed: one layout, once the whole batch has arrived. */
@@ -110,6 +116,11 @@ internal class TTextView(context: Context) : ScrollView(context) {
         val settings = frameSettings
         val expected = generation
         TextLayoutTasks.execute {
+            // A layout that was asked for and replaced while it waited in the queue is not made.
+            if (expected != generation) {
+                typesetter.dispose()
+                return@execute
+            }
             val frame = ComposedFrame.create(typesetter, width, 0.0f, settings, true)
             // The ink boxes are measured by a renderer of its own: a renderer is used by one thread at a time.
             val renderer = Renderer()
@@ -118,7 +129,9 @@ internal class TTextView(context: Context) : ScrollView(context) {
             renderer.dispose()
             typesetter.dispose()
 
-            post {
+            // Posted to the main looper and not to the view: a view that was dropped is never attached
+            // again, and a message posted to it never runs, which would leave the frame to leak.
+            mainHandler.post {
                 if (expected != generation) {
                     locator?.dispose()
                     frame?.dispose()

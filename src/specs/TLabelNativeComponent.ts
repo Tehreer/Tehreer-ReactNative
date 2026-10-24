@@ -30,8 +30,9 @@ export interface NativeProps extends ViewProps {
   typesetterId?: CodegenTypes.WithDefault<CodegenTypes.Int32, 0>;
   /** The settings of the frame resolver, in the order of `FrameSettings` in `cpp/views/TextLayout.h`. */
   frameSettings?: ReadonlyArray<CodegenTypes.Float>;
-  /** The foreground color, `0xAARRGGBB` as a signed 32-bit number. */
-  textColor?: CodegenTypes.WithDefault<CodegenTypes.Int32, -16777216>;
+  /** How the text is drawn, as numbers in the order of `RendererSettings` in `cpp/views/RendererSettings.h`. */
+  rendererInts?: ReadonlyArray<CodegenTypes.Int32>;
+  rendererFloats?: ReadonlyArray<CodegenTypes.Float>;
   onFrameReady?: CodegenTypes.DirectEventHandler<FrameReadyEvent>;
   onTextTap?: CodegenTypes.DirectEventHandler<TapEvent>;
 }

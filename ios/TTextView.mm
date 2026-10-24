@@ -3,10 +3,12 @@
 #import "LineView.h"
 #import "painter/PaintCallbacks.h"
 #import "views/ComponentDescriptors.h"
+#import "views/RendererSettings.h"
 #import "views/TextLayout.h"
 #import "views/Typesetters.h"
 
 #include <algorithm>
+#include <atomic>
 #include <cmath>
 #include <vector>
 
@@ -35,21 +37,22 @@ void CollectRect(void *userData, TRRect rect, TRBoolean *)
   TRTypesetterRef _typesetter;
   int _typesetterId;
   FrameSettings _settings;
-  TRColor _textColor;
+  RendererSettings _rendering;
   TRColor _separatorColor;
   std::vector<int> _highlights;
-  int _scrollToToken;
 
   // What the layout made, for the width of the view. A layout that is still running is told apart
   // from an older one by its generation.
   TRComposedFrameRef _frame;
   TRLineLocatorRef _locator;
   CGFloat _frameWidth;
-  NSUInteger _generation;
+  // Read by the layout queue to skip a layout that was replaced while it waited, so atomic (the only
+  // field that two threads share).
+  std::atomic<NSUInteger> _generation;
 
   NSMutableDictionary<NSNumber *, LineView *> *_attached;
   NSMutableArray<LineView *> *_pool;
-  std::vector<LineHighlight> _highlightRects;
+  std::vector<tehreer::ios::LineHighlight> _highlightRects;
 }
 
 + (ComponentDescriptorProvider)componentDescriptorProvider
@@ -62,7 +65,6 @@ void CollectRect(void *userData, TRRect rect, TRBoolean *)
   if (self = [super initWithFrame:frame]) {
     static const auto defaultProps = std::make_shared<const TTextViewProps>();
     _props = defaultProps;
-    _textColor = 0xFF000000;
 
     _scrollView = [[UIScrollView alloc] initWithFrame:self.bounds];
     _scrollView.delegate = self;
@@ -128,7 +130,8 @@ void CollectRect(void *userData, TRRect rect, TRBoolean *)
     _typesetter = Typesetters::Retain(_typesetterId);
   }
   _settings = settings;
-  _textColor = static_cast<TRColor>(next.textColor);
+  const bool renderingChanged = !previous || next.rendererInts != previous->rendererInts || next.rendererFloats != previous->rendererFloats;
+  _rendering = RendererSettings::From(next.rendererInts.data(), next.rendererInts.size(), next.rendererFloats.data(), next.rendererFloats.size());
   _separatorColor = static_cast<TRColor>(next.separatorColor);
   _highlights = next.highlights;
 
@@ -138,10 +141,15 @@ void CollectRect(void *userData, TRRect rect, TRBoolean *)
     [self updateHighlights];
     [self layoutLines];
   }
+  if (renderingChanged) {
+    for (LineView *lineView in _attached.allValues) {
+      [lineView setRendering:_rendering];
+    }
+  }
 
   // JavaScript has made the offset a finite number inside the text; a new token asks to go there.
   if (previous && next.scrollToToken != previous->scrollToToken && std::isfinite(next.scrollToOffset)) {
-    [_scrollView setContentOffset:CGPointMake(0, next.scrollToOffset) animated:NO];
+    [_scrollView setContentOffset:CGPointMake(0, next.scrollToOffset) animated:next.scrollToAnimated];
   }
 }
 
@@ -161,11 +169,16 @@ void CollectRect(void *userData, TRRect rect, TRBoolean *)
 - (void)startLayout
 {
   const CGFloat width = self.bounds.size.width;
-  _generation++;
   if (_typesetter == nullptr || width <= 0) {
-    [self releaseLayout];
+    // Nothing to lay out, and nothing shown that would have to go (this runs for every change of the
+    // layout metrics, also while the width is still 0).
+    if (_frame != nullptr || _generation != 0) {
+      _generation++;
+      [self releaseLayout];
+    }
     return;
   }
+  _generation++;
 
   const NSUInteger generation = _generation;
   TRTypesetterRef typesetter = TRTypesetterRetain(_typesetter);
@@ -173,6 +186,12 @@ void CollectRect(void *userData, TRRect rect, TRBoolean *)
   const float scale = UIScreen.mainScreen.scale;
   __weak TTextView *weakSelf = self;
   dispatch_async(dispatch_get_global_queue(QOS_CLASS_USER_INITIATED, 0), ^{
+    // A layout that was replaced while it waited in the queue is not made.
+    TTextView *early = weakSelf;
+    if (early == nil || early->_generation != generation) {
+      TRTypesetterRelease(typesetter);
+      return;
+    }
     TRComposedFrameRef frame = ComposeFrame(typesetter, width, 0, settings, true, false);
     TRLineLocatorRef locator = nullptr;
     if (frame != nullptr) {
@@ -238,7 +257,7 @@ void CollectRect(void *userData, TRRect rect, TRBoolean *)
   for (LineView *lineView in _attached.allValues) {
     [lineView setHighlights:_highlightRects];
     lineView.separatorColor = _separatorColor;
-    lineView.textColor = _textColor;
+    [lineView setRendering:_rendering];
   }
 }
 
@@ -282,7 +301,7 @@ void CollectRect(void *userData, TRRect rect, TRBoolean *)
     [_pool removeLastObject];
     lineView.layoutWidth = _frameWidth;
     lineView.separatorColor = _separatorColor;
-    lineView.textColor = _textColor;
+    [lineView setRendering:_rendering];
     lineView.frame = CGRectMake(box.origin.x, box.origin.y, box.size.width, box.size.height);
     [lineView setHighlights:_highlightRects];
     lineView.line = line;

@@ -9,6 +9,7 @@ import { Replacement } from '../../src/layout/Replacement';
 import { TLabel } from '../../src/views/TLabel';
 import { TTextView } from '../../src/views/TTextView';
 import { TMutableText } from '../../src/layout/TMutableText';
+import { DrawStyle } from '../../src/graphics/enums';
 import { TextAlignment, TruncationPlace } from '../../src/layout/enums';
 import { encodePng, toBase64 } from '../../tests/device/png';
 import { buildScene, findClippedScene, loadFaces, scenes } from './paintFixtures';
@@ -126,6 +127,7 @@ export function VisualCheck({ onClose }: { onClose: () => void }) {
           <TLabel attributedText={samples.mixed} typeface={faces.roboto} textSize={22} style={[styles.view, { maxWidth: 300 }]} />
           <TLabel text="abc abc abc abc abc abc abc" typeface={faces.roboto} textSize={22} textAlignment={TextAlignment.Right} style={[styles.view, { minWidth: 300, maxWidth: 300 }]} />
           <TLabel text="abc abc abc abc abc abc abc abc abc abc" typeface={faces.roboto} textSize={22} maxLines={2} isTruncationEnabled truncationPlace={TruncationPlace.End} style={[styles.view, { maxWidth: 220 }]} />
+          <TLabel text="abc abc" typeface={faces.roboto} textSize={40} textColor="#2255cc" drawStyle={DrawStyle.FillStroke} strokeColor="#cc2200" strokeRadius={1.5} shadowColor="#88000000" shadowRadius={3} shadowDx={4} shadowDy={4} style={[styles.view, { maxWidth: 300 }]} />
           <TLabel attributedText={samples.inline} typeface={faces.roboto} textSize={20} style={[styles.view, { maxWidth: 300 }]} />
         </View>
         <Text style={styles.caption}>TTextView (line views, highlight 10..60, separators)</Text>

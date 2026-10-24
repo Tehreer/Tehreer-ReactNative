@@ -58,19 +58,38 @@ export class ViewTypesetter {
   /** For the frames that JavaScript makes of its own (hit testing, selection rectangles). */
   readonly typesetter: Typesetter;
   private readonly _ranges: readonly ReplacedRange[];
+  /** Whether the typesetter was made here, and so is disposed here; one that the caller gave is theirs. */
+  private readonly _ownsTypesetter: boolean;
   private _isDisposed = false;
 
-  private constructor(id: number, typesetter: Typesetter, ranges: readonly ReplacedRange[]) {
+  private constructor(id: number, typesetter: Typesetter, ranges: readonly ReplacedRange[], ownsTypesetter: boolean) {
     this.id = id;
     this.typesetter = typesetter;
     this._ranges = ranges;
+    this._ownsTypesetter = ownsTypesetter;
   }
 
   /**
    * @param layoutWidth What the delegates of the replacements get as the layout width.
-   * @throws Error if Core refuses the typesetter, or a delegate throws (its error is rethrown).
+   * @returns `undefined` when there is nothing to show: a plain text without a typeface, as in the
+   *   other wrappers (an attributed text has to give every range a typeface, or the call throws).
+   * @throws Error if Core refuses the typesetter, a given typesetter holds a replacement, or a
+   *   delegate throws (its error is rethrown).
    */
-  static create(source: TextSource & { readonly typeface?: Typeface; readonly textSize: number }, layoutWidth: number): ViewTypesetter {
+  static create(source: TextSource & { readonly typeface?: Typeface; readonly textSize: number }, layoutWidth: number): ViewTypesetter | undefined {
+    if (source.typesetter !== undefined) {
+      if (source.typesetter.hasReplacements) {
+        throw new Error("A typesetter with a replacement cannot be shown in a view: give the text as attributedText, and the view makes the replacements.");
+      }
+      const id = getNativeBindings().registerTypesetter(source.typesetter.nativeHandle);
+      if (id === 0) {
+        throw new Error("Could not register the typesetter of a view.");
+      }
+      return new ViewTypesetter(id, source.typesetter, [], false);
+    }
+    if (source.attributedText === undefined && source.typeface === undefined) {
+      return undefined;
+    }
     const original = source.attributedText ?? new TText(source.text ?? "");
     const ownsOriginal = source.attributedText === undefined;
     const replaced: ReplacedRange[] = [];
@@ -113,7 +132,7 @@ export class ViewTypesetter {
       if (id === 0) {
         throw new Error("Could not register the typesetter of a view.");
       }
-      const made = new ViewTypesetter(id, typesetter, replaced.splice(0));
+      const made = new ViewTypesetter(id, typesetter, replaced.splice(0), true);
       typesetter = undefined;
       return made;
     } catch (error) {
@@ -150,7 +169,9 @@ export class ViewTypesetter {
     }
     this._isDisposed = true;
     getNativeBindings().unregisterTypesetter(this.id);
-    this.typesetter.dispose();
+    if (this._ownsTypesetter) {
+      this.typesetter.dispose();
+    }
     for (const range of this._ranges) {
       range.source.dispose();
     }

@@ -32,11 +32,13 @@ export function useTextView(source: TextSource & RenderingProps, settings: Frame
   /** The frame of the view at the size of its last layout, made when asked for; the view owns it. */
   getComposedFrame: () => ComposedFrame | undefined;
 } {
-  const { text, attributedText, typeface, textSize = DEFAULT_TEXT_SIZE } = source;
+  const { text, attributedText, typesetter, typeface, textSize = DEFAULT_TEXT_SIZE } = source;
   const [layoutWidth, setLayoutWidth] = useState(0);
   const [made, setMade] = useState<ViewTypesetter | undefined>();
   const current = useRef<ViewTypesetter | undefined>(undefined);
   const rebuilds = useRef(0);
+  // What the commit of this view has adopted: the cleanup of a layout effect that was not committed disposes its own.
+  const adopted = useRef(new WeakSet<ViewTypesetter>()).current;
   const box = useRef({ width: 0, height: 0 });
   const frame = useRef<{ key: string; frame: ComposedFrame } | undefined>(undefined);
   const settingsKey = JSON.stringify(settings);
@@ -48,15 +50,33 @@ export function useTextView(source: TextSource & RenderingProps, settings: Frame
     frame.current = undefined;
   }, []);
 
+  // Rooms that depend on the width get their three tries again for another text.
+  useLayoutEffect(() => {
+    rebuilds.current = 0;
+  }, [text, attributedText, typesetter, typeface, textSize]);
+
   useLayoutEffect(() => {
     // A throw below must not leave a typesetter that was already disposed as the current one.
     current.current = undefined;
-    const created = ViewTypesetter.create({ text, attributedText, typeface, textSize }, layoutWidth);
+    const created = ViewTypesetter.create({ text, attributedText, typesetter, typeface, textSize }, layoutWidth);
     current.current = created;
     setMade(created);
-  }, [text, attributedText, typeface, textSize, layoutWidth]);
+    return () => {
+      // An effect that React runs and undoes before it commits (StrictMode does) must not leave what it
+      // made: one that never became the state of the view is released here, the others by the effect below.
+      if (created !== undefined && !adopted.has(created)) {
+        created.dispose();
+        if (current.current === created) {
+          current.current = undefined;
+        }
+      }
+    };
+  }, [text, attributedText, typesetter, typeface, textSize, layoutWidth]);
 
   useEffect(() => {
+    if (made !== undefined) {
+      adopted.add(made);
+    }
     return () => {
       if (made !== undefined) {
         releaseFrame();
@@ -85,7 +105,8 @@ export function useTextView(source: TextSource & RenderingProps, settings: Frame
   const getComposedFrame = useCallback(() => {
     const known = current.current;
     const { width, height } = box.current;
-    if (known === undefined || width <= 0) {
+    // A text without code units has no frame: Core makes none of an empty range.
+    if (known === undefined || width <= 0 || known.typesetter.codeUnitCount === 0) {
       return undefined;
     }
     const key = `${known.id}:${width}:${height}:${settingsKey}`;

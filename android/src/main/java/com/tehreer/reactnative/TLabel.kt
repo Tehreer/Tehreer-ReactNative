@@ -26,12 +26,11 @@ internal class TLabel(context: Context) : View(context) {
             releaseFrame()
         }
 
-    var textColor: Int
-        get() = renderer.foregroundColor
-        set(value) {
-            renderer.foregroundColor = value
-            invalidate()
-        }
+    /** How the text is drawn; see `Renderer.apply`. */
+    fun setRendering(ints: IntArray, floats: FloatArray) {
+        renderer.apply(ints, floats)
+        invalidate()
+    }
 
     /** Called with the line count, width and height of the frame, when the text has been laid out. */
     var onFrameReady: ((Int, Float, Float) -> Unit)? = null

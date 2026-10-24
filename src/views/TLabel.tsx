@@ -5,7 +5,7 @@ import type { Rect } from "../geometry.js";
 import type { ComposedFrame } from "../layout/ComposedFrame.js";
 import type { BreakMode, TruncationPlace } from "../layout/enums.js";
 import { indexOfCodeUnit } from "./FrameQueries.js";
-import { resolveFrameSettings, toNativeColor, toNativeSettings } from "./shared.js";
+import { resolveFrameSettings, toNativeRenderer, toNativeSettings } from "./shared.js";
 import type { ParagraphProps, RenderingProps, TextSource } from "./shared.js";
 import { useTextView } from "./useTextView.js";
 
@@ -58,11 +58,13 @@ export interface TLabelHandle {
  * measured. The typeface, size, color, alignment, line limit and truncation are Core's settings of
  * the frame resolver, set as they are.
  *
- * Not mirrored from the other wrappers: `typesetter`, `verticalAlignment`, and the stroke and shadow
- * settings of the renderer.
+ * Not mirrored from the other wrappers: `verticalAlignment` (Web), `highlights` and `highlightColor`
+ * (a label has no line views to paint them in, and Tehreer-Android and Tehreer-Cocoa have none
+ * either), `onPressChange` and `onHoverChange`.
  */
 export const TLabel = forwardRef<TLabelHandle, TLabelProps>(function TLabel(props, ref) {
-  const { textColor, style, testID, onTap, onFrameReady, onLayout: onLayoutProp } = props;
+  const { style, testID, onTap, onFrameReady, onLayout: onLayoutProp } = props;
+  const renderer = toNativeRenderer(props);
   const settings = resolveFrameSettings({ ...props, maxLines: props.maxLines });
   const { typesetter, onLayout: onTextLayout, getComposedFrame } = useTextView(props, settings, false);
 
@@ -103,7 +105,8 @@ export const TLabel = forwardRef<TLabelHandle, TLabelProps>(function TLabel(prop
       style={style}
       typesetterId={typesetter.id}
       frameSettings={toNativeSettings(settings)}
-      textColor={toNativeColor(textColor, 0xff000000)}
+      rendererInts={renderer.ints}
+      rendererFloats={renderer.floats}
       onLayout={handleLayout}
       onFrameReady={onFrameReady === undefined ? undefined : handleFrameReady}
       onTextTap={onTap === undefined ? undefined : handleTap}

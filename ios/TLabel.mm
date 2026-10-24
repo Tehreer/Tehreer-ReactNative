@@ -3,6 +3,7 @@
 #import "TehreerCoreGraphicsPainter.h"
 #import "painter/PaintCallbacks.h"
 #import "views/ComponentDescriptors.h"
+#import "views/RendererSettings.h"
 #import "views/TextLayout.h"
 #import "views/Typesetters.h"
 
@@ -14,7 +15,7 @@ using namespace tehreer::views;
   TRComposedFrameRef _frame;
   TRRendererRef _renderer;
   FrameSettings _settings;
-  TRColor _textColor;
+  RendererSettings _rendering;
   int _typesetterId;
 }
 
@@ -29,7 +30,6 @@ using namespace tehreer::views;
     static const auto defaultProps = std::make_shared<const TLabelProps>();
     _props = defaultProps;
     _renderer = TRRendererCreate();
-    _textColor = 0xFF000000;
 
     self.opaque = NO;
     self.clipsToBounds = YES;
@@ -76,7 +76,7 @@ using namespace tehreer::views;
     _typesetter = Typesetters::Retain(_typesetterId);
   }
   _settings = FrameSettings::From(next.frameSettings.data(), next.frameSettings.size());
-  _textColor = static_cast<TRColor>(next.textColor);
+  _rendering = RendererSettings::From(next.rendererInts.data(), next.rendererInts.size(), next.rendererFloats.data(), next.rendererFloats.size());
   [self releaseFrame];
   [self setNeedsDisplay];
 }
@@ -121,7 +121,7 @@ using namespace tehreer::views;
   // The scale of the display is the render scale: one glyph pixel is one device pixel.
   const CGFloat scale = self.contentScaleFactor > 0 ? self.contentScaleFactor : UIScreen.mainScreen.scale;
   TRRendererSetRenderScale(_renderer, static_cast<float>(scale));
-  TRRendererSetForegroundColor(_renderer, _textColor);
+  _rendering.Apply(_renderer);
   tehreer::ios::CoreGraphicsPainter target(context, static_cast<float>(scale));
   tehreer::painter::DrawFrame(_frame, _renderer, target, TRPoint{0, 0});
 }

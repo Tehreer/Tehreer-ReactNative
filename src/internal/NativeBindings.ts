@@ -106,6 +106,8 @@ export interface NativeBindings extends NativeFunctions, SheenBidiFunctions {
   createReplacementHolder(kind: number, ascent: number, descent: number, extent: number, rects: readonly number[]): Handle<"TRReplacement"> | undefined;
   /** Debug builds: the number of registered typesetters and of live replacement holders. */
   testGetViewCounts?(): { typesetters: number; replacements: number };
+  /** Debug builds: applies the numbers of the `rendererInts` and `rendererFloats` props to a renderer. */
+  testApplyRendererSettings?(renderer: Handle<"TRRenderer">, ints: readonly number[], floats: readonly number[]): void;
   /**
    * `TRTextSetAttribute`, bound by hand because its argument is a union. The text copies the
    * attribute and retains the typeface or font features that it holds, so the caller may dispose

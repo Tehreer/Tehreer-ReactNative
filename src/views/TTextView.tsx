@@ -6,7 +6,7 @@ import type { ComposedFrame } from "../layout/ComposedFrame.js";
 import { checkScrollCodeUnit, checkScrollOffset, getCaretPosition, getCodeUnitAtOffset, getLineTop, indexOfCodeUnit } from "./FrameQueries.js";
 import type { CaretPosition } from "./FrameQueries.js";
 import { findLinks, linkAt } from "./Links.js";
-import { resolveFrameSettings, toColor, toNativeColor, toNativeHighlights, toNativeSettings } from "./shared.js";
+import { resolveFrameSettings, toColor, toNativeHighlights, toNativeRenderer, toNativeSettings } from "./shared.js";
 import type { ColorValue, ParagraphProps, RenderingProps, TextHighlight, TextSource } from "./shared.js";
 import { useTextView } from "./useTextView.js";
 
@@ -77,13 +77,14 @@ export interface TTextViewHandle {
    *
    * @throws RangeError if the index is not a whole number from 0.
    */
-  scrollToCodeUnit(index: number): void;
+  scrollToCodeUnit(index: number, smooth?: boolean): void;
   /**
-   * Scrolls to a distance from the top of the text, which is limited to what the text allows.
+   * Scrolls to a distance from the top of the text, which is limited to what the text allows, with an
+   * animation if `smooth` is set.
    *
    * @throws RangeError if the offset is not a finite number.
    */
-  scrollToOffset(offset: number): void;
+  scrollToOffset(offset: number, smooth?: boolean): void;
 }
 
 /**
@@ -93,14 +94,15 @@ export interface TTextViewHandle {
  * about a frame that JavaScript makes with the same inputs, so they follow the bidirectional order of
  * the lines.
  *
- * Not mirrored from the other wrappers: `typesetter`, the stroke and shadow settings, the
- * highlight of a pressed link, and views in the text.
+ * Not mirrored from the other wrappers: the highlight of a pressed link and `onPressChange` /
+ * `onHoverChange` of Web, and views in the text (a replacement is drawn from rectangles).
  */
 export const TTextView = forwardRef<TTextViewHandle, TTextViewProps>(function TTextView(props, ref) {
   const {
-    textColor, separatorColor, highlightColor, highlights, isLinkInteractionEnabled = true, onLinkClick, style, testID, onTap,
+    separatorColor, highlightColor, highlights, isLinkInteractionEnabled = true, onLinkClick, style, testID, onTap,
     onScroll, onFrameReady, onLayout: onLayoutProp, attributedText,
   } = props;
+  const renderer = toNativeRenderer(props);
   const settings = resolveFrameSettings(props);
   const { typesetter, onLayout: onTextLayout, getComposedFrame } = useTextView(props, settings, true);
   const links = useMemo(() => findLinks(attributedText), [attributedText]);
@@ -108,30 +110,30 @@ export const TTextView = forwardRef<TTextViewHandle, TTextViewProps>(function TT
   const viewport = useRef(0);
   // What the scroll request needs, all resolved here: the native view goes where it is told.
   const content = useRef(0);
-  const pending = useRef<{ offset?: number; codeUnit?: number }>({});
-  const [request, setRequest] = useState({ offset: 0, token: 0 });
+  const pending = useRef<{ offset?: number; codeUnit?: number; smooth?: boolean }>({});
+  const [request, setRequest] = useState({ offset: 0, token: 0, smooth: false });
 
-  const send = useCallback((distance: number) => {
+  const send = useCallback((distance: number, smooth: boolean) => {
     const limit = Math.max(0, content.current - viewport.current);
-    setRequest((previous) => ({ offset: Math.min(Math.max(0, distance), limit), token: previous.token + 1 }));
+    setRequest((previous) => ({ offset: Math.min(Math.max(0, distance), limit), token: previous.token + 1, smooth }));
   }, []);
 
   // A request that comes before the first frame waits for it, because what it needs is not known yet.
-  const scrollToCodeUnit = useCallback((index: number) => {
+  const scrollToCodeUnit = useCallback((index: number, smooth: boolean) => {
     const frame = content.current > 0 ? getComposedFrame() : undefined;
     const top = frame === undefined ? undefined : getLineTop(frame, index);
     if (top === undefined) {
-      pending.current = { codeUnit: index };
+      pending.current = { codeUnit: index, smooth };
     } else {
-      send(top);
+      send(top, smooth);
     }
   }, [getComposedFrame, send]);
 
-  const scrollToOffset = useCallback((distance: number) => {
+  const scrollToOffset = useCallback((distance: number, smooth: boolean) => {
     if (content.current > 0) {
-      send(distance);
+      send(distance, smooth);
     } else {
-      pending.current = { offset: distance };
+      pending.current = { offset: distance, smooth };
     }
   }, [send]);
 
@@ -152,8 +154,8 @@ export const TTextView = forwardRef<TTextViewHandle, TTextViewProps>(function TT
       const frame = getComposedFrame();
       return frame === undefined ? undefined : getCaretPosition(frame, index);
     },
-    scrollToCodeUnit: (index) => scrollToCodeUnit(checkScrollCodeUnit(index)),
-    scrollToOffset: (distance) => scrollToOffset(checkScrollOffset(distance)),
+    scrollToCodeUnit: (index, smooth = false) => scrollToCodeUnit(checkScrollCodeUnit(index), smooth),
+    scrollToOffset: (distance, smooth = false) => scrollToOffset(checkScrollOffset(distance), smooth),
   }), [getComposedFrame, scrollToCodeUnit, scrollToOffset]);
 
   const handleLayout = useCallback((event: LayoutChangeEvent) => {
@@ -167,9 +169,9 @@ export const TTextView = forwardRef<TTextViewHandle, TTextViewProps>(function TT
     const waiting = pending.current;
     pending.current = {};
     if (waiting.offset !== undefined) {
-      scrollToOffset(waiting.offset);
+      scrollToOffset(waiting.offset, waiting.smooth ?? false);
     } else if (waiting.codeUnit !== undefined) {
-      scrollToCodeUnit(waiting.codeUnit);
+      scrollToCodeUnit(waiting.codeUnit, waiting.smooth ?? false);
     }
     onFrameReady?.(event.nativeEvent);
   }, [onFrameReady, scrollToOffset, scrollToCodeUnit]);
@@ -199,11 +201,13 @@ export const TTextView = forwardRef<TTextViewHandle, TTextViewProps>(function TT
       style={style}
       typesetterId={typesetter.id}
       frameSettings={toNativeSettings(settings)}
-      textColor={toNativeColor(textColor, 0xff000000)}
+      rendererInts={renderer.ints}
+      rendererFloats={renderer.floats}
       separatorColor={separatorColor === undefined ? 0 : toColor(separatorColor) | 0}
       highlights={toNativeHighlights(highlights, highlightColor)}
       scrollToOffset={request.offset}
       scrollToToken={request.token}
+      scrollToAnimated={request.smooth}
       onLayout={handleLayout}
       onFrameReady={handleFrameReady}
       onTextTap={onTap === undefined && onLinkClick === undefined ? undefined : handleTap}

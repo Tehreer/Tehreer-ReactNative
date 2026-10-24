@@ -1,7 +1,10 @@
 import type { NativeBindings } from '../../src/internal/NativeBindings';
 import type { Handle } from '../../src/internal/NativeFunctions';
 import type { DrawingContext } from '../../src/drawing/DrawingContext';
+import { DrawStyle, StrokeCap, StrokeJoin } from '../../src/graphics/enums';
+import { Renderer } from '../../src/graphics/Renderer';
 import { Typeface } from '../../src/graphics/Typeface';
+import { toNativeRenderer } from '../../src/views/shared';
 import { FrameResolver } from '../../src/layout/FrameResolver';
 import { Replacement } from '../../src/layout/Replacement';
 import { ReplacementKind } from '../../src/layout/enums';
@@ -49,6 +52,13 @@ function counts(b: NativeBindings): { typesetters: number; replacements: number 
   return b.testGetViewCounts!();
 }
 
+/** A view typesetter that has to exist. */
+function create(source: Parameters<typeof ViewTypesetter.create>[0], layoutWidth: number): ViewTypesetter {
+  const made = ViewTypesetter.create(source, layoutWidth);
+  check(made !== undefined, 'a typesetter was expected');
+  return made as ViewTypesetter;
+}
+
 const URDU = 'تحریر ایک متنی انجن ہے';
 
 /** A delegate with a fixed room whose drawing is two filled rectangles, and which records how it was asked. */
@@ -72,11 +82,11 @@ const tests: Test[] = [
   ['a typesetter is registered for the native side and released with its owner', (b) => {
     const before = counts(b);
     const typeface = makeTypeface(b, fontBytes);
-    const plain = ViewTypesetter.create({ text: 'hello', typeface, textSize: 16 }, 0);
+    const plain = create({ text: 'hello', typeface, textSize: 16 }, 0);
     check(plain.id > 0 && !plain.hasReplacements, 'plain text has an id and no replacement');
     const attributed = new TMutableText('abc');
     attributed.setAttributes(0, 1, { typeSize: 30 });
-    const second = ViewTypesetter.create({ attributedText: attributed, typeface, textSize: 16 }, 0);
+    const second = create({ attributedText: attributed, typeface, textSize: 16 }, 0);
     check(second.id !== plain.id, 'ids differ');
     check(counts(b).typesetters === before.typesetters + 2, 'both are registered');
     // The typesetter copied the text, so editing the original later changes nothing.
@@ -91,10 +101,12 @@ const tests: Test[] = [
   }],
 
   ['an empty text and a text without a typeface give a typesetter that lays out nothing', (b) => {
-    const empty = ViewTypesetter.create({ text: '', textSize: 16 }, 0);
+    const face = makeTypeface(b, fontBytes);
+    const empty = create({ text: '', typeface: face, textSize: 16 }, 0);
     check(empty.typesetter.codeUnitCount === 0, 'empty text');
     empty.dispose();
-    expectThrows(() => ViewTypesetter.create({ text: 'x', textSize: 16 }, 0), 'Error', /typesetter/i);
+    face.dispose();
+    check(ViewTypesetter.create({ text: 'x', textSize: 16 }, 0) === undefined, 'a plain text without a typeface shows nothing, as in the other wrappers');
     check(counts(b).typesetters >= 0, 'counts still readable');
   }],
 
@@ -106,7 +118,7 @@ const tests: Test[] = [
     text.setAttributes(1, 2, { replacement: original });
     const before = counts(b);
 
-    const made = ViewTypesetter.create({ attributedText: text, typeface, textSize: 16 }, 123);
+    const made = create({ attributedText: text, typeface, textSize: 16 }, 123);
     check(made.hasReplacements, 'it knows about the replacement');
     check(delegate.log.length === 1 && delegate.log[0] === 123, `computeRoom is asked once with the layout width, got ${JSON.stringify(delegate.log)}`);
     check(counts(b).replacements === before.replacements + 1, 'one holder is alive');
@@ -124,7 +136,7 @@ const tests: Test[] = [
     const original = new Replacement({ computeRoom: (w) => ({ ascent: 5, descent: 1, extent: w / 2 }) }, ReplacementKind.Block);
     const text = new TMutableText('￼');
     text.setAttributes(0, 1, { replacement: original });
-    const made = ViewTypesetter.create({ attributedText: text, typeface, textSize: 16 }, 100);
+    const made = create({ attributedText: text, typeface, textSize: 16 }, 100);
     check(made.roomsDifferAt(300), 'a block that takes half the width differs at another width');
     check(!made.roomsDifferAt(100), 'and not at the same one');
     made.dispose();
@@ -213,12 +225,42 @@ const tests: Test[] = [
     const nastaliq = makeTypeface(b, nastaliqFontBytes);
     const text = new TMutableText(`abc ${URDU} def`);
     text.setAttributes(4, 4 + URDU.length, { typeface: nastaliq, typeSize: 24 });
-    const made = ViewTypesetter.create({ attributedText: text, typeface: roboto, textSize: 16 }, 0);
+    const made = create({ attributedText: text, typeface: roboto, textSize: 16 }, 0);
     check(made.id > 0 && made.typesetter.codeUnitCount === text.length, 'made');
     made.dispose();
     text.dispose();
     roboto.dispose();
     nastaliq.dispose();
+  }],
+
+  ['the renderer props reach Core as given, and what was not given is Core\'s default again', (b) => {
+    check(typeof b.testApplyRendererSettings === 'function', 'testApplyRendererSettings is missing: this needs a debug build');
+    const apply = (renderer: Renderer, props: Parameters<typeof toNativeRenderer>[0]) => {
+      const { ints, floats } = toNativeRenderer(props);
+      b.testApplyRendererSettings!(renderer.nativeHandle, ints, floats);
+    };
+    const near = (a: number, c: number) => Math.abs(a - c) < 1e-4;
+
+    const defaults = new Renderer();
+    const renderer = new Renderer();
+    apply(renderer, {
+      textColor: '#80112233', drawStyle: DrawStyle.FillStroke, strokeColor: 0xff336699, strokeRadius: 1.5, strokeCap: StrokeCap.Round,
+      strokeJoin: StrokeJoin.Bevel, strokeMiter: 3, shadowColor: 0x66000000, shadowRadius: 2, shadowDx: 3, shadowDy: -4,
+    });
+    check(renderer.foregroundColor === 0x80112233, `foreground ${renderer.foregroundColor.toString(16)}`);
+    check(renderer.drawStyle === DrawStyle.FillStroke, `draw style ${renderer.drawStyle}`);
+    check(renderer.strokeColor === 0xff336699, `stroke color ${renderer.strokeColor.toString(16)}`);
+    check(near(renderer.strokeRadius, 1.5) && renderer.strokeCap === StrokeCap.Round && renderer.strokeJoin === StrokeJoin.Bevel && near(renderer.strokeMiter, 3), 'stroke');
+    check(renderer.shadowColor === 0x66000000 && near(renderer.shadowRadius, 2) && near(renderer.shadowDx, 3) && near(renderer.shadowDy, -4), 'shadow');
+
+    // The same renderer given less gets Core's defaults, and keeps nothing of what it had.
+    apply(renderer, { textColor: 0xff000000, strokeRadius: 2 });
+    check(renderer.foregroundColor === 0xff000000, 'foreground again');
+    check(renderer.drawStyle === defaults.drawStyle && renderer.strokeColor === defaults.strokeColor && renderer.strokeCap === defaults.strokeCap, 'defaults of draw style and stroke');
+    check(near(renderer.strokeRadius, 2) && near(renderer.strokeMiter, defaults.strokeMiter) && renderer.strokeJoin === defaults.strokeJoin, 'only the stroke radius is given');
+    check(renderer.shadowColor === defaults.shadowColor && near(renderer.shadowRadius, defaults.shadowRadius) && near(renderer.shadowDx, defaults.shadowDx) && near(renderer.shadowDy, defaults.shadowDy), 'shadow defaults');
+    renderer.dispose();
+    defaults.dispose();
   }],
 
   ['an unknown id is ignored by unregister, an invalid one is refused, and a handle that is not a typesetter too', (b) => {

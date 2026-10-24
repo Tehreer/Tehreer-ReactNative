@@ -33,13 +33,27 @@ internal class TLabelManager : SimpleViewManager<TLabel>() {
     @ReactProp(name = "frameSettings")
     fun setFrameSettings(view: TLabel, settings: ReadableArray?) { view.frameSettings = toFloats(settings) }
 
-    @ReactProp(name = "textColor", defaultInt = 0xFF000000.toInt())
-    fun setTextColor(view: TLabel, color: Int) { view.textColor = color }
+    // The two arrays are one setting; the view applies them together, once the batch has arrived.
+    private val renderInts = HashMap<Int, IntArray>()
+    private val renderFloats = HashMap<Int, FloatArray>()
+
+    @ReactProp(name = "rendererInts")
+    fun setRendererInts(view: TLabel, ints: ReadableArray?) { renderInts[view.id] = toInts(ints) }
+
+    @ReactProp(name = "rendererFloats")
+    fun setRendererFloats(view: TLabel, floats: ReadableArray?) { renderFloats[view.id] = toFloats(floats) }
+
+    override fun onAfterUpdateTransaction(view: TLabel) {
+        super.onAfterUpdateTransaction(view)
+        view.setRendering(renderInts[view.id] ?: IntArray(0), renderFloats[view.id] ?: FloatArray(0))
+    }
 
     // Views are not recycled: a view owns native objects, which are freed when React Native drops it.
     override fun prepareToRecycleView(reactContext: ThemedReactContext, view: TLabel): TLabel? = null
 
     override fun onDropViewInstance(view: TLabel) {
+        renderInts.remove(view.id)
+        renderFloats.remove(view.id)
         view.release()
         super.onDropViewInstance(view)
     }
@@ -55,5 +69,8 @@ internal class TLabelManager : SimpleViewManager<TLabel>() {
 
         internal fun toFloats(array: ReadableArray?): FloatArray =
             FloatArray(array?.size() ?: 0) { array!!.getDouble(it).toFloat() }
+
+        internal fun toInts(array: ReadableArray?): IntArray =
+            IntArray(array?.size() ?: 0) { array!!.getDouble(it).toLong().toInt() }
     }
 }

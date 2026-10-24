@@ -17,7 +17,8 @@ static UIColor *ColorOf(TRColor color)
 @implementation LineView {
   TRComposedLineRef _line;
   TRRendererRef _renderer;
-  std::vector<LineHighlight> _highlights;
+  std::vector<tehreer::ios::LineHighlight> _highlights;
+  tehreer::views::RendererSettings _rendering;
 }
 
 - (instancetype)initWithFrame:(CGRect)frame
@@ -60,7 +61,13 @@ static UIColor *ColorOf(TRColor color)
   return _renderer;
 }
 
-- (void)setHighlights:(std::vector<LineHighlight>)highlights
+- (void)setRendering:(const tehreer::views::RendererSettings &)settings
+{
+  _rendering = settings;
+  [self setNeedsDisplay];
+}
+
+- (void)setHighlights:(std::vector<tehreer::ios::LineHighlight>)highlights
 {
   _highlights = std::move(highlights);
   [self setNeedsDisplay];
@@ -79,7 +86,7 @@ static UIColor *ColorOf(TRColor color)
 
   // The highlights come first, clipped to the band of the line: a rectangle can be taller than the
   // line, and the neighbouring lines draw their own part.
-  for (const LineHighlight &highlight : _highlights) {
+  for (const tehreer::ios::LineHighlight &highlight : _highlights) {
     const CGFloat top = std::max<CGFloat>(highlight.rect.origin.y, lineTop);
     const CGFloat bottom = std::min<CGFloat>(highlight.rect.origin.y + highlight.rect.size.height, lineBottom);
     if (bottom > top) {
@@ -102,7 +109,7 @@ static UIColor *ColorOf(TRColor color)
   // The line adds its own origin to the one that it is given, which is that of its container.
   const CGFloat scale = self.contentScaleFactor > 0 ? self.contentScaleFactor : UIScreen.mainScreen.scale;
   TRRendererSetRenderScale(_renderer, static_cast<float>(scale));
-  TRRendererSetForegroundColor(_renderer, _textColor);
+  _rendering.Apply(_renderer);
   tehreer::ios::CoreGraphicsPainter target(context, static_cast<float>(scale));
   tehreer::painter::DrawLine(_line, _renderer, target, TRPoint{static_cast<float>(-box.x), static_cast<float>(-box.y)});
 }

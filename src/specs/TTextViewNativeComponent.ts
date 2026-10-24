@@ -30,7 +30,9 @@ export interface ScrollEvent {
 export interface NativeProps extends ViewProps {
   typesetterId?: CodegenTypes.WithDefault<CodegenTypes.Int32, 0>;
   frameSettings?: ReadonlyArray<CodegenTypes.Float>;
-  textColor?: CodegenTypes.WithDefault<CodegenTypes.Int32, -16777216>;
+  /** How the text is drawn, as numbers in the order of `RendererSettings` in `cpp/views/RendererSettings.h`. */
+  rendererInts?: ReadonlyArray<CodegenTypes.Int32>;
+  rendererFloats?: ReadonlyArray<CodegenTypes.Float>;
   /** The color of a line under each line of text; 0 (transparent) for none. */
   separatorColor?: CodegenTypes.WithDefault<CodegenTypes.Int32, 0>;
   /** `fromIndex`, `toIndex` and `0xAARRGGBB` color of each highlighted range, one after the other. */
@@ -38,6 +40,8 @@ export interface NativeProps extends ViewProps {
   /** Where to scroll when `scrollToToken` changes, in layout units; JavaScript has made it a finite number. */
   scrollToOffset?: CodegenTypes.WithDefault<CodegenTypes.Float, 0>;
   scrollToToken?: CodegenTypes.WithDefault<CodegenTypes.Int32, 0>;
+  /** Whether the scroll to `scrollToOffset` is animated. */
+  scrollToAnimated?: CodegenTypes.WithDefault<boolean, false>;
   onFrameReady?: CodegenTypes.DirectEventHandler<FrameReadyEvent>;
   onTextTap?: CodegenTypes.DirectEventHandler<TapEvent>;
   onTextScroll?: CodegenTypes.DirectEventHandler<ScrollEvent>;
