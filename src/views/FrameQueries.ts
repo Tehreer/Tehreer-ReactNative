@@ -29,8 +29,19 @@ export function indexOfCodeUnit(frame: ComposedFrame, x: number, y: number): num
     if (x < left || x > left + line.width) {
       return undefined;
     }
-    // The boundary after the last code unit belongs to the line but is no character.
-    return Math.min(line.getCodeUnitIndexAtDistance(x - left), line.endIndex - 1);
+    // Core answers with the nearest boundary, which for a point inside a character is one of its two
+    // ends, so the character is the neighbour of the boundary whose visual edges hold the point.
+    // The edges follow the visual order, so this is right inside a right-to-left run too.
+    const distance = x - left;
+    const boundary = line.getCodeUnitIndexAtDistance(distance);
+    const last = line.endIndex - 1;
+    const candidates = [Math.min(boundary, last), Math.min(Math.max(boundary - 1, line.startIndex), last)];
+    for (const candidate of candidates) {
+      if (line.getVisualEdges(candidate, candidate + 1).some((edge) => distance >= edge.left && distance <= edge.right)) {
+        return candidate;
+      }
+    }
+    return candidates[0];
   } finally {
     line.dispose();
   }

@@ -138,6 +138,7 @@ const tests: Test[] = [
 
   ['a static replacement is laid out by Core with its fixed room, also on another thread', (b) => {
     const typeface = makeTypeface(b, fontBytes);
+    const before = counts(b);
     const handle = b.createStaticReplacement(ReplacementKind.Inline, 12, 4, 40, [0, -12, 40, 16, 0xff3366cc]);
     check(handle !== undefined, 'created');
     const replacement = Replacement.adopting(handle as Handle<'TRReplacement'>);
@@ -178,6 +179,8 @@ const tests: Test[] = [
     text.dispose();
     replacement.dispose();
     typeface.dispose();
+    // Nothing of the layout (typesetter, resolver, frame, line, run) keeps the replacement.
+    check(counts(b).replacements === before.replacements, `a laid out static replacement leaked: ${JSON.stringify(counts(b))} after ${JSON.stringify(before)}`);
   }],
 
   ['a replacement made in JavaScript is refused by the registry', (b) => {

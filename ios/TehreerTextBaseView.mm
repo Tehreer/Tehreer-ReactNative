@@ -142,6 +142,8 @@ using namespace facebook::react;
 - (void)updateState:(const State::Shared &)state oldState:(const State::Shared &)oldState
 {
   _state = std::static_pointer_cast<const TehreerTextBaseShadowNode::ConcreteState>(state);
+  // The locator of the previous frame keeps that frame alive until the next windowed draw.
+  _painter->Reset();
   if (_scrollView != nil) {
     const auto &frame = _state ? _state->getData().frame : nullptr;
     _scrollView.contentSize = CGSizeMake(self.bounds.size.width, frame ? frame->height() : 0);
@@ -224,6 +226,7 @@ using namespace facebook::react;
 - (void)prepareForRecycle
 {
   _state.reset();
+  _painter->Reset();
   [self setUpScrollingFor:NO];
   [self setNeedsDisplay];
   [super prepareForRecycle];

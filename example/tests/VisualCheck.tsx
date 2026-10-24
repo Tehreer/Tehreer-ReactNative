@@ -81,8 +81,8 @@ function makePictures(): Picture[] {
 // The labels and the text view that QA screenshots: Urdu, mixed right-to-left and left-to-right runs,
 // truncation, alignment, a replacement and a scrolling view with a selection.
 function makeSamples(faces: { roboto: Typeface; nastaliq: Typeface }) {
-  const mixed = new TMutableText(`Hello ${URDU} world 123 ${URDU}`);
-  mixed.setAttributes(6, 6 + URDU.length, { typeface: faces.nastaliq, typeSize: 28, foregroundColor: 0xff0a7a3d });
+  const mixed = new TMutableText(`abc ${URDU} cba bca ${URDU}`);
+  mixed.setAttributes(4, 4 + URDU.length, { typeface: faces.nastaliq, typeSize: 28, foregroundColor: 0xff0a7a3d });
   const chip = new Replacement({
     computeRoom: () => ({ ascent: 16, descent: 5, extent: 44 }),
     draw: (context) => {
@@ -90,8 +90,8 @@ function makeSamples(faces: { roboto: Typeface; nastaliq: Typeface }) {
       context.fillRect({ x: 3, y: -13, width: 38, height: 15 }, 0xffaaccff);
     },
   });
-  const inline = new TMutableText('before \uFFFC after the inline object that has its own width');
-  inline.setAttributes(7, 8, { replacement: chip });
+  const inline = new TMutableText('abc \uFFFC cba abc bca cab abc cba');
+  inline.setAttributes(4, 5, { replacement: chip });
   chip.dispose();
   const long = new TMutableText('');
   for (let index = 0; index < 80; index++) {

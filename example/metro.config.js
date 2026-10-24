@@ -8,7 +8,7 @@ const libraryEntry = path.join(root, 'src', 'index.ts');
 /**
  * The library is linked from the repository root and run from its TypeScript sources, so Metro
  * must read `..`, must not load a second copy of React Native from the root node_modules, and must
- * map the `.js` suffix of ES module imports in `src` to the `.ts` file that exists.
+ * map the `.js` suffix of ES module imports in `src` to the `.ts` or `.tsx` file that exists.
  *
  * @type {import('@react-native/metro-config').MetroConfig}
  */
@@ -27,12 +27,15 @@ const config = {
         moduleName.startsWith('.') &&
         moduleName.endsWith('.js');
       if (isLibrarySource) {
-        const typescriptPath = path.resolve(
-          path.dirname(context.originModulePath),
-          moduleName.replace(/\.js$/, '.ts'),
-        );
-        if (fs.existsSync(typescriptPath)) {
-          return { type: 'sourceFile', filePath: typescriptPath };
+        // `.ts` first, then `.tsx` for the components.
+        for (const extension of ['.ts', '.tsx']) {
+          const candidate = path.resolve(
+            path.dirname(context.originModulePath),
+            moduleName.replace(/\.js$/, extension),
+          );
+          if (fs.existsSync(candidate)) {
+            return { type: 'sourceFile', filePath: candidate };
+          }
         }
       }
 

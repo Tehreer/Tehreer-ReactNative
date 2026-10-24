@@ -43,6 +43,10 @@ function makeFrame(lines: FakeLine[]) {
             const slot = Math.min(count, Math.max(0, Math.round(distance / 10)));
             return line.isRtl ? line.endIndex - slot : line.startIndex + slot;
           },
+          getVisualEdges: (from: number, to: number) => {
+            const slotOf = (index: number) => (line.isRtl ? line.endIndex - 1 - index : index - line.startIndex);
+            return [{ left: slotOf(from) * 10, right: slotOf(from) * 10 + (to - from) * 10 }];
+          },
           getCodeUnitDistance: (index: number) => {
             return line.isRtl ? (line.endIndex - index) * 10 : (index - line.startIndex) * 10;
           },
@@ -123,4 +127,16 @@ test("the first visible code unit is the start of the line at the offset, and a 
   assert.equal(queries.getCodeUnitAtOffset(frame, 0), 0);
   assert.equal(queries.getCodeUnitAtOffset(frame, 25), 5);
   assert.equal(queries.getLineTop(frame, 6), 20);
+});
+
+test("a point inside a character finds that character, not the nearest boundary, in both directions", () => {
+  const frame = makeFrame([line(0, 4, 0), line(4, 8, 20, { isRtl: true })]) as never;
+  // Inside the character the boundary rounds to either end; the visual edges decide.
+  assert.equal(queries.indexOfCodeUnit(frame, 14, 5), 1);
+  assert.equal(queries.indexOfCodeUnit(frame, 16, 5), 1);
+  // The first code unit of a right-to-left line is at its right end.
+  assert.equal(queries.indexOfCodeUnit(frame, 36, 25), 4);
+  assert.equal(queries.indexOfCodeUnit(frame, 34, 25), 4);
+  assert.equal(queries.indexOfCodeUnit(frame, 4, 25), 7);
+  assert.equal(queries.indexOfCodeUnit(frame, 6, 25), 7);
 });

@@ -45,6 +45,8 @@ JNIEXPORT void JNICALL Java_com_tehreer_reactnative_TehreerPaintJni_destroy(JNIE
 JNIEXPORT void JNICALL Java_com_tehreer_reactnative_TehreerPaintJni_setFrame(JNIEnv *, jclass, jlong handle, jint frameId) {
     if (ViewPainter *painter = Painter(handle)) {
         painter->frame = FrameRegistry::Find(static_cast<std::uint32_t>(frameId));
+        // The locator of the previous frame holds a reference to it.
+        painter->framePainter.Reset();
     }
 }
 

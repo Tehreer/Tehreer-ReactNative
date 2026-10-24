@@ -63,6 +63,13 @@ public:
      */
     void Draw(TRComposedFrameRef frame, PaintTarget &target, float renderScale, const FramePaint &paint);
 
+    /**
+     * Lets go of the locator and the reference of the frame that it keeps, so that a view that no
+     * longer shows the frame does not keep the frame (and what it holds, such as a replacement's
+     * data) alive until its next draw.
+     */
+    void Reset() { ReleaseLocator(); }
+
 private:
     void ReleaseLocator();
 

@@ -37,13 +37,6 @@ tehreer::fabric::FrameSettings MakeSettings(const TehreerTextBaseProps &props) {
     return settings;
 }
 
-// The props that decide the text, the metrics and the lines; everything else (colors, selection,
-// scroll requests) only paints, so a change of it must not measure or compose again.
-bool SameFrameProps(const TehreerTextBaseProps &a, const TehreerTextBaseProps &b) {
-    return a.text == b.text && a.typefaceTag == b.typefaceTag && a.typeSize == b.typeSize && a.textId == b.textId &&
-        a.scrollable == b.scrollable && MakeSettings(a) == MakeSettings(b);
-}
-
 // The registry first; an id that was unregistered since (the JavaScript side moved on to another
 // text while this revision is still alive) is served by the share that the state keeps.
 std::shared_ptr<const tehreer::fabric::ViewText> ResolveText(const TehreerTextBaseProps &props, const TehreerTextBaseStateData &data) {
@@ -83,16 +76,18 @@ TextFrame Compose(const TextFrameSpec &spec) noexcept {
 
 } // namespace
 
-bool TehreerTextBaseShadowNode::shouldNewRevisionDirtyMeasurement(const ShadowNode &sourceShadowNode, const ShadowNodeFragment &fragment) const {
-    // Only new props can change the text; a new state or children cannot. A prop that only paints
-    // (selection, color, scroll request) keeps the measurement, so selecting in a long text does
-    // not lay it out again.
+bool TehreerTextBaseShadowNode::shouldNewRevisionDirtyMeasurement(const ShadowNode &, const ShadowNodeFragment &fragment) const {
+    // React Native passes this very node (already carrying the new props) as the source, so the
+    // old props are gone; what the last layout composed is in the state key. A prop that only
+    // paints (selection, color, scroll request) leaves it equal, and then the measurement stays:
+    // selecting in a long text must not lay it out again.
     if (fragment.props == nullptr) {
         return false;
     }
-    const auto &before = static_cast<const TehreerTextBaseProps &>(*sourceShadowNode.getProps());
-    const auto &after = static_cast<const TehreerTextBaseProps &>(*fragment.props);
-    return !SameFrameProps(before, after);
+    const auto &props = getConcreteProps();
+    const auto &key = getStateData().key;
+    return !(key.text == props.text && key.typefaceTag == props.typefaceTag && key.typeSize == props.typeSize && key.textId == props.textId &&
+             key.scrollable == props.scrollable && key.settings == MakeSettings(props));
 }
 
 Size TehreerTextBaseShadowNode::measureContent(const LayoutContext &, const LayoutConstraints &layoutConstraints) const {
