@@ -18,6 +18,9 @@ internal object TehreerPaintJni {
 
     @JvmStatic external fun destroy(painter: Long)
 
+    /** The view is unmounted or recycled: lets go of its frame and of the text it was made from. */
+    @JvmStatic external fun retire(painter: Long)
+
     /** Takes the frame of the id that the shadow node's state carries; 0 or an unknown id clears it. */
     @JvmStatic external fun setFrame(painter: Long, frameId: Int)
 

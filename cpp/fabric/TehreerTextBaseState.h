@@ -8,6 +8,7 @@
 #include <react/renderer/graphics/Float.h>
 #include <react/renderer/graphics/Size.h>
 
+#include <atomic>
 #include <memory>
 #include <string>
 
@@ -42,13 +43,23 @@ struct TehreerTextBaseFrameKey {
  */
 class TehreerTextBaseStateData final {
 public:
-    TehreerTextBaseStateData() = default;
+    /** How many state data objects are alive (copies included); for the tests. */
+    static std::atomic<int> &LiveCount() noexcept { return tehreer::fabric::ComposedFrameBox::StateCount(); }
+    TehreerTextBaseStateData() { LiveCount().fetch_add(1); }
+    TehreerTextBaseStateData(const TehreerTextBaseStateData &other)
+        : key(other.key), status(other.status), frame(other.frame), text(other.text), isComposed(other.isComposed) { LiveCount().fetch_add(1); }
+    TehreerTextBaseStateData(TehreerTextBaseStateData &&other) noexcept
+        : key(std::move(other.key)), status(other.status), frame(std::move(other.frame)), text(std::move(other.text)), isComposed(other.isComposed) { LiveCount().fetch_add(1); }
+    ~TehreerTextBaseStateData() { LiveCount().fetch_sub(1); }
+    TehreerTextBaseStateData &operator=(const TehreerTextBaseStateData &) = default;
+    TehreerTextBaseStateData &operator=(TehreerTextBaseStateData &&) = default;
     TehreerTextBaseStateData(
         TehreerTextBaseFrameKey key,
         tehreer::fabric::ComposeStatus status,
         std::shared_ptr<const tehreer::fabric::ComposedFrameBox> frame,
         std::shared_ptr<const tehreer::fabric::ViewText> text)
-        : key(std::move(key)), status(status), frame(std::move(frame)), text(std::move(text)) {
+        : key(std::move(key)), status(status), frame(std::move(frame)), text(std::move(text)), isComposed(true) {
+        LiveCount().fetch_add(1);
         // The Kotlin view and JavaScript (`acquireViewFrame`) find the frame by this id.
         tehreer::fabric::FrameRegistry::Register(this->frame);
     }
@@ -63,12 +74,14 @@ public:
      * has its state, however long that node lives and whatever makes it compose again.
      */
     std::shared_ptr<const tehreer::fabric::ViewText> text;
+    /** False for the initial state that React Native makes before the first layout: nothing was composed. */
+    bool isComposed{false};
 
 #ifdef RN_SERIALIZABLE_STATE
     // The Android state contract wants these. Java never writes this state, so the update from a
     // dynamic keeps the previous data.
     TehreerTextBaseStateData(const TehreerTextBaseStateData &previous, folly::dynamic /*data*/)
-        : key(previous.key), status(previous.status), frame(previous.frame), text(previous.text) {}
+        : key(previous.key), status(previous.status), frame(previous.frame), text(previous.text), isComposed(previous.isComposed) { LiveCount().fetch_add(1); }
 
     folly::dynamic getDynamic() const {
         return folly::dynamic::object("status", static_cast<int>(status))("lineCount", lineCount())("width", frameWidth())(
@@ -77,7 +90,7 @@ public:
 
     /**
      * What a Kotlin view can read without JNI: 0 status, 1 line count, 2 and 3 the bounds of the
-     * frame, 4 and 5 the box it was composed for, 6 the id of the frame (0 for none) that the
+     * frame, 4 and 5 the box it was composed for, 6 the id of the frame (0 for none), 7 whether a layout composed this state at all that the
      * painter hands to `FrameRegistry::Find` through JNI. The registry only holds weak references,
      * so the id is valid while the state it was read from is alive.
      */
@@ -90,6 +103,7 @@ public:
         builder.putDouble(4, key.size.width);
         builder.putDouble(5, key.size.height);
         builder.putInt(6, frame ? static_cast<int>(frame->id()) : 0);
+        builder.putInt(7, isComposed ? 1 : 0);
         return builder.build();
     }
 #endif

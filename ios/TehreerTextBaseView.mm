@@ -8,6 +8,7 @@
 #import <react/renderer/components/TehreerSpec/Props.h>
 
 #include <algorithm>
+#include <cmath>
 #include <memory>
 
 using namespace facebook::react;
@@ -81,7 +82,7 @@ using namespace facebook::react;
 
   // JavaScript resolves the offset (it knows the frame and the size of the view); a new token only
   // asks the scroll view to go there.
-  if (_scrollView != nil && previous && next.scrollToToken != previous->scrollToToken) {
+  if (_scrollView != nil && previous && next.scrollToToken != previous->scrollToToken && std::isfinite(next.scrollToOffset)) {
     [_scrollView setContentOffset:CGPointMake(0, next.scrollToOffset) animated:NO];
   }
   // Color and selection only paint; the frame stays as it is.
@@ -141,6 +142,13 @@ using namespace facebook::react;
 
 - (void)updateState:(const State::Shared &)state oldState:(const State::Shared &)oldState
 {
+  // The frame that this view showed is no longer wanted once another replaces it, and React Native
+  // keeps the state that holds it after the node is gone, so the view retires it. The text stays:
+  // the new frame is made from the same one.
+  auto next = std::static_pointer_cast<const TehreerTextBaseShadowNode::ConcreteState>(state);
+  if (_state && _state->getData().frame && (!next || next->getData().frame != _state->getData().frame)) {
+    _state->getData().frame->Retire(false);
+  }
   _state = std::static_pointer_cast<const TehreerTextBaseShadowNode::ConcreteState>(state);
   // The locator of the previous frame keeps that frame alive until the next windowed draw.
   _painter->Reset();
@@ -168,8 +176,13 @@ using namespace facebook::react;
   if (!_state || !_painter) {
     return;
   }
-  const auto &frame = _state->getData().frame;
-  if (!frame || context == nullptr) {
+  const auto &box = _state->getData().frame;
+  if (!box || context == nullptr) {
+    return;
+  }
+  // A reference for the length of the draw: the frame may be retired meanwhile.
+  TRComposedFrameRef frame = box->Acquire();
+  if (frame == nullptr) {
     return;
   }
 
@@ -189,7 +202,8 @@ using namespace facebook::react;
   // The scale of the display is the render scale: one glyph pixel is one device pixel.
   CGFloat scale = self.contentScaleFactor > 0 ? self.contentScaleFactor : UIScreen.mainScreen.scale;
   tehreer::ios::CoreGraphicsPainter target(context, static_cast<float>(scale));
-  _painter->Draw(frame->get(), target, static_cast<float>(scale), paint);
+  _painter->Draw(frame, target, static_cast<float>(scale), paint);
+  TRComposedFrameRelease(frame);
 }
 
 // Core drew the frame's lines, runs and glyphs into a layout of its own: the view only provides
@@ -223,8 +237,18 @@ using namespace facebook::react;
       ->onTextTap({.x = static_cast<Float>(point.x), .y = static_cast<Float>(y)});
 }
 
+// Lets go of the frame and the text of the state that the view holds, when the view is unmounted; a painter that is drawing it has its own reference.
+- (void)retireFrame
+{
+  if (_state && _state->getData().frame) {
+    // The node is going away: its text goes with the frame.
+    _state->getData().frame->Retire(true);
+  }
+}
+
 - (void)prepareForRecycle
 {
+  [self retireFrame];
   _state.reset();
   _painter->Reset();
   [self setUpScrollingFor:NO];

@@ -87,6 +87,8 @@ const labelCases: readonly LabelCase[] = [
 ];
 
 interface Seen {
+  /** The first event was a frame without lines, which is what Android sent before the real one. */
+  emptyFirst?: boolean;
   layout?: { width: number; height: number };
   frameId?: number;
   events: number;
@@ -147,11 +149,9 @@ function expectedFrame(testCase: LabelCase, setup: Setup, text: string | TText, 
 export function LabelTestHost({ onDone }: { onDone: (report: SuiteReport) => void }) {
   const [setup, setSetup] = useState<Setup | undefined>();
   const [texts, setTexts] = useState<Record<string, TText>>({});
-  const [stage, setStage] = useState<'labels' | 'views' | 'gone'>('labels');
-  // Set before a view is unmounted: the views that showed a replacement show plain text, so that
-  // their states hold no frame, text or replacement of the replacement any more.
-  const [plainLabel, setPlainLabel] = useState(false);
-  const [plainChip, setPlainChip] = useState(false);
+  const [stage, setStage] = useState<'labels' | 'views' | 'cycle' | 'gone'>('labels');
+  const [cycling, setCycling] = useState(false);
+  const [cyclePlain, setCyclePlain] = useState(false);
   const [width, setWidth] = useState(300);
   const [selection, setSelection] = useState<{ fromIndex: number; toIndex: number } | undefined>();
   const [longText, setLongText] = useState<TText | undefined>();
@@ -228,6 +228,7 @@ export function LabelTestHost({ onDone }: { onDone: (report: SuiteReport) => voi
           ok(false, `${testCase.name}: no layout or frame`);
           continue;
         }
+        ok(entry.emptyFirst !== true, `${testCase.name}/events: the first onFrameReady was an empty frame`);
         const handle = handles.current[testCase.name];
         const actual = handle?.getComposedFrame();
         if (actual === undefined) {
@@ -293,10 +294,6 @@ export function LabelTestHost({ onDone }: { onDone: (report: SuiteReport) => voi
           expected.dispose();
         }
       }
-
-      // Supersede the state of the label that showed a replacement before it goes.
-      setPlainLabel(true);
-      await sleep(700);
 
       // The text view.
       setStage('views');
@@ -396,10 +393,31 @@ export function LabelTestHost({ onDone }: { onDone: (report: SuiteReport) => voi
         ok((b.testGetViewCounts?.().replacements ?? 0) > baseline.replacements, 'replacement: no static replacement is alive while the views show one');
       }
 
-      // State released with the replacement: the view first shows plain text, which supersedes the
-      // state that held the frame, and then everything is unmounted.
-      setPlainChip(true);
-      await sleep(700);
+      // A view that shows a replacement is mounted and unmounted again and again: each cycle must
+      // give back its text, its frame and its static replacement, and the counts must not climb.
+      setStage('cycle');
+      const during: string[] = [];
+      for (let cycle = 0; cycle < 6; cycle++) {
+        setCyclePlain(cycle >= 3);
+        setCycling(true);
+        await sleep(350);
+        const live = b.testGetViewCounts?.();
+        setCycling(false);
+        await sleep(350);
+        b.testCollectGarbage?.();
+        const idle = b.testGetViewCounts?.();
+        during.push(`${cycle}: live ${JSON.stringify(live)} idle ${JSON.stringify(idle)}`);
+      }
+      if (baseline !== undefined) {
+        const settledCycles = () => {
+          b.testCollectGarbage?.();
+          const now = b.testGetViewCounts?.();
+          return now !== undefined && now.replacements === baseline.replacements;
+        };
+        ok(await waitFor(settledCycles, 6000), `cycles: counts after 6 cycles ${JSON.stringify(b.testGetViewCounts?.())}, baseline ${JSON.stringify(baseline)}; ${during.join(' | ')}`);
+      }
+
+      // Everything is unmounted while it still shows its replacements, which must free all of it.
       setStage('gone');
       if (baseline !== undefined) {
         // Strict: with the states superseded nothing may remain, so any difference is a leak of
@@ -438,8 +456,8 @@ export function LabelTestHost({ onDone }: { onDone: (report: SuiteReport) => voi
             key={testCase.name}
             testID={`label-${testCase.name}`}
             ref={(handle) => { handles.current[testCase.name] = handle; }}
-            text={plainLabel && testCase.replacementExtent !== undefined ? 'abc' : testCase.text}
-            attributedText={plainLabel && testCase.replacementExtent !== undefined ? undefined : texts[testCase.name]}
+            text={testCase.text}
+            attributedText={texts[testCase.name]}
             typeface={testCase.face === 'roboto' ? setup.roboto : setup.nastaliq}
             textSize={testCase.size}
             textColor={testCase.color}
@@ -454,11 +472,17 @@ export function LabelTestHost({ onDone }: { onDone: (report: SuiteReport) => voi
             }}
             onFrameReady={(e) => {
               const entry = (seen.current[testCase.name] ??= { events: 0 });
+              if (entry.events === 0 && e.lineCount === 0) {
+                entry.emptyFirst = true;
+              }
               entry.events++;
               entry.frameId = e.frameId;
             }}
           />
         ))}
+      {stage === 'cycle' && cycling && (
+        <TLabel testID="cycle-label" text={cyclePlain ? 'abc abc' : undefined} attributedText={cyclePlain ? undefined : chipText} typeface={setup.roboto} textSize={18} style={{ maxWidth: 200 }} />
+      )}
       {stage === 'views' && (
         <>
           <TTextView
@@ -475,8 +499,7 @@ export function LabelTestHost({ onDone }: { onDone: (report: SuiteReport) => voi
           <TTextView
             testID="view-chip"
             ref={chipHandle}
-            text={plainChip ? 'abc' : undefined}
-            attributedText={plainChip ? undefined : chipText}
+            attributedText={chipText}
             typeface={setup.roboto}
             textSize={18}
             style={{ width: 200, height: 60 }}

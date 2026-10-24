@@ -112,7 +112,7 @@ export interface NativeBindings extends NativeFunctions, SheenBidiFunctions {
    */
   acquireViewFrame(frameId: number): Handle<"TRComposedFrame"> | undefined;
   /** Debug builds: the number of registered view texts and of live static replacements. */
-  testGetViewCounts?(): { texts: number; replacements: number };
+  testGetViewCounts?(): { texts: number; replacements: number; frames: number; boxes: number; states: number };
   /**
    * `TRTextSetAttribute`, bound by hand because its argument is a union. The text copies the
    * attribute and retains the typeface or font features that it holds, so the caller may dispose

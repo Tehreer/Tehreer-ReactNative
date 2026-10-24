@@ -96,6 +96,9 @@ class TehreerTextBaseView(context: Context) : View(context) {
         }
     }
 
+    /** The frame id of the last `onFrameReady` that was sent, so that each frame is reported once. */
+    var lastEventFrameId: Int = -1
+
     var requestedOffset: Float = 0f
     var requestedToken: Int = 0
     private var appliedToken: Int = 0
@@ -138,11 +141,23 @@ class TehreerTextBaseView(context: Context) : View(context) {
 
     override fun onDraw(canvas: Canvas) {
         if (painter != 0L) {
-            // The canvas is moved by the scroll already; the window is the part of the text in view.
+            // A view does not clip what it draws unless its parent does, and the text of a scrolled
+            // view (partial lines) and a replacement wider than the view reach outside the bounds.
+            // The canvas is moved by the scroll already, so the bounds are those of the scroll.
+            canvas.save()
+            canvas.clipRect(scrollX.toFloat(), scrollY.toFloat(), (scrollX + width).toFloat(), (scrollY + height).toFloat())
             TehreerPaintJni.draw(
                 painter, canvas, density, textColor, selectionStart, selectionEnd, selectionColor,
                 isScrollable, scrollY / density, width / density, height / density,
             )
+            canvas.restore()
+        }
+    }
+
+    /** The view goes back to the pool or away: the state of its node stays with React Native, so the frame must not. */
+    fun retire() {
+        if (painter != 0L) {
+            TehreerPaintJni.retire(painter)
         }
     }
 

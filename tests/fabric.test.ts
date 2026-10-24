@@ -75,7 +75,7 @@ test("every JNI function that Kotlin declares is defined in C++ with the same na
   const kotlin = read("android/src/main/java/com/tehreer/reactnative/TehreerPaintJni.kt");
   const cpp = read("android/src/main/cpp/TextBaseJni.cpp");
   const declared = [...kotlin.matchAll(/@JvmStatic external fun (\w+)\(/g)].map((match) => match[1]);
-  assert.deepEqual(declared.sort(), ["create", "destroy", "draw", "setFrame"]);
+  assert.deepEqual(declared.sort(), ["create", "destroy", "draw", "retire", "setFrame"]);
   for (const name of declared) {
     assert.match(cpp, new RegExp(`Java_com_tehreer_reactnative_TehreerPaintJni_${name}\\(`));
   }

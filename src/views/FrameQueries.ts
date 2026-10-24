@@ -17,8 +17,12 @@ export interface CaretPosition {
  *
  * @returns The index, or `undefined` when no character is there: outside the width of the line
  *   that the y falls on, or above or below the frame, or in a frame without lines.
+ * @throws RangeError if `x` or `y` is NaN. An infinite coordinate is a position outside the text.
  */
 export function indexOfCodeUnit(frame: ComposedFrame, x: number, y: number): number | undefined {
+  if (Number.isNaN(x) || Number.isNaN(y)) {
+    throw new RangeError("The position must not be NaN.");
+  }
   const lines = frame.lines;
   if (lines.length === 0 || y < 0 || y > frame.height) {
     return undefined;
@@ -88,4 +92,29 @@ export function getCodeUnitAtOffset(frame: ComposedFrame, offset: number): numbe
   } finally {
     line.dispose();
   }
+}
+
+/**
+ * Checks the distance of a scroll request before it can reach a native view, where a NaN or an
+ * infinite offset is a geometry error (the iOS scroll view aborts on it).
+ *
+ * @throws RangeError if the offset is not a finite number.
+ */
+export function checkScrollOffset(offset: number): number {
+  if (!Number.isFinite(offset)) {
+    throw new RangeError(`The scroll offset ${offset} is not a finite number.`);
+  }
+  return offset;
+}
+
+/**
+ * Checks the code unit index of a scroll request.
+ *
+ * @throws RangeError if the index is not a whole number that is not negative.
+ */
+export function checkScrollCodeUnit(index: number): number {
+  if (!Number.isInteger(index) || index < 0) {
+    throw new RangeError(`The code unit index ${index} is not a whole number from 0.`);
+  }
+  return index;
 }

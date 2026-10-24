@@ -84,17 +84,23 @@ TextFrame ComposeFrame(const TextFrameSpec &spec) {
     TextFrame result;
 
     const bool isAttributed = static_cast<bool>(spec.attributed);
-    if (isAttributed ? TRTextGetLength(spec.attributed->text()) == 0 : spec.text.empty()) {
+    if (!isAttributed && spec.text.empty()) {
         result.status = ComposeStatus::EmptyText;
         return result;
     }
 
     TypefaceOwner typeface;
     float typeSize = spec.typeSize;
+    // References of their own for the whole composition, so that retiring the box meanwhile (the
+    // view of an unmounted node does) cannot free what the typesetter reads.
+    const ViewText::Lease lease = isAttributed ? spec.attributed->Acquire() : ViewText::Lease();
     if (isAttributed) {
-        // Retained here so that the typesetter's defaults stay valid even if the box goes first.
-        if (spec.attributed->typeface() != nullptr) {
-            typeface = TypefaceOwner(TRTypefaceRetain(spec.attributed->typeface()));
+        if (lease.text() == nullptr) {
+            result.status = ComposeStatus::EmptyText;
+            return result;
+        }
+        if (lease.typeface() != nullptr) {
+            typeface = TypefaceOwner(TRTypefaceRetain(lease.typeface()));
         }
         typeSize = spec.attributed->typeSize();
     } else {
@@ -114,7 +120,11 @@ TextFrame ComposeFrame(const TextFrameSpec &spec) {
     TRTextRef text = nullptr;
     if (isAttributed) {
         // Only a `ViewText` can be here, and it holds nothing but static replacements.
-        text = spec.attributed->text();
+        text = lease.text();
+        if (TRTextGetLength(text) == 0) {
+            result.status = ComposeStatus::EmptyText;
+            return result;
+        }
     } else {
         // Core copies the code units, so the view the caller gave may die after this call.
         owned = TextOwner(TRTextCreate(spec.text.data(), spec.text.size(), TRStringEncodingUTF16));
@@ -171,7 +181,7 @@ TextFrame ComposeFrame(const TextFrameSpec &spec) {
 
     // The frame does not depend on the resolver or the typesetter, which are released on return.
     // The box takes the reference only once it exists, so an allocation failure releases it here.
-    result.frame = std::make_shared<const ComposedFrameBox>(frame.get());
+    result.frame = std::make_shared<const ComposedFrameBox>(frame.get(), spec.attributed);
     frame.release();
     result.status = ComposeStatus::Composed;
     return result;

@@ -65,11 +65,16 @@ class TehreerTextBaseManager : SimpleViewManager<TehreerTextBaseView>() {
         val state = stateWrapper.stateDataMapBuffer ?: return null
         // Key 6 of TehreerTextBaseStateData::getMapBuffer: the id of the frame to paint.
         view.setComposedFrame(state.getInt(6), state.getDouble(3).toFloat())
+        // Key 7: the state that exists before the first layout composed nothing, and says nothing. After
+        // that one event is sent for each frame (and one for a text that has none), as on iOS.
+        val frameId = state.getInt(6)
+        if (state.getInt(7) == 0 || frameId == view.lastEventFrameId) return null
+        view.lastEventFrameId = frameId
         val context = view.context as? ThemedReactContext ?: return null
         val dispatcher = UIManagerHelper.getEventDispatcherForReactTag(context, view.id) ?: return null
         // Keys 1 to 3 of TehreerTextBaseStateData::getMapBuffer: line count and bounds of the frame.
         dispatcher.dispatchEvent(
-            FrameReadyEvent(UIManagerHelper.getSurfaceId(view), view.id, state.getInt(1), state.getDouble(2), state.getDouble(3), state.getInt(6)),
+            FrameReadyEvent(UIManagerHelper.getSurfaceId(view), view.id, state.getInt(1), state.getDouble(2), state.getDouble(3), frameId),
         )
         return null
     }
@@ -81,7 +86,9 @@ class TehreerTextBaseManager : SimpleViewManager<TehreerTextBaseView>() {
     }
 
     override fun prepareToRecycleView(reactContext: ThemedReactContext, view: TehreerTextBaseView): TehreerTextBaseView? {
+        view.retire()
         view.setComposedFrame(0, 0f)
+        view.lastEventFrameId = -1
         return super.prepareToRecycleView(reactContext, view)
     }
 

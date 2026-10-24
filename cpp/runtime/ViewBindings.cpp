@@ -114,8 +114,13 @@ jsi::Value BindAcquireViewFrame(jsi::Runtime &rt, const jsi::Value &, const jsi:
     if (!box) {
         return jsi::Value::undefined();
     }
-    // The handle takes a reference of its own, so the frame outlives the state it came from.
-    return marshal::FromHandle<TRComposedFrameRef>(rt, box->get(), marshal::Ownership::Retain);
+    // A reference of its own, adopted by the handle, so the frame outlives the state it came from;
+    // none when the view has retired the frame.
+    TRComposedFrameRef frame = box->Acquire();
+    if (frame == nullptr) {
+        return jsi::Value::undefined();
+    }
+    return marshal::FromHandle<TRComposedFrameRef>(rt, frame, marshal::Ownership::Adopt);
 }
 
 void Define(jsi::Runtime &rt, jsi::Object &target, const char *name, unsigned argc, jsi::HostFunctionType function) {

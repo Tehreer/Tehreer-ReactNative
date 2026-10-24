@@ -38,13 +38,33 @@ JNIEXPORT jlong JNICALL Java_com_tehreer_reactnative_TehreerPaintJni_create(JNIE
 }
 
 JNIEXPORT void JNICALL Java_com_tehreer_reactnative_TehreerPaintJni_destroy(JNIEnv *, jclass, jlong handle) {
+    if (ViewPainter *painter = Painter(handle)) {
+        // The state of the node outlives the view, and holds the frame: let the frame go now.
+        if (painter->frame) {
+            painter->frame->Retire(true);
+        }
+    }
     delete Painter(handle);
+}
+
+// The view is unmounted (or recycled): its frame and the text it was made from are not needed.
+JNIEXPORT void JNICALL Java_com_tehreer_reactnative_TehreerPaintJni_retire(JNIEnv *, jclass, jlong handle) {
+    if (ViewPainter *painter = Painter(handle)) {
+        if (painter->frame) {
+            painter->frame->Retire(true);
+        }
+    }
 }
 
 // An id of 0, or of a frame that is gone, clears the frame: nothing is drawn.
 JNIEXPORT void JNICALL Java_com_tehreer_reactnative_TehreerPaintJni_setFrame(JNIEnv *, jclass, jlong handle, jint frameId) {
     if (ViewPainter *painter = Painter(handle)) {
-        painter->frame = FrameRegistry::Find(static_cast<std::uint32_t>(frameId));
+        auto next = FrameRegistry::Find(static_cast<std::uint32_t>(frameId));
+        // The frame that was shown is no longer wanted (the state that holds it stays with React Native).
+        if (painter->frame && painter->frame != next) {
+            painter->frame->Retire(false);
+        }
+        painter->frame = std::move(next);
         // The locator of the previous frame holds a reference to it.
         painter->framePainter.Reset();
     }
@@ -71,7 +91,11 @@ JNIEXPORT void JNICALL Java_com_tehreer_reactnative_TehreerPaintJni_draw(
         // its own origin and only the lines in view are visited. The window is in layout units.
         paint.isWindowed = isWindowed != JNI_FALSE;
         paint.visible = TRRect{TRPoint{0, visibleTop}, TRSize{visibleWidth, visibleHeight}};
-        painter->framePainter.Draw(painter->frame->get(), target, density, paint);
+        // A reference for the length of the draw: the frame may be retired meanwhile.
+        if (TRComposedFrameRef frame = painter->frame->Acquire()) {
+            painter->framePainter.Draw(frame, target, density, paint);
+            TRComposedFrameRelease(frame);
+        }
     }
 }
 

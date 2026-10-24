@@ -140,3 +140,22 @@ test("a point inside a character finds that character, not the nearest boundary,
   assert.equal(queries.indexOfCodeUnit(frame, 4, 25), 7);
   assert.equal(queries.indexOfCodeUnit(frame, 6, 25), 7);
 });
+
+test("a NaN position is a RangeError, an infinite one is outside the text", () => {
+  const frame = makeFrame([line(0, 4, 0)]) as never;
+  assert.throws(() => queries.indexOfCodeUnit(frame, Number.NaN, 5), RangeError);
+  assert.throws(() => queries.indexOfCodeUnit(frame, 5, Number.NaN), RangeError);
+  assert.equal(queries.indexOfCodeUnit(frame, Number.POSITIVE_INFINITY, 5), undefined);
+  assert.equal(queries.indexOfCodeUnit(frame, 5, Number.NEGATIVE_INFINITY), undefined);
+});
+
+test("scroll requests that would reach a native view as NaN or infinity are refused", () => {
+  for (const bad of [Number.NaN, Number.POSITIVE_INFINITY, Number.NEGATIVE_INFINITY]) {
+    assert.throws(() => queries.checkScrollOffset(bad), RangeError);
+  }
+  assert.equal(queries.checkScrollOffset(-5), -5, "a negative offset is clamped later, not refused");
+  for (const bad of [Number.NaN, -1, 1.5, Number.POSITIVE_INFINITY]) {
+    assert.throws(() => queries.checkScrollCodeUnit(bad), RangeError);
+  }
+  assert.equal(queries.checkScrollCodeUnit(0), 0);
+});

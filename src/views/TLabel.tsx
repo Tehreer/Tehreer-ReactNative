@@ -46,6 +46,7 @@ export interface TLabelHandle {
    * Finds the code unit under a position of the label, in layout units from its top left.
    *
    * @returns The index, or `undefined` if there is no character at the position.
+   * @throws RangeError if `x` or `y` is NaN.
    */
   indexOfCodeUnit(x: number, y: number): number | undefined;
   /** Returns the rectangles of code units, in the coordinates of the label. */
@@ -117,11 +118,17 @@ export const TLabel = forwardRef<TLabelHandle, TLabelProps>(function TLabel(prop
     }
   }, [onTap]);
 
+  // Nothing is mounted until the text exists, so that the native view never composes (and reports)
+  // an empty frame before its real one.
+  if (viewText === undefined) {
+    return null;
+  }
+
   return (
     <TextBase
       testID={testID}
       style={style}
-      textId={viewText?.id ?? 0}
+      textId={viewText.id}
       textColor={toNativeColor(textColor, 0xff000000 | 0)}
       textAlignment={textAlignment ?? TextAlignment.Leading}
       truncationEnabled={isTruncationEnabled ?? false}

@@ -2,8 +2,11 @@
 
 #include <Tehreer/Tehreer.h>
 
+#include <atomic>
 #include <cstdint>
 #include <memory>
+#include <mutex>
+#include <utility>
 
 namespace tehreer::fabric {
 
@@ -24,28 +27,85 @@ public:
      * could only call on the runtime's thread, so it would be measured with a room of zero.
      */
     static std::shared_ptr<const ViewText> Make(TRTextRef text, TRTypefaceRef typeface, float typeSize);
+
     ~ViewText() {
-        TRTextRelease(_text);
-        if (_typeface != nullptr) {
-            TRTypefaceRelease(_typeface);
-        }
+        LiveCount().fetch_sub(1, std::memory_order_relaxed);
+        Retire();
     }
 
     ViewText(const ViewText &) = delete;
     ViewText &operator=(const ViewText &) = delete;
 
-    /** Borrowed: valid as long as this box is. */
-    TRTextRef text() const noexcept { return _text; }
-    /** Borrowed; `NULL` when the text sets a typeface for every range itself. */
-    TRTypefaceRef typeface() const noexcept { return _typeface; }
+    /** How many boxes are alive; for the tests. */
+    static std::atomic<int> &LiveCount() noexcept {
+        static std::atomic<int> count{0};
+        return count;
+    }
+
+    /** References of their own to the text and the typeface, released with the lease. */
+    class Lease final {
+    public:
+        Lease() = default;
+        Lease(TRTextRef text, TRTypefaceRef typeface) noexcept : _text(text), _typeface(typeface) {}
+        ~Lease() {
+            if (_text != nullptr) {
+                TRTextRelease(_text);
+            }
+            if (_typeface != nullptr) {
+                TRTypefaceRelease(_typeface);
+            }
+        }
+        Lease(Lease &&other) noexcept : _text(std::exchange(other._text, nullptr)), _typeface(std::exchange(other._typeface, nullptr)) {}
+        Lease(const Lease &) = delete;
+        Lease &operator=(const Lease &) = delete;
+        Lease &operator=(Lease &&) = delete;
+
+        /** `NULL` when the box was retired. */
+        TRTextRef text() const noexcept { return _text; }
+        /** `NULL` when the text sets a typeface for every range itself. */
+        TRTypefaceRef typeface() const noexcept { return _typeface; }
+
+    private:
+        TRTextRef _text = nullptr;
+        TRTypefaceRef _typeface = nullptr;
+    };
+
+    /**
+     * Takes references that keep the text alive for as long as the caller uses it, so that
+     * `Retire` on another thread cannot free it under a composition.
+     */
+    Lease Acquire() const noexcept {
+        std::lock_guard<std::mutex> lock(_mutex);
+        return _text == nullptr ? Lease() : Lease(TRTextRetain(_text), _typeface != nullptr ? TRTypefaceRetain(_typeface) : nullptr);
+    }
+
+    /**
+     * Lets go of the text and the typeface: React Native keeps the last state of an unmounted
+     * node (and so this box) for as long as it likes, and what the state holds is Core memory and
+     * the data of replacements, which must not wait for that. Whoever holds a lease keeps using
+     * it; later leases are empty. Idempotent, any thread.
+     */
+    void Retire() const noexcept {
+        std::lock_guard<std::mutex> lock(_mutex);
+        if (_text != nullptr) {
+            TRTextRelease(_text);
+            _text = nullptr;
+        }
+        if (_typeface != nullptr) {
+            TRTypefaceRelease(_typeface);
+            _typeface = nullptr;
+        }
+    }
+
     float typeSize() const noexcept { return _typeSize; }
 
 private:
     ViewText(TRTextRef text, TRTypefaceRef typeface, float typeSize) noexcept
-        : _text(text), _typeface(typeface), _typeSize(typeSize) {}
+        : _text(text), _typeface(typeface), _typeSize(typeSize) { LiveCount().fetch_add(1, std::memory_order_relaxed); }
 
-    TRTextRef _text;
-    TRTypefaceRef _typeface;
+    mutable std::mutex _mutex;
+    mutable TRTextRef _text;
+    mutable TRTypefaceRef _typeface;
     float _typeSize;
 };
 

@@ -3,7 +3,7 @@ import type { LayoutChangeEvent, NativeSyntheticEvent, StyleProp, ViewStyle } fr
 import type { Rect } from "../geometry.js";
 import type { ComposedFrame } from "../layout/ComposedFrame.js";
 import { TextAlignment } from "../layout/enums.js";
-import { getCaretPosition, getCodeUnitAtOffset, getLineTop, indexOfCodeUnit } from "./FrameQueries.js";
+import { checkScrollCodeUnit, checkScrollOffset, getCaretPosition, getCodeUnitAtOffset, getLineTop, indexOfCodeUnit } from "./FrameQueries.js";
 import type { CaretPosition } from "./FrameQueries.js";
 import { acquireFrame, withFrame } from "./TLabel.js";
 import { TextBase } from "./TextBase.js";
@@ -65,9 +65,17 @@ export interface TTextViewHandle {
    * from Core's caret math, so it is right inside right-to-left runs too.
    */
   getCaretPosition(index: number): CaretPosition | undefined;
-  /** Scrolls the line of a code unit to the top of the view. Before the first frame the request waits for it. */
+  /**
+   * Scrolls the line of a code unit to the top of the view. Before the first frame the request waits for it.
+   *
+   * @throws RangeError if the index is not a whole number from 0.
+   */
   scrollToCodeUnit(index: number): void;
-  /** Scrolls to a distance from the top of the text, which is limited to what the text allows. */
+  /**
+   * Scrolls to a distance from the top of the text, which is limited to what the text allows.
+   *
+   * @throws RangeError if the offset is not a finite number.
+   */
   scrollToOffset(offset: number): void;
 }
 
@@ -100,7 +108,8 @@ export const TTextView = forwardRef<TTextViewHandle, TTextViewProps>(function TT
     const limit = Math.max(0, metrics.current.content - metrics.current.viewport);
     setRequest((previous) => ({ offset: Math.min(Math.max(0, offset), limit), token: previous.token + 1 }));
   }, []);
-  const scrollTo = useCallback((offset: number) => {
+  const scrollTo = useCallback((requested: number) => {
+    const offset = checkScrollOffset(requested);
     // A request that comes before the first frame waits for it, because the limit is not known yet.
     if (metrics.current.content <= 0) {
       metrics.current.pending = offset;
@@ -117,7 +126,8 @@ export const TTextView = forwardRef<TTextViewHandle, TTextViewProps>(function TT
     indexOfCodeUnit: (x, y) => withFrame(frameIdRef.current, (frame) => indexOfCodeUnit(frame, x, y)),
     getSelectionRects: (fromIndex, toIndex) => withFrame(frameIdRef.current, (frame) => frame.getSelectionRects(fromIndex, toIndex)) ?? [],
     getCaretPosition: (index) => withFrame(frameIdRef.current, (frame) => getCaretPosition(frame, index)),
-    scrollToCodeUnit: (index) => {
+    scrollToCodeUnit: (requested) => {
+      const index = checkScrollCodeUnit(requested);
       // Like an offset, a request that comes before the first frame waits for it.
       if (frameIdRef.current === 0) {
         metrics.current.pendingCodeUnit = index;
@@ -166,12 +176,18 @@ export const TTextView = forwardRef<TTextViewHandle, TTextViewProps>(function TT
     onScroll?.(event.nativeEvent.y);
   }, [onScroll]);
 
+  // Nothing is mounted until the text exists, so that the native view never composes (and reports)
+  // an empty frame before its real one.
+  if (viewText === undefined) {
+    return null;
+  }
+
   return (
     <TextBase
       testID={testID}
       style={style}
       scrollable
-      textId={viewText?.id ?? 0}
+      textId={viewText.id}
       textColor={toNativeColor(textColor, 0xff000000 | 0)}
       textAlignment={textAlignment ?? TextAlignment.Leading}
       extraLineSpacing={extraLineSpacing ?? 0}

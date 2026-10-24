@@ -57,8 +57,8 @@ const MAX_WIDTH_REBUILDS = 3;
 
 /**
  * Makes the text of a view and keeps it registered for as long as it is shown. The text is made in
- * a layout effect, so it is on the first commit that the user sees (the very first render has
- * `textId` 0 and shows nothing; the layout effect re-renders before anything is painted). It is
+ * a layout effect, so it is on the first commit that the user sees (the very first render has no
+ * text and the view renders nothing; the layout effect re-renders before anything is painted). It is
  * released as soon as it is replaced or the view goes: a node that is still alive keeps its own
  * share of the text in its state, so there is nothing to wait for.
  *
