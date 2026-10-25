@@ -12,6 +12,7 @@
     "verbatimModuleSyntax": true,
     "erasableSyntaxOnly": true,
     "isolatedModules": true,
+    "jsx": "react-jsx",
     "skipLibCheck": true,
     "noEmit": true
   },

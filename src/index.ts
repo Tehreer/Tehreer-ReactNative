@@ -56,3 +56,10 @@ export { TypeFamily } from "./graphics/TypeFamily.js";
 export { Typeface } from "./graphics/Typeface.js";
 export { TypefaceManager } from "./graphics/TypefaceManager.js";
 export type { VariationAxis } from "./graphics/VariationAxis.js";
+
+export { TLabel } from "./views/TLabel.js";
+export type { TLabelHandle, TLabelProps } from "./views/TLabel.js";
+export { TTextView } from "./views/TTextView.js";
+export type { TTextViewHandle, TTextViewProps } from "./views/TTextView.js";
+export type { CaretPosition } from "./views/FrameQueries.js";
+export type { ColorValue, ParagraphProps, RenderingProps, TextHighlight, TextSource } from "./views/shared.js";

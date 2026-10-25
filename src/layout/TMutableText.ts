@@ -167,6 +167,9 @@ export class TMutableText extends TText {
     checkRange(fromIndex, toIndex, b.TRTextGetLength(handle));
 
     const prepared = prepareAttributes(attributes);
+    if (attributes.replacement !== undefined) {
+      this.mayHaveReplacement = true;
+    }
     try {
       if (fromIndex === toIndex) {
         return;

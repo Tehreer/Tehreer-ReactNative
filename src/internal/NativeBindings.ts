@@ -90,6 +90,25 @@ export interface NativeBindings extends NativeFunctions, SheenBidiFunctions {
   /** Puts the callbacks back that {@link installDrawContext} replaced. Idempotent. */
   restoreDrawContext(scope: DrawScope): void;
   /**
+   * Gives the native side of the views a typesetter by an id, for the `typesetterId` prop (a prop
+   * cannot carry a native object). The table retains it, so the handle may be disposed. The id is
+   * never 0.
+   */
+  registerTypesetter(typesetter: Handle<"TRTypesetter">): number;
+  /** Drops the table's reference; a view keeps the one it took. Idempotent; an unknown id is ignored. */
+  unregisterTypesetter(id: number): void;
+  /**
+   * A replacement whose room is `{ ascent, descent, extent }` and whose drawing is the flat list
+   * `rects` (x, y, width, height and `0xAARRGGBB` color of each filled rectangle, relative to its
+   * start on the baseline, in layout units). Both are plain data, so it can be laid out and painted
+   * on any thread. The data lives exactly as long as the Core replacement.
+   */
+  createReplacementHolder(kind: number, ascent: number, descent: number, extent: number, rects: readonly number[]): Handle<"TRReplacement"> | undefined;
+  /** Debug builds: the number of registered typesetters and of live replacement holders. */
+  testGetViewCounts?(): { typesetters: number; replacements: number };
+  /** Debug builds: applies the numbers of the `rendererInts` and `rendererFloats` props to a renderer. */
+  testApplyRendererSettings?(renderer: Handle<"TRRenderer">, ints: readonly number[], floats: readonly number[]): void;
+  /**
    * `TRTextSetAttribute`, bound by hand because its argument is a union. The text copies the
    * attribute and retains the typeface or font features that it holds, so the caller may dispose
    * them afterwards. Returns false when the range is not within the text. Throws `RangeError` for a

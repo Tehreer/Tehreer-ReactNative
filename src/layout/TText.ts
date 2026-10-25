@@ -43,6 +43,14 @@ function fromCodeUnits(units: Uint16Array): string {
  */
 export class TText extends NativeObject<"TRText"> {
   /**
+   * Whether a replacement was ever set on this text or on the text it was copied from. It is never
+   * false for a text that has one, so `Typesetter.hasReplacements` can answer without walking the runs.
+   *
+   * @internal
+   */
+  mayHaveReplacement?: boolean;
+
+  /**
    * Makes a text of a string, which has no attributes.
    *
    * @throws TypeError if `text` is not a string.
@@ -128,7 +136,9 @@ export class TText extends NativeObject<"TRText"> {
     if (created === undefined) {
       throw new Error("Could not copy the text.");
     }
-    return new TText(adopt, created);
+    const copy = new TText(adopt, created);
+    copy.mayHaveReplacement = this.mayHaveReplacement;
+    return copy;
   }
 
   /**
@@ -141,7 +151,9 @@ export class TText extends NativeObject<"TRText"> {
     if (created === undefined) {
       throw new Error("Could not copy the text.");
     }
-    return makeMutable(created);
+    const copy = makeMutable(created);
+    copy.mayHaveReplacement = this.mayHaveReplacement;
+    return copy;
   }
 
   override toString(): string {

@@ -7,8 +7,8 @@
 #endif
 
 // The Android autolinking includes only this header for the library, so the component descriptor is
-// reachable through it (see fabric/TehreerTextBaseComponentDescriptor.h).
-#include "fabric/TehreerTextBaseComponentDescriptor.h"
+// reachable through it (see views/ComponentDescriptors.h).
+#include "views/ComponentDescriptors.h"
 
 #include <memory>
 
