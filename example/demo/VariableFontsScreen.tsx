@@ -34,12 +34,13 @@ export function VariableFontsScreen({ onBack }: { onBack: () => void }) {
   );
   const coordinates = edited ?? (base ? base.variationCoordinates.toArray() : []);
 
-  // The instances that the sliders and the palette make are owned here; they are disposed a moment
-  // after the next one is shown.
-  const [typeface, setTypeface] = useState<Typeface>();
+  // The instances that the sliders and the palette make are owned here; they are disposed by the
+  // effect below, after React has committed the render that shows the next one.
+  const [shown, setShown] = useState<{ typeface: Typeface | undefined; owned: Typeface[] }>({ typeface: undefined, owned: [] });
+  const typeface = shown.typeface;
   useEffect(() => {
     if (base === undefined) {
-      setTypeface(undefined);
+      setShown({ typeface: undefined, owned: [] });
       return;
     }
     const owned: Typeface[] = [];
@@ -59,11 +60,10 @@ export function VariableFontsScreen({ onBack }: { onBack: () => void }) {
         current = colored;
       }
     }
-    setTypeface(current);
-    return () => {
-      setTimeout(() => owned.forEach((item) => item.dispose()), 300);
-    };
+    setShown({ typeface: current, owned });
   }, [base, edited, palettes, paletteIndex]);
+
+  useEffect(() => () => shown.owned.forEach((item) => item.dispose()), [shown]);
 
   const changeFont = (id: string) => {
     setFontId(id);

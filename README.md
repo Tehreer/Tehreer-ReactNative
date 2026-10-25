@@ -101,8 +101,9 @@ Android emulator (Pixel-sized, API 30):
 
 | | | |
 |---|---|---|
-| ![Home](docs/screenshots/android-home.png) | ![Bidirectional Algorithm](docs/screenshots/android-bidi.png) | ![Typeface Glyphs](docs/screenshots/android-glyphs.png) |
-| ![Variable Fonts](docs/screenshots/android-variable-fonts.png) | ![Custom Label](docs/screenshots/android-custom-label.png) | ![Custom Text View](docs/screenshots/android-text-view.png) |
+| ![Home](docs/screenshots/android-home.png) | ![Bidirectional Algorithm](docs/screenshots/android-bidi.png) | ![Typeface Information](docs/screenshots/android-typeface-info.png) |
+| ![Typeface Glyphs](docs/screenshots/android-glyphs.png) | ![OpenType Shaping](docs/screenshots/android-shaping.png) | ![Variable Fonts](docs/screenshots/android-variable-fonts.png) |
+| ![Custom Label](docs/screenshots/android-custom-label.png) | ![Custom Text View](docs/screenshots/android-text-view.png) | |
 
 ## Packaging
 

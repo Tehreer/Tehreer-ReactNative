@@ -11,22 +11,38 @@ const GAP = 10;
 const PAGE_PADDING = 16;
 const hex = (value: number) => value.toString(16).toUpperCase().padStart(4, '0');
 
+const CHUNK = 4096;
+
 /**
  * Finds a character for each glyph that the character map reaches. The library draws text and not a
  * glyph by its ID, so a glyph that no character maps to (a ligature, a variant) shows only its ID.
+ * It works in chunks and gives the JS thread back between them, so the screen stays responsive.
  */
-function mapCharacters(typeface: Typeface): Map<number, number> {
+function mapCharacters(typeface: Typeface, onDone: (characters: Map<number, number>) => void): () => void {
   const characters = new Map<number, number>();
-  for (let codePoint = 0x20; codePoint <= 0xFFFF; codePoint++) {
-    if (codePoint >= 0xD800 && codePoint <= 0xDFFF) {
-      continue;
+  let codePoint = 0x20;
+  let timer: ReturnType<typeof setTimeout> | undefined;
+
+  const step = () => {
+    const end = Math.min(codePoint + CHUNK, 0x10000);
+    for (; codePoint < end; codePoint++) {
+      if (codePoint >= 0xD800 && codePoint <= 0xDFFF) {
+        continue;
+      }
+      const glyphId = typeface.getGlyphId(codePoint);
+      if (glyphId > 0 && !characters.has(glyphId)) {
+        characters.set(glyphId, codePoint);
+      }
     }
-    const glyphId = typeface.getGlyphId(codePoint);
-    if (glyphId > 0 && !characters.has(glyphId)) {
-      characters.set(glyphId, codePoint);
+    if (codePoint < 0x10000) {
+      timer = setTimeout(step, 0);
+    } else {
+      onDone(characters);
     }
-  }
-  return characters;
+  };
+
+  timer = setTimeout(step, 0);
+  return () => clearTimeout(timer);
 }
 
 const GlyphCell = memo(function GlyphCell({ glyphId, codePoint, isSelected, typeface, width, onPick }: {
@@ -65,9 +81,8 @@ export function GlyphsScreen({ onBack }: { onBack: () => void }) {
     if (typeface === undefined) {
       return;
     }
-    // Deferred, so the screen is drawn before the 65,000 lookups of the character map.
-    const timer = setTimeout(() => setCharacters(mapCharacters(typeface)), 0);
-    return () => clearTimeout(timer);
+    // Cancelled when the typeface changes or goes, so no lookup reads a typeface that is disposed.
+    return mapCharacters(typeface, setCharacters);
   }, [typeface]);
 
   const glyphIds = useMemo(() => {
@@ -112,13 +127,13 @@ export function GlyphsScreen({ onBack }: { onBack: () => void }) {
         keyExtractor={(glyphId) => String(glyphId)}
         ListHeaderComponent={header}
         numColumns={COLUMNS}
-        renderItem={({ item }) => (
+        renderItem={({ item }) => typeface === undefined ? null : (
           <GlyphCell
             codePoint={characters?.get(item)}
             glyphId={item}
             isSelected={item === selected}
             onPick={pick}
-            typeface={typeface!}
+            typeface={typeface}
             width={cellWidth}
           />
         )}
