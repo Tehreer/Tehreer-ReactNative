@@ -20,7 +20,7 @@ import type { Rect } from '../../src/geometry';
 import { fontBytes, nastaliqFontBytes } from './fontData';
 import type { SuiteReport } from './runSuites';
 
-// The suite of issues #27 to #29: TLabel and TTextView rendered. The native view tells when it has
+// The suite of issues #27 to #29: TLabel and TTextView rendered. JavaScript tells when it has
 // laid its text out (`onFrameReady`), and each label case compares that with the frame that the
 // JavaScript API makes for the same text, settings and size: the line count and the size must be the
 // same, which is the proof that the props reach Core's settings unchanged. The text view is driven
@@ -235,7 +235,7 @@ export function LabelTestHost({ onDone }: { onDone: (report: SuiteReport) => voi
   const given = useRef<Typesetter | undefined>(undefined);
   const rapidHolder = useRef<TText | undefined>(undefined);
   // Counted before anything of this suite is registered.
-  const baselineRef = useRef<{ typesetters: number; replacements: number } | undefined>(undefined);
+  const baselineRef = useRef<{ typesetters: number; composedFrames: number; replacements: number } | undefined>(undefined);
 
   useEffect(() => {
     baselineRef.current = getNativeBindings().testGetViewCounts?.();
@@ -520,11 +520,11 @@ export function LabelTestHost({ onDone }: { onDone: (report: SuiteReport) => voi
           const settled = () => {
             b.testCollectGarbage?.();
             const now = b.testGetViewCounts?.();
-            return now !== undefined && now.typesetters === baseline.typesetters && now.replacements === baseline.replacements;
+            return now !== undefined && now.typesetters === baseline.typesetters && now.composedFrames === baseline.composedFrames && now.replacements === baseline.replacements;
           };
           const released = await waitFor(settled, 10000);
           const after = b.testGetViewCounts?.();
-          ok(released, `release: typesetters ${baseline.typesetters} -> ${after?.typesetters}, replacements ${baseline.replacements} -> ${after?.replacements}`);
+          ok(released, `release: typesetters ${baseline.typesetters} -> ${after?.typesetters}, composed frames ${baseline.composedFrames} -> ${after?.composedFrames}, replacements ${baseline.replacements} -> ${after?.replacements}`);
         }
       })
       .catch((e: unknown) => failures.push(`(suite): ${e instanceof Error ? (e.stack ?? e.message) : String(e)}`))

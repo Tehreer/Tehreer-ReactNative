@@ -1,11 +1,11 @@
-import { forwardRef, useCallback, useImperativeHandle } from "react";
-import type { LayoutChangeEvent, NativeSyntheticEvent, StyleProp, ViewStyle } from "react-native";
-import TLabelNativeComponent from "../specs/TLabelNativeComponent.js";
+import { forwardRef, useEffect, useImperativeHandle } from "react";
+import type { GestureResponderEvent, LayoutChangeEvent, StyleProp, ViewStyle } from "react-native";
+import TLinePaintNativeComponent from "../specs/TLinePaintNativeComponent.js";
 import type { Rect } from "../geometry.js";
 import type { ComposedFrame } from "../layout/ComposedFrame.js";
 import type { BreakMode, TruncationPlace } from "../layout/enums.js";
 import { indexOfCodeUnit } from "./FrameQueries.js";
-import { resolveFrameSettings, toNativeRenderer, toNativeSettings } from "./shared.js";
+import { resolveFrameSettings, toNativeRenderer } from "./shared.js";
 import type { ParagraphProps, RenderingProps, TextSource } from "./shared.js";
 import { useTextView } from "./useTextView.js";
 
@@ -29,16 +29,15 @@ export interface TLabelProps extends TextSource, RenderingProps, ParagraphProps 
   readonly onTap?: (index: number | undefined) => void;
   /** Called with the size that the layout chose, in layout units. */
   readonly onLayout?: (event: LayoutChangeEvent) => void;
-  /** Called when the native label has laid its text out, with the size of its frame. */
+  /** Called when the text has been laid out for the size of the label, with the size of its frame. */
   readonly onFrameReady?: (event: { lineCount: number; width: number; height: number }) => void;
 }
 
 /** What a reference to a `TLabel` gives. */
 export interface TLabelHandle {
   /**
-   * The frame that is shown, or `undefined` when the label has no size yet. JavaScript makes it with
-   * the typesetter and the size of the label when it is asked for, as the native label does, and
-   * releases it when the label lays out again.
+   * The frame that is shown, or `undefined` when the label has no size yet. It is made with the
+   * typesetter and the size of the label, and released when the label lays out again.
    */
   readonly composedFrame: ComposedFrame | undefined;
   /**
@@ -53,11 +52,12 @@ export interface TLabelHandle {
 }
 
 /**
- * A label that draws text with Tehreer. Core lays the text out natively in the measure function of
- * the layout, so the label has its size on the first pass and no JavaScript is involved while it is
- * measured. What the stroke or the shadow draws beyond the box of the label is clipped at its
- * bounds (there is no padding to draw it in), so leave room with the style. The typeface, size, color, alignment, line limit and truncation are Core's settings of
- * the frame resolver, set as they are.
+ * A label that draws text with Tehreer. The size comes from Core in the measure function of the
+ * layout (C++, on the thread that commits), so the label has its size on the first pass. Then
+ * JavaScript lays the text out for that size, and a native view draws the frame: nothing else of the
+ * label is native. What the stroke or the shadow draws beyond the box of the label is clipped at its
+ * bounds (there is no padding to draw it in), so leave room with the style. The typeface, size,
+ * color, alignment, line limit and truncation are Core's settings of the frame resolver, set as they are.
  *
  * Not mirrored from the other wrappers: `verticalAlignment` (Web), `highlights` and `highlightColor`
  * (a label has no line views to paint them in, and Tehreer-Android and Tehreer-Cocoa have none
@@ -66,51 +66,60 @@ export interface TLabelHandle {
 export const TLabel = forwardRef<TLabelHandle, TLabelProps>(function TLabel(props, ref) {
   const { style, testID, onTap, onFrameReady, onLayout: onLayoutProp } = props;
   const renderer = toNativeRenderer(props);
-  const settings = resolveFrameSettings({ ...props, maxLines: props.maxLines });
-  const { typesetter, onLayout: onTextLayout, getComposedFrame } = useTextView(props, settings, false);
+  const settings = resolveFrameSettings(props);
+  const { typesetter, onLayout: onTextLayout, getComposedFrame, frame, composedFrameId } = useTextView(props, settings, false);
 
   useImperativeHandle(ref, () => ({
     get composedFrame() {
       return getComposedFrame();
     },
     indexOfCodeUnit: (x, y) => {
-      const frame = getComposedFrame();
-      return frame === undefined ? undefined : indexOfCodeUnit(frame, x, y);
+      const known = getComposedFrame();
+      return known === undefined ? undefined : indexOfCodeUnit(known, x, y);
     },
     getSelectionRects: (fromIndex, toIndex) => getComposedFrame()?.getSelectionRects(fromIndex, toIndex) ?? [],
   }), [getComposedFrame]);
 
-  const handleLayout = useCallback((event: LayoutChangeEvent) => {
+  const lineCount = frame?.lines.length ?? 0;
+  const width = frame?.width;
+  const height = frame?.height;
+  useEffect(() => {
+    if (width !== undefined && height !== undefined) {
+      onFrameReady?.({ lineCount, width, height });
+    }
+    // Reported when the frame is made again, not when the callback changes identity.
+  }, [composedFrameId]);
+
+  const handleLayout = (event: LayoutChangeEvent) => {
     onTextLayout(event);
     onLayoutProp?.(event);
-  }, [onTextLayout, onLayoutProp]);
+  };
 
-  const handleTap = useCallback((event: NativeSyntheticEvent<{ x: number; y: number }>) => {
-    const frame = getComposedFrame();
-    onTap?.(frame === undefined ? undefined : indexOfCodeUnit(frame, event.nativeEvent.x, event.nativeEvent.y));
-  }, [onTap, getComposedFrame]);
+  const handleRelease = (event: GestureResponderEvent) => {
+    const known = getComposedFrame();
+    onTap?.(known === undefined ? undefined : indexOfCodeUnit(known, event.nativeEvent.locationX, event.nativeEvent.locationY));
+  };
 
-  const handleFrameReady = useCallback((event: NativeSyntheticEvent<{ lineCount: number; width: number; height: number }>) => {
-    onFrameReady?.(event.nativeEvent);
-  }, [onFrameReady]);
-
-  // Nothing is mounted until the typesetter exists, so that the native view never lays out an empty
-  // text and reports it.
+  // Nothing is mounted until the typesetter exists, so that no empty text is laid out and reported.
   if (typesetter === undefined) {
     return null;
   }
 
   return (
-    <TLabelNativeComponent
+    <TLinePaintNativeComponent
       testID={testID}
       style={style}
       typesetterId={typesetter.id}
-      frameSettings={toNativeSettings(settings)}
-      rendererInts={renderer.ints}
-      rendererFloats={renderer.floats}
+      {...settings}
+      composedFrameId={composedFrameId}
+      firstLine={0}
+      lineCount={lineCount}
+      originX={0}
+      originY={0}
+      {...renderer}
       onLayout={handleLayout}
-      onFrameReady={onFrameReady === undefined ? undefined : handleFrameReady}
-      onTextTap={onTap === undefined ? undefined : handleTap}
+      onStartShouldSetResponder={onTap === undefined ? undefined : () => true}
+      onResponderRelease={onTap === undefined ? undefined : handleRelease}
     />
   );
 });

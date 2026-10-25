@@ -2,7 +2,7 @@
 
 React Native wrapper of [Tehreer Core](https://github.com/Tehreer/Tehreer-Core), a lightweight, dependency-free text engine written in C89. Licensed under Apache 2.0.
 
-The wrapper exposes the whole public Core API to React Native through one C++ JSI layer shared by iOS and Android, a TypeScript API shaped like Tehreer-Web, Tehreer-Android and Tehreer-Cocoa, and thin native views that draw with `Canvas` (Android) and `CGContext` (iOS).
+The wrapper exposes the whole public Core API to React Native through one C++ JSI layer shared by iOS and Android, a TypeScript API shaped like Tehreer-Web, Tehreer-Android and Tehreer-Cocoa, and one thin native view (`TLinePaint`) that draws lines with `Canvas` (Android) and `CGContext` (iOS). `TLabel` and `TTextView` are TypeScript.
 
 **Hard constraints:** new architecture only (Fabric, C++ TurboModule, Hermes); no Skia; no WebAssembly; no new dependency of any kind without asking; Core owns all text logic and the wrapper stays a thin bridge.
 
@@ -13,7 +13,7 @@ The wrapper exposes the whole public Core API to React Native through one C++ JS
 | Path | Role |
 |------|------|
 | `Libraries/TehreerCore/` | Git submodule of Tehreer-Core, pinned to a SHA |
-| `cpp/` | JSI runtime (handles, structs, callbacks), generated bindings, the C++ TurboModule, the shadow nodes and shared layout of the views (`cpp/views/`) |
+| `cpp/` | JSI runtime (handles, structs, callbacks), generated bindings, the C++ TurboModule, the shadow node that measures a label and the id tables of typesetters and frames (`cpp/views/`) |
 | `ios/`, `android/` | Build files, platform painters, Fabric views |
 | `scripts/` | Binding generator, dependency fetch, Core sync |
 | `src/` | TypeScript API, same folders and names as Tehreer-Web, plus `views/` |
@@ -49,7 +49,7 @@ TEHREER_RESULT version=<Core version> smokeTest=<true|false> suites=<k> passed=<
 TEHREER_RESULT error=<message>
 ```
 
-The suite of the Fabric views renders, so it is not in the registry: `App.tsx` mounts `LabelTestHost` (`example/tests/LabelTests.tsx`, suite `labels`: TLabel, TTextView, replacements, strict counts after unmounting) after the synchronous suites and adds its report to the totals. One `TEHREER_SUITE` line per suite, one `TEHREER_FAIL` line per failed test (a suite that throws as a whole is reported as the failed test `(suite)`), and exactly one final `TEHREER_RESULT`. The run passes only if the version matches Core's, `smokeTest=true`, the suite lines add up to the result line, `total` is not 0 and `passed` equals `total`. A failing test, a timeout (90 s) or a missing result line exits non-zero. Scripts must never kill processes by name or pattern (`pkill`, `killall`); they signal only the pid or process group of a child they spawned (`tests/scripts.test.ts` enforces this).
+The suite of the Fabric views renders, so it is not in the registry: `App.tsx` mounts `LabelTestHost` (`example/tests/LabelTests.tsx`, suite `labels`: TLabel, TTextView, replacements, strict counts of registered typesetters and frames after unmounting) after the synchronous suites and adds its report to the totals. One `TEHREER_SUITE` line per suite, one `TEHREER_FAIL` line per failed test (a suite that throws as a whole is reported as the failed test `(suite)`), and exactly one final `TEHREER_RESULT`. The run passes only if the version matches Core's, `smokeTest=true`, the suite lines add up to the result line, `total` is not 0 and `passed` equals `total`. A failing test, a timeout (90 s) or a missing result line exits non-zero. Scripts must never kill processes by name or pattern (`pkill`, `killall`); they signal only the pid or process group of a child they spawned (`tests/scripts.test.ts` enforces this).
 
 ## Conventions
 

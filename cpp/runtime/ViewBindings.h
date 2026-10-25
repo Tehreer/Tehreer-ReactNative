@@ -10,6 +10,8 @@ namespace tehreer {
  * - `registerTypesetter(typesetter)` gives the native side of a view the typesetter that JavaScript
  *   made, by an id for the `typesetterId` prop; `unregisterTypesetter(id)` drops the table's
  *   reference (a view keeps the one it took).
+ * - `registerComposedFrame(frame)` and `unregisterComposedFrame(id)` do the same for the composed frame that a
+ *   `TLinePaint` view draws lines of, by the `composedFrameId` prop.
  * - `createReplacementHolder(kind, ascent, descent, extent, rects)` makes a replacement whose room
  *   and drawing are data (`rects` is a flat array of x, y, width, height and color), because a
  *   replacement cannot call JavaScript from the threads that lay out and draw a view.

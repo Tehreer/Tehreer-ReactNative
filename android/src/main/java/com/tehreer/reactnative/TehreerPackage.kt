@@ -10,11 +10,11 @@ import com.facebook.react.uimanager.ViewManager
 /**
  * Autolinking only accepts an Android library that has a package class. The main TurboModule is C++
  * and is found through the autolinked CMake project; this package registers the asset resolver and
- * the view managers of the Fabric components, whose shadow nodes are C++ too.
+ * the view manager of the Fabric component that paints lines, whose shadow node is C++ too.
  */
 class TehreerPackage : BaseReactPackage() {
     override fun createViewManagers(reactContext: ReactApplicationContext): List<ViewManager<*, *>> =
-        listOf(TLabelManager(), TTextViewManager())
+        listOf(TLinePaintManager())
 
     override fun getModule(name: String, reactContext: ReactApplicationContext): NativeModule? =
         if (name == TehreerAssetsModule.NAME) TehreerAssetsModule(reactContext) else null

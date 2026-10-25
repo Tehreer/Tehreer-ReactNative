@@ -97,6 +97,10 @@ export interface NativeBindings extends NativeFunctions, SheenBidiFunctions {
   registerTypesetter(typesetter: Handle<"TRTypesetter">): number;
   /** Drops the table's reference; a view keeps the one it took. Idempotent; an unknown id is ignored. */
   unregisterTypesetter(id: number): void;
+  /** Gives a `TLinePaint` view a composed frame by an id, as {@link registerTypesetter} does for a typesetter. */
+  registerComposedFrame(frame: Handle<"TRComposedFrame">): number;
+  /** Drops the table's reference; a view keeps the one it took. Idempotent; an unknown id is ignored. */
+  unregisterComposedFrame(id: number): void;
   /**
    * A replacement whose room is `{ ascent, descent, extent }` and whose drawing is the flat list
    * `rects` (x, y, width, height and `0xAARRGGBB` color of each filled rectangle, relative to its
@@ -104,10 +108,13 @@ export interface NativeBindings extends NativeFunctions, SheenBidiFunctions {
    * on any thread. The data lives exactly as long as the Core replacement.
    */
   createReplacementHolder(kind: number, ascent: number, descent: number, extent: number, rects: readonly number[]): Handle<"TRReplacement"> | undefined;
-  /** Debug builds: the number of registered typesetters and of live replacement holders. */
-  testGetViewCounts?(): { typesetters: number; replacements: number };
-  /** Debug builds: applies the numbers of the `rendererInts` and `rendererFloats` props to a renderer. */
-  testApplyRendererSettings?(renderer: Handle<"TRRenderer">, ints: readonly number[], floats: readonly number[]): void;
+  /** Debug builds: the number of registered typesetters and composed frames and of live replacement holders. */
+  testGetViewCounts?(): { typesetters: number; composedFrames: number; replacements: number };
+  /**
+   * Debug builds: applies the renderer props of `TLinePaint` that the object has, by their names, to a
+   * renderer. A name that it lacks is Core's default.
+   */
+  testApplyRendererSettings?(renderer: Handle<"TRRenderer">, props: Readonly<Record<string, number>>): void;
   /**
    * `TRTextSetAttribute`, bound by hand because its argument is a union. The text copies the
    * attribute and retains the typeface or font features that it holds, so the caller may dispose

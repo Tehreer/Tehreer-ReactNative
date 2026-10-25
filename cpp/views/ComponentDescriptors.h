@@ -9,13 +9,11 @@
 
 namespace facebook::react {
 
-extern const char TLabelComponentName[];
-extern const char TTextViewComponentName[];
+extern const char TLinePaintComponentName[];
 
-using TLabelShadowNode = TextShadowNode<TLabelComponentName, TLabelProps, TLabelEventEmitter, false>;
-using TTextViewShadowNode = TextShadowNode<TTextViewComponentName, TTextViewProps, TTextViewEventEmitter, true>;
+// Sized by its style, or by the measurement of its typesetter when it has one (the label).
+using TLinePaintShadowNode = TextShadowNode<TLinePaintComponentName, TLinePaintProps, ViewEventEmitter>;
 
-using TLabelComponentDescriptor = ConcreteComponentDescriptor<TLabelShadowNode>;
-using TTextViewComponentDescriptor = ConcreteComponentDescriptor<TTextViewShadowNode>;
+using TLinePaintComponentDescriptor = ConcreteComponentDescriptor<TLinePaintShadowNode>;
 
 } // namespace facebook::react

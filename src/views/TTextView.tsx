@@ -1,14 +1,76 @@
-import { forwardRef, useCallback, useImperativeHandle, useMemo, useRef, useState } from "react";
-import type { LayoutChangeEvent, NativeSyntheticEvent, StyleProp, ViewStyle } from "react-native";
-import TTextViewNativeComponent from "../specs/TTextViewNativeComponent.js";
+import { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from "react";
+import type { GestureResponderEvent, LayoutChangeEvent, NativeScrollEvent, NativeSyntheticEvent, ScrollViewInstance, StyleProp, ViewStyle } from "react-native";
+import { PixelRatio, Pressable, ScrollView, View } from "react-native";
+import TLinePaintNativeComponent from "../specs/TLinePaintNativeComponent.js";
 import type { Rect } from "../geometry.js";
+import { Renderer } from "../graphics/Renderer.js";
 import type { ComposedFrame } from "../layout/ComposedFrame.js";
+import { LineLocator } from "../layout/LineLocator.js";
 import { checkScrollCodeUnit, checkScrollOffset, getCaretPosition, getCodeUnitAtOffset, getLineTop, indexOfCodeUnit } from "./FrameQueries.js";
 import type { CaretPosition } from "./FrameQueries.js";
 import { findLinks, linkAt } from "./Links.js";
-import { resolveFrameSettings, toColor, toNativeHighlights, toNativeRenderer, toNativeSettings } from "./shared.js";
+import { resolveFrameSettings, resolveHighlights, toColor, toNativeRenderer } from "./shared.js";
 import type { ColorValue, ParagraphProps, RenderingProps, TextHighlight, TextSource } from "./shared.js";
 import { useTextView } from "./useTextView.js";
+
+/** How many lines one native view paints: fewer views to mount, a little more painted than is in sight. */
+const LINES_PER_CHUNK = 6;
+/** How many screens above and below the visible one stay mounted, for a scroll that JavaScript hears late. */
+const OVERSCAN_SCREENS = 1.5;
+
+/** The lines that one native view paints, and where it sits in the text (the box of the ink of its lines). */
+interface Chunk {
+  readonly firstLine: number;
+  readonly lineCount: number;
+  readonly left: number;
+  readonly top: number;
+  readonly width: number;
+  readonly height: number;
+}
+
+interface LineBoxes {
+  readonly chunks: readonly Chunk[];
+  /** The y of the bottom of each line, where its separator goes. */
+  readonly bottoms: readonly number[];
+}
+
+const rgba = (color: number) => `rgba(${(color >>> 16) & 0xff},${(color >>> 8) & 0xff},${color & 0xff},${((color >>> 24) & 0xff) / 255})`;
+
+/** The boxes of the lines of a frame, found with Core's line locator, grouped for the native views. */
+function measureLines(frame: ComposedFrame): LineBoxes {
+  const measuring = new Renderer();
+  measuring.renderScale = PixelRatio.get();
+  const locator = new LineLocator(frame, measuring);
+  const chunks: Chunk[] = [];
+  const bottoms: number[] = [];
+  try {
+    for (let first = 0; first < locator.lineCount; first += LINES_PER_CHUNK) {
+      const count = Math.min(LINES_PER_CHUNK, locator.lineCount - first);
+      let left = Infinity;
+      let top = Infinity;
+      let right = -Infinity;
+      let bottom = -Infinity;
+      for (let index = first; index < first + count; index++) {
+        const box = locator.getLineBox(index);
+        left = Math.min(left, box.x);
+        top = Math.min(top, box.y);
+        right = Math.max(right, box.x + box.width);
+        bottom = Math.max(bottom, box.y + box.height);
+        const line = frame.lines.get(index);
+        try {
+          bottoms.push(line.origin.y - line.ascent + line.height);
+        } finally {
+          line.dispose();
+        }
+      }
+      chunks.push({ firstLine: first, lineCount: count, left, top, width: right - left, height: bottom - top });
+    }
+  } finally {
+    locator.dispose();
+    measuring.dispose();
+  }
+  return { chunks, bottoms };
+}
 
 /** The properties of a `TTextView`, which are the ones of the text views of Tehreer-Android, Tehreer-Cocoa and Tehreer-Web. */
 export interface TTextViewProps extends TextSource, RenderingProps, ParagraphProps {
@@ -91,11 +153,16 @@ export interface TTextViewHandle {
 }
 
 /**
- * A view of long text, drawn with Tehreer. The text is laid out once for the width of the view,
- * natively, and the view keeps a view for each line that is in sight (found with Core's line
- * locator), so scrolling lays nothing out. Hit testing, selection rectangles and carets ask Core
- * about a frame that JavaScript makes with the same inputs, so they follow the bidirectional order of
- * the lines.
+ * A view of long text, drawn with Tehreer. JavaScript lays the text out once for the width of the
+ * view (Core's frame resolver), finds the boxes of the lines with Core's line locator, and scrolls it
+ * with a `ScrollView`; only the lines near the screen are mounted, in native `TLinePaint` views that
+ * paint them, so scrolling lays nothing out. Hit testing, selection rectangles and carets ask the same
+ * frame, so they follow the bidirectional order of the lines. Highlights and separators are plain
+ * views behind and between the lines.
+ *
+ * The layout runs on the JavaScript thread, so a very long text holds it for the time Core takes.
+ * Lines are mounted as JavaScript hears of the scroll, so a fast fling can outrun them for a frame
+ * (the overscan is a screen and a half on each side).
  *
  * Not mirrored from the other wrappers: the highlight of a pressed link and `onPressChange` /
  * `onHoverChange` of Web, and views in the text (a replacement is drawn from rectangles).
@@ -111,68 +178,66 @@ export const TTextView = forwardRef<TTextViewHandle, TTextViewProps>(function TT
   } = props;
   const renderer = toNativeRenderer(props);
   const settings = resolveFrameSettings(props);
-  const { typesetter, onLayout: onTextLayout, getComposedFrame, getCodeUnitCount } = useTextView(props, settings, true);
+  const { typesetter, onLayout: onTextLayout, getComposedFrame, getCodeUnitCount, frame, composedFrameId } = useTextView(props, settings, true);
   const links = useMemo(() => findLinks(attributedText), [attributedText]);
+  const scroller = useRef<ScrollViewInstance>(null);
   const offset = useRef(0);
-  const viewport = useRef(0);
-  // What the scroll request needs, all resolved here: the native view goes where it is told.
-  const content = useRef(0);
+  const viewport = useRef({ width: 0, height: 0 });
+  const [width, setWidth] = useState(0);
+  const [range, setRange] = useState({ first: 0, last: -1 });
+  // A request that comes before the first frame waits for it, because what it needs is not known yet.
   const pending = useRef<{ offset?: number; codeUnit?: number; smooth?: boolean }>({});
-  const [request, setRequest] = useState({ offset: 0, token: 0, smooth: false });
+
+  const lines = useMemo(() => (frame === undefined ? undefined : measureLines(frame)), [frame]);
+  const content = frame?.height ?? 0;
+
+  const visibleRange = useCallback((top: number) => {
+    const chunks = lines?.chunks ?? [];
+    const margin = viewport.current.height * OVERSCAN_SCREENS;
+    let first = -1;
+    let last = -1;
+    chunks.forEach((chunk, index) => {
+      if (chunk.top + chunk.height > top - margin && chunk.top < top + viewport.current.height + margin) {
+        first = first < 0 ? index : first;
+        last = index;
+      }
+    });
+    return { first: Math.max(first, 0), last };
+  }, [lines]);
+
+  const updateRange = useCallback((top: number) => {
+    const next = visibleRange(top);
+    setRange((previous) => (previous.first === next.first && previous.last === next.last ? previous : next));
+  }, [visibleRange]);
 
   const send = useCallback((distance: number, smooth: boolean) => {
-    const limit = Math.max(0, content.current - viewport.current);
-    setRequest((previous) => ({ offset: Math.min(Math.max(0, distance), limit), token: previous.token + 1, smooth }));
-  }, []);
+    const limit = Math.max(0, content - viewport.current.height);
+    scroller.current?.scrollTo({ y: Math.min(Math.max(0, distance), limit), animated: smooth });
+  }, [content]);
 
-  // A request that comes before the first frame waits for it, because what it needs is not known yet.
   const scrollToCodeUnit = useCallback((index: number, smooth: boolean) => {
-    const frame = content.current > 0 ? getComposedFrame() : undefined;
     const top = frame === undefined ? undefined : getLineTop(frame, index);
     if (top === undefined) {
       pending.current = { codeUnit: index, smooth };
     } else {
       send(top, smooth);
     }
-  }, [getComposedFrame, send]);
+  }, [frame, send]);
 
   const scrollToOffset = useCallback((distance: number, smooth: boolean) => {
-    if (content.current > 0) {
-      send(distance, smooth);
-    } else {
+    if (frame === undefined) {
       pending.current = { offset: distance, smooth };
+    } else {
+      send(distance, smooth);
     }
-  }, [send]);
+  }, [frame, send]);
 
-  useImperativeHandle(ref, () => ({
-    get composedFrame() {
-      return getComposedFrame();
-    },
-    get firstVisibleCodeUnitIndex() {
-      const frame = getComposedFrame();
-      return frame === undefined ? undefined : getCodeUnitAtOffset(frame, offset.current);
-    },
-    indexOfCodeUnit: (x, y) => {
-      const frame = getComposedFrame();
-      return frame === undefined ? undefined : indexOfCodeUnit(frame, x, y);
-    },
-    getSelectionRects: (fromIndex, toIndex) => getComposedFrame()?.getSelectionRects(fromIndex, toIndex) ?? [],
-    getCaretPosition: (index) => {
-      const frame = getComposedFrame();
-      return frame === undefined ? undefined : getCaretPosition(frame, index);
-    },
-    scrollToCodeUnit: (index, smooth = false) => scrollToCodeUnit(checkScrollCodeUnit(index, getCodeUnitCount() || undefined), smooth),
-    scrollToOffset: (distance, smooth = false) => scrollToOffset(checkScrollOffset(distance), smooth),
-  }), [getComposedFrame, getCodeUnitCount, scrollToCodeUnit, scrollToOffset]);
-
-  const handleLayout = useCallback((event: LayoutChangeEvent) => {
-    viewport.current = event.nativeEvent.layout.height;
-    onTextLayout(event);
-    onLayoutProp?.(event);
-  }, [onTextLayout, onLayoutProp]);
-
-  const handleFrameReady = useCallback((event: NativeSyntheticEvent<{ lineCount: number; width: number; height: number }>) => {
-    content.current = event.nativeEvent.height;
+  // When the frame is made: what is in sight, the waiting scroll request, and the news for the owner.
+  useEffect(() => {
+    updateRange(offset.current);
+    if (frame === undefined) {
+      return;
+    }
     const waiting = pending.current;
     pending.current = {};
     if (waiting.offset !== undefined) {
@@ -180,12 +245,48 @@ export const TTextView = forwardRef<TTextViewHandle, TTextViewProps>(function TT
     } else if (waiting.codeUnit !== undefined) {
       scrollToCodeUnit(waiting.codeUnit, waiting.smooth ?? false);
     }
-    onFrameReady?.(event.nativeEvent);
-  }, [onFrameReady, scrollToOffset, scrollToCodeUnit]);
+    onFrameReady?.({ lineCount: frame.lines.length, width: frame.width, height: frame.height });
+    // Reported once for each frame, not when a callback changes identity.
+  }, [frame]);
 
-  const handleTap = useCallback((event: NativeSyntheticEvent<{ x: number; y: number }>) => {
-    const frame = getComposedFrame();
-    const index = frame === undefined ? undefined : indexOfCodeUnit(frame, event.nativeEvent.x, event.nativeEvent.y);
+  useImperativeHandle(ref, () => ({
+    get composedFrame() {
+      return getComposedFrame();
+    },
+    get firstVisibleCodeUnitIndex() {
+      const known = getComposedFrame();
+      return known === undefined ? undefined : getCodeUnitAtOffset(known, offset.current);
+    },
+    indexOfCodeUnit: (x, y) => {
+      const known = getComposedFrame();
+      return known === undefined ? undefined : indexOfCodeUnit(known, x, y);
+    },
+    getSelectionRects: (fromIndex, toIndex) => getComposedFrame()?.getSelectionRects(fromIndex, toIndex) ?? [],
+    getCaretPosition: (index) => {
+      const known = getComposedFrame();
+      return known === undefined ? undefined : getCaretPosition(known, index);
+    },
+    scrollToCodeUnit: (index, smooth = false) => scrollToCodeUnit(checkScrollCodeUnit(index, getCodeUnitCount() || undefined), smooth),
+    scrollToOffset: (distance, smooth = false) => scrollToOffset(checkScrollOffset(distance), smooth),
+  }), [getComposedFrame, getCodeUnitCount, scrollToCodeUnit, scrollToOffset]);
+
+  const handleLayout = useCallback((event: LayoutChangeEvent) => {
+    viewport.current = event.nativeEvent.layout;
+    setWidth(event.nativeEvent.layout.width);
+    onTextLayout(event);
+    onLayoutProp?.(event);
+  }, [onTextLayout, onLayoutProp]);
+
+  const handleScroll = useCallback((event: NativeSyntheticEvent<NativeScrollEvent>) => {
+    // The text starts at 0; a bounce above it is still 0.
+    offset.current = Math.max(0, event.nativeEvent.contentOffset.y);
+    updateRange(offset.current);
+    onScroll?.(offset.current);
+  }, [onScroll, updateRange]);
+
+  const handlePress = useCallback((event: GestureResponderEvent) => {
+    const known = getComposedFrame();
+    const index = known === undefined ? undefined : indexOfCodeUnit(known, event.nativeEvent.locationX, event.nativeEvent.locationY);
     onTap?.(index);
     const link = isLinkInteractionEnabled ? linkAt(links, index) : undefined;
     if (link !== undefined) {
@@ -193,33 +294,59 @@ export const TTextView = forwardRef<TTextViewHandle, TTextViewProps>(function TT
     }
   }, [getComposedFrame, onTap, isLinkInteractionEnabled, links, onLinkClick]);
 
-  const handleScroll = useCallback((event: NativeSyntheticEvent<{ y: number }>) => {
-    // The text starts at 0; a bounce above it is still 0.
-    offset.current = Math.max(0, event.nativeEvent.y);
-    onScroll?.(offset.current);
-  }, [onScroll]);
+  // A range that reaches past the end of the text covers nothing: the text may change in the same render.
+  const highlightViews = useMemo(() => {
+    const views: { key: string; x: number; y: number; width: number; height: number; color: string }[] = [];
+    if (frame === undefined || highlights === undefined) {
+      return views;
+    }
+    resolveHighlights(highlights, highlightColor).forEach((highlight, rangeIndex) => {
+      const toIndex = Math.min(highlight.toIndex, frame.endIndex);
+      if (highlight.fromIndex >= toIndex) {
+        return;
+      }
+      const color = rgba(highlight.color);
+      frame.getSelectionRects(highlight.fromIndex, toIndex).forEach((rect, rectIndex) => {
+        views.push({ key: `${rangeIndex}:${rectIndex}`, x: rect.x, y: rect.y, width: rect.width, height: rect.height, color });
+      });
+    });
+    return views;
+  }, [frame, highlights, highlightColor]);
 
   if (typesetter === undefined) {
     return null;
   }
 
+  const separator = separatorColor === undefined ? undefined : rgba(toColor(separatorColor));
+  const separators = separator === undefined || lines === undefined ? [] : lines.bottoms.map((bottom, index) => ({ index, y: Math.floor(bottom - 0.5) }));
+  // Only what is in sight, as the views of the lines are.
+  const first = lines?.chunks[range.first]?.firstLine ?? 0;
+  const lastChunk = lines?.chunks[range.last];
+  const last = lastChunk === undefined ? -1 : lastChunk.firstLine + lastChunk.lineCount - 1;
+
   return (
-    <TTextViewNativeComponent
-      testID={testID}
-      style={style}
-      typesetterId={typesetter.id}
-      frameSettings={toNativeSettings(settings)}
-      rendererInts={renderer.ints}
-      rendererFloats={renderer.floats}
-      separatorColor={separatorColor === undefined ? 0 : toColor(separatorColor) | 0}
-      highlights={toNativeHighlights(highlights, highlightColor)}
-      scrollToOffset={request.offset}
-      scrollToToken={request.token}
-      scrollToAnimated={request.smooth}
-      onLayout={handleLayout}
-      onFrameReady={handleFrameReady}
-      onTextTap={onTap === undefined && onLinkClick === undefined ? undefined : handleTap}
-      onTextScroll={handleScroll}
-    />
+    <ScrollView ref={scroller} testID={testID} style={style} onLayout={handleLayout} onScroll={handleScroll} scrollEventThrottle={16} nestedScrollEnabled>
+      <Pressable onPress={handlePress} style={{ width, height: content }}>
+        {highlightViews.map((view) => (
+          <View key={view.key} pointerEvents="none" style={{ position: "absolute", left: view.x, top: view.y, width: view.width, height: view.height, backgroundColor: view.color }} />
+        ))}
+        {separators.filter((item) => item.index >= first && item.index <= last).map((item) => (
+          <View key={`s${item.index}`} pointerEvents="none" style={{ position: "absolute", left: 0, top: item.y, width, height: 1, backgroundColor: separator }} />
+        ))}
+        {lines?.chunks.slice(range.first, range.last + 1).map((chunk) => (
+          <TLinePaintNativeComponent
+            key={chunk.firstLine}
+            pointerEvents="none"
+            style={{ position: "absolute", left: chunk.left, top: chunk.top, width: chunk.width, height: chunk.height }}
+            composedFrameId={composedFrameId}
+            firstLine={chunk.firstLine}
+            lineCount={chunk.lineCount}
+            originX={chunk.left}
+            originY={chunk.top}
+            {...renderer}
+          />
+        ))}
+      </Pressable>
+    </ScrollView>
   );
 });

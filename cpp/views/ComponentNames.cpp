@@ -2,7 +2,6 @@
 
 namespace facebook::react {
 
-extern const char TLabelComponentName[] = "TLabel";
-extern const char TTextViewComponentName[] = "TTextView";
+extern const char TLinePaintComponentName[] = "TLinePaint";
 
 } // namespace facebook::react

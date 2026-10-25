@@ -2,76 +2,57 @@
 
 #include <Tehreer/Tehreer.h>
 
-#include <cstddef>
 #include <cstdint>
 
 namespace tehreer::views {
 
 /**
  * How the views draw text, which Tehreer-Web, Tehreer-Android and Tehreer-Cocoa keep in a `Renderer`
- * (`RenderingProps`): the draw style, the stroke and the shadow, and the foreground color. The
- * `rendererInts` and `rendererFloats` props carry them as plain numbers, in this order:
- *
- *  - ints: mask, drawStyle, textColor, strokeColor, strokeCap, strokeJoin, shadowColor
- *  - floats: strokeRadius, strokeMiter, shadowRadius, shadowDx, shadowDy
- *
- * Bit n of the mask says that the nth of drawStyle, strokeColor, strokeCap, strokeJoin, shadowColor,
- * strokeRadius, strokeMiter, shadowRadius, shadowDx and shadowDy was given (`textColor` always is);
- * the others have Core's defaults, so the views need not know them.
+ * (`RenderingProps`): the foreground color, the draw style, the stroke and the shadow. They are the
+ * props of the same names of `TLinePaint`, and the defaults are those of a new Core renderer (a
+ * device test compares them), so a prop that JavaScript did not give is Core's default.
  */
 struct RendererSettings {
-    static constexpr std::size_t kIntCount = 7;
-    static constexpr std::size_t kFloatCount = 5;
-
-    std::uint32_t mask = 0;
-    std::uint32_t drawStyle = 0;
     TRColor textColor = 0xFF000000u;
-    TRColor strokeColor = 0;
+    std::uint32_t drawStyle = 0;
+    TRColor strokeColor = 0xFF000000u;
+    float strokeRadius = 0.5f;
     std::uint32_t strokeCap = 0;
     std::uint32_t strokeJoin = 0;
+    float strokeMiter = 1.0f;
     TRColor shadowColor = 0;
-    float strokeRadius = 0;
-    float strokeMiter = 0;
     float shadowRadius = 0;
     float shadowDx = 0;
     float shadowDy = 0;
 
     /**
-     * A color or a mask is an `Int32` prop, which is negative for what is above 0x7fffffff, and
-     * converting a negative double to an unsigned type is undefined: it goes through a wide integer.
+     * A color is an `Int32` prop, which is negative for what is above 0x7fffffff, and converting a
+     * negative double to an unsigned type is undefined: it goes through a wide integer.
      */
     template <typename Int>
     static std::uint32_t Unsigned(Int value) {
         return static_cast<std::uint32_t>(static_cast<std::int64_t>(value));
     }
 
-    template <typename Int, typename Float>
-    static RendererSettings From(const Int *ints, std::size_t intCount, const Float *floats, std::size_t floatCount) {
+    /** Reads the props of the component: the members of this struct by name, the shadow ones as `glyphShadow…`. */
+    template <typename Props>
+    static RendererSettings From(const Props &props) {
         RendererSettings settings;
-        if (intCount >= kIntCount) {
-            settings.mask = Unsigned(ints[0]);
-            settings.drawStyle = Unsigned(ints[1]);
-            settings.textColor = Unsigned(ints[2]);
-            settings.strokeColor = Unsigned(ints[3]);
-            settings.strokeCap = Unsigned(ints[4]);
-            settings.strokeJoin = Unsigned(ints[5]);
-            settings.shadowColor = Unsigned(ints[6]);
-        }
-        if (floatCount >= kFloatCount) {
-            settings.strokeRadius = static_cast<float>(floats[0]);
-            settings.strokeMiter = static_cast<float>(floats[1]);
-            settings.shadowRadius = static_cast<float>(floats[2]);
-            settings.shadowDx = static_cast<float>(floats[3]);
-            settings.shadowDy = static_cast<float>(floats[4]);
-        }
+        settings.textColor = Unsigned(props.textColor);
+        settings.drawStyle = Unsigned(props.drawStyle);
+        settings.strokeColor = Unsigned(props.strokeColor);
+        settings.strokeRadius = static_cast<float>(props.strokeRadius);
+        settings.strokeCap = Unsigned(props.strokeCap);
+        settings.strokeJoin = Unsigned(props.strokeJoin);
+        settings.strokeMiter = static_cast<float>(props.strokeMiter);
+        settings.shadowColor = Unsigned(props.glyphShadowColor);
+        settings.shadowRadius = static_cast<float>(props.glyphShadowRadius);
+        settings.shadowDx = static_cast<float>(props.glyphShadowDx);
+        settings.shadowDy = static_cast<float>(props.glyphShadowDy);
         return settings;
     }
 
-    /**
-     * Sets all of it on a renderer: what was given, and for the rest what a new renderer has, so a
-     * renderer that is reused with other settings keeps nothing of the old ones. The render scale
-     * stays the view's.
-     */
+    /** Sets all of it on a renderer. The render scale stays the view's. */
     void Apply(TRRendererRef renderer) const;
 };
 

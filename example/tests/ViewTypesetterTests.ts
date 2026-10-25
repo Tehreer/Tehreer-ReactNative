@@ -236,8 +236,9 @@ const tests: Test[] = [
   ['the renderer props reach Core as given, and what was not given is Core\'s default again', (b) => {
     check(typeof b.testApplyRendererSettings === 'function', 'testApplyRendererSettings is missing: this needs a debug build');
     const apply = (renderer: Renderer, props: Parameters<typeof toNativeRenderer>[0]) => {
-      const { ints, floats } = toNativeRenderer(props);
-      b.testApplyRendererSettings!(renderer.nativeHandle, ints, floats);
+      // What the view gets: the props that were given, by name; the rest are the defaults of the spec.
+      const given = Object.fromEntries(Object.entries(toNativeRenderer(props)).filter(([, value]) => value !== undefined)) as Record<string, number>;
+      b.testApplyRendererSettings!(renderer.nativeHandle, given);
     };
     const near = (a: number, c: number) => Math.abs(a - c) < 1e-4;
 

@@ -5,11 +5,8 @@
 // any of them.
 extern "C" JNIEXPORT jint JNICALL Java_com_tehreer_reactnative_JniBridge_nRegister(JNIEnv *env, jclass clazz)
 {
-    return register_com_tehreer_reactnative_Typesetter(env) == JNI_OK
+    return register_com_tehreer_reactnative_ComposedFrame(env) == JNI_OK
         && register_com_tehreer_reactnative_Renderer(env) == JNI_OK
-        && register_com_tehreer_reactnative_ComposedFrame(env) == JNI_OK
-        && register_com_tehreer_reactnative_ComposedLine(env) == JNI_OK
-        && register_com_tehreer_reactnative_LineLocator(env) == JNI_OK
         ? JNI_OK : JNI_ERR;
 }
 

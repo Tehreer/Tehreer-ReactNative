@@ -2,6 +2,7 @@
 
 #include "../generated/GeneratedSupport.h"
 #include "../generated/Handles.h"
+#include "../views/ComposedFrames.h"
 #include "../views/ReplacementHolder.h"
 #include "../views/Typesetters.h"
 
@@ -24,6 +25,19 @@ jsi::Value BindRegisterTypesetter(jsi::Runtime &rt, const jsi::Value &, const js
 
 jsi::Value BindUnregisterTypesetter(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     views::Typesetters::Unregister(marshal::ToNumber<TRInt32>(rt, marshal::ArgAt(args, count, 0), "unregisterTypesetter", "id"));
+    return jsi::Value::undefined();
+}
+
+jsi::Value BindRegisterFrame(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
+    constexpr const char *kFunction = "registerComposedFrame";
+    marshal::BeginCall();
+
+    TRComposedFrameRef frame = marshal::ToHandle<TRComposedFrameRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "frame", false);
+    return jsi::Value(static_cast<double>(views::ComposedFrames::Register(frame)));
+}
+
+jsi::Value BindUnregisterComposedFrame(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
+    views::ComposedFrames::Unregister(marshal::ToNumber<TRInt32>(rt, marshal::ArgAt(args, count, 0), "unregisterComposedFrame", "id"));
     return jsi::Value::undefined();
 }
 
@@ -75,6 +89,8 @@ void Define(jsi::Runtime &rt, jsi::Object &target, const char *name, unsigned ar
 void InstallViewBindings(jsi::Runtime &runtime, jsi::Object &target) {
     Define(runtime, target, "registerTypesetter", 1, &BindRegisterTypesetter);
     Define(runtime, target, "unregisterTypesetter", 1, &BindUnregisterTypesetter);
+    Define(runtime, target, "registerComposedFrame", 1, &BindRegisterFrame);
+    Define(runtime, target, "unregisterComposedFrame", 1, &BindUnregisterComposedFrame);
     Define(runtime, target, "createReplacementHolder", 5, &BindCreateReplacementHolder);
 }
 

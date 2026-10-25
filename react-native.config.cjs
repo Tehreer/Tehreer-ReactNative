@@ -11,8 +11,8 @@ module.exports = {
         cxxModuleCMakeListsPath: "CMakeLists.txt",
         cxxModuleHeaderName: "TehreerModule",
         // The CLI finds descriptors by scanning the specs, but skips a component that is
-        // `interfaceOnly`, which TLabel and TTextView have to be (their shadow nodes are written by hand).
-        componentDescriptors: ["TLabelComponentDescriptor", "TTextViewComponentDescriptor"],
+        // `interfaceOnly`, which TLinePaint has to be (their shadow nodes are written by hand).
+        componentDescriptors: ["TLinePaintComponentDescriptor"],
       },
     },
   },

@@ -10,7 +10,4 @@ jint registerClass(JNIEnv *env, const char *name, const JNINativeMethod *methods
 } // namespace JavaBridge
 
 jint register_com_tehreer_reactnative_ComposedFrame(JNIEnv *env);
-jint register_com_tehreer_reactnative_ComposedLine(JNIEnv *env);
-jint register_com_tehreer_reactnative_LineLocator(JNIEnv *env);
 jint register_com_tehreer_reactnative_Renderer(JNIEnv *env);
-jint register_com_tehreer_reactnative_Typesetter(JNIEnv *env);

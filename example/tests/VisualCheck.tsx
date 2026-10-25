@@ -130,7 +130,7 @@ export function VisualCheck({ onClose }: { onClose: () => void }) {
           <TLabel text="abc abc" typeface={faces.roboto} textSize={40} textColor="#2255cc" drawStyle={DrawStyle.FillStroke} strokeColor="#cc2200" strokeRadius={1.5} shadowColor="#88000000" shadowRadius={3} shadowDx={4} shadowDy={4} style={[styles.view, { maxWidth: 300 }]} />
           <TLabel attributedText={samples.inline} typeface={faces.roboto} textSize={20} style={[styles.view, { maxWidth: 300 }]} />
         </View>
-        <Text style={styles.caption}>TTextView (line views, highlight 10..60, separators)</Text>
+        <Text style={styles.caption}>TTextView (TLinePaint views, highlight 10..60, separators)</Text>
         <View style={styles.box}>
           <TTextView attributedText={samples.long} typeface={faces.roboto} textSize={16} highlights={[{ fromIndex: 10, toIndex: 60 }]} separatorColor="#33000000" style={{ width: 320, height: 200 }} />
         </View>

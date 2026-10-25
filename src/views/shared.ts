@@ -115,52 +115,63 @@ export function resolveFrameSettings(props: Partial<{
   };
 }
 
-/** The `frameSettings` prop of the native views: the numbers in the order of `FrameSettings` in `cpp/views/TextLayout.h`. */
-export function toNativeSettings(settings: FrameSettings): number[] {
-  return [
-    settings.maxLines, settings.textAlignment, settings.isTruncationEnabled ? 1 : 0, settings.truncationMode, settings.truncationPlace,
-    settings.extraLineSpacing, settings.lineHeightMultiplier, settings.isJustificationEnabled ? 1 : 0, settings.justificationLevel,
-  ];
+/** A range of code units with the color that covers it, as `resolveHighlights` makes it. */
+export interface ResolvedHighlight {
+  readonly fromIndex: number;
+  readonly toIndex: number;
+  /** `0xAARRGGBB`. */
+  readonly color: Color;
 }
 
 /**
- * The `highlights` prop of the native text view: `fromIndex`, `toIndex` and color of each range.
+ * Gives each highlight its color (its own, the view's, or the default) and checks the ranges.
  *
  * @throws RangeError if a range is not whole numbers from 0 with `fromIndex` not after `toIndex`. A
  *   range that reaches past the end of the text is not an error, because the text of a render can be
- *   the one before the text that the highlights were made for: Core covers nothing for it.
+ *   the one before the text that the highlights were made for: it covers nothing.
  */
-export function toNativeHighlights(highlights: readonly TextHighlight[] | undefined, fallback: ColorValue | undefined): number[] {
-  const flat: number[] = [];
-  for (const range of highlights ?? []) {
+export function resolveHighlights(highlights: readonly TextHighlight[] | undefined, fallback: ColorValue | undefined): ResolvedHighlight[] {
+  return (highlights ?? []).map((range) => {
     if (!Number.isInteger(range.fromIndex) || !Number.isInteger(range.toIndex) || range.fromIndex < 0 || range.toIndex < range.fromIndex) {
       throw new RangeError(`The highlight ${range.fromIndex}..${range.toIndex} is not a range of code units.`);
     }
-    flat.push(range.fromIndex, range.toIndex, toNativeColor(range.color ?? fallback, DEFAULT_HIGHLIGHT_COLOR));
-  }
-  return flat;
+    return { fromIndex: range.fromIndex, toIndex: range.toIndex, color: toColor(range.color ?? fallback ?? DEFAULT_HIGHLIGHT_COLOR) };
+  });
 }
 
 /**
- * The `rendererInts` and `rendererFloats` props of the native views: what `RenderingProps` gives, as
- * numbers in the order of `RendererSettings` in `cpp/views/RendererSettings.h`, where the mask says
- * which of the optional ones were given (the others keep Core's defaults, as in Web's `createRenderer`).
+ * The renderer props of `TLinePaint`: what `RenderingProps` gives, under the names of the properties
+ * of `Renderer` (the shadow ones as `glyphShadow…`, see the spec), with the colors as the signed 32-bit numbers that `Int32` props carry. A property that
+ * is not given is `undefined`, which leaves the prop out and so keeps Core's default (the defaults of
+ * the spec are Core's), as in Web's `createRenderer`.
  */
-export function toNativeRenderer(props: RenderingProps): { ints: number[]; floats: number[] } {
-  const optional: (number | undefined)[] = [
-    props.drawStyle, props.strokeColor === undefined ? undefined : toColor(props.strokeColor), props.strokeCap, props.strokeJoin,
-    props.shadowColor === undefined ? undefined : toColor(props.shadowColor),
-    props.strokeRadius, props.strokeMiter, props.shadowRadius, props.shadowDx, props.shadowDy,
-  ];
-  let mask = 0;
-  optional.forEach((value, bit) => {
-    if (value !== undefined) {
-      mask |= 1 << bit;
-    }
-  });
-  const value = (index: number) => optional[index] ?? 0;
+export interface NativeRenderer {
+  readonly textColor: number;
+  readonly drawStyle: number | undefined;
+  readonly strokeColor: number | undefined;
+  readonly strokeRadius: number | undefined;
+  readonly strokeCap: number | undefined;
+  readonly strokeJoin: number | undefined;
+  readonly strokeMiter: number | undefined;
+  readonly glyphShadowColor: number | undefined;
+  readonly glyphShadowRadius: number | undefined;
+  readonly glyphShadowDx: number | undefined;
+  readonly glyphShadowDy: number | undefined;
+}
+
+export function toNativeRenderer(props: RenderingProps): NativeRenderer {
+  const color = (value: ColorValue | undefined) => (value === undefined ? undefined : toColor(value) | 0);
   return {
-    ints: [mask, value(0) | 0, toNativeColor(props.textColor, 0xff000000), value(1) | 0, value(2) | 0, value(3) | 0, value(4) | 0],
-    floats: [value(5), value(6), value(7), value(8), value(9)],
+    textColor: toNativeColor(props.textColor, 0xff000000),
+    drawStyle: props.drawStyle,
+    strokeColor: color(props.strokeColor),
+    strokeRadius: props.strokeRadius,
+    strokeCap: props.strokeCap,
+    strokeJoin: props.strokeJoin,
+    strokeMiter: props.strokeMiter,
+    glyphShadowColor: color(props.shadowColor),
+    glyphShadowRadius: props.shadowRadius,
+    glyphShadowDx: props.shadowDx,
+    glyphShadowDy: props.shadowDy,
   };
 }

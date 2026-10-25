@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { LayoutChangeEvent } from "react-native";
 import type { ComposedFrame } from "../layout/ComposedFrame.js";
+import { getNativeBindings } from "../internal/NativeBindings.js";
 import { composeViewFrame } from "./FrameQueries.js";
 import { DEFAULT_TEXT_SIZE } from "./shared.js";
 import type { FrameSettings, RenderingProps, TextSource } from "./shared.js";
@@ -11,7 +12,9 @@ const MAX_WIDTH_REBUILDS = 3;
 
 /**
  * What `TLabel` and `TTextView` share: the typesetter of the text, the size that the layout gave the
- * view, and the frame that JavaScript makes for queries.
+ * view, and the frame that JavaScript lays out for that size. The frame is both what the queries ask
+ * and what the native `TLinePaint` views draw, so it is registered under an id for their `composedFrameId`
+ * prop; the registration is undone when the frame is replaced or the view goes.
  *
  * The typesetter is made in a layout effect, so it exists before anything is painted (until then the
  * view renders nothing, so the native view never lays out an empty text). It is released by the
@@ -31,6 +34,9 @@ export function useTextView(source: TextSource & RenderingProps, settings: Frame
   onLayout: (event: LayoutChangeEvent) => void;
   /** The frame of the view at the size of its last layout, made when asked for; the view owns it. */
   getComposedFrame: () => ComposedFrame | undefined;
+  /** The frame that is shown and its id for `TLinePaint`, which follow a layout one render later; `undefined` and 0 until then. */
+  frame: ComposedFrame | undefined;
+  composedFrameId: number;
   /** How many code units the text of the view has, or 0 while there is no text. */
   getCodeUnitCount: () => number;
 } {
@@ -46,6 +52,8 @@ export function useTextView(source: TextSource & RenderingProps, settings: Frame
   const adopted = useRef(new WeakSet<ViewTypesetter>()).current;
   const box = useRef({ width: 0, height: 0 });
   const frame = useRef<{ key: string; frame: ComposedFrame } | undefined>(undefined);
+  const [size, setSize] = useState({ width: 0, height: 0 });
+  const [shown, setShown] = useState<{ frame: ComposedFrame; id: number } | undefined>();
   const settingsKey = JSON.stringify(settings);
   const latest = useRef({ settings, isScrollable });
   latest.current = { settings, isScrollable };
@@ -100,6 +108,7 @@ export function useTextView(source: TextSource & RenderingProps, settings: Frame
     (event: LayoutChangeEvent) => {
       const { width, height } = event.nativeEvent.layout;
       box.current = { width, height };
+      setSize((previous) => (previous.width === width && previous.height === height ? previous : { width, height }));
       const known = current.current;
       // The delegates are asked again only when the width really changes a room.
       if (known !== undefined && known.hasReplacements && width !== layoutWidth && rebuilds.current < MAX_WIDTH_REBUILDS) {
@@ -131,11 +140,23 @@ export function useTextView(source: TextSource & RenderingProps, settings: Frame
     return frame.current.frame;
   }, [releaseFrame, settingsKey]);
 
+  // The frame that the views draw is made after each layout, and again when the text or the settings change.
+  useEffect(() => {
+    const laidOut = made === undefined ? undefined : getComposedFrame();
+    const id = laidOut === undefined ? 0 : getNativeBindings().registerComposedFrame(laidOut.nativeHandle);
+    if (laidOut === undefined || id === 0) {
+      setShown(undefined);
+      return undefined;
+    }
+    setShown({ frame: laidOut, id });
+    return () => getNativeBindings().unregisterComposedFrame(id);
+  }, [made, size, settingsKey, getComposedFrame]);
+
   const getCodeUnitCount = useCallback(() => current.current?.typesetter.codeUnitCount ?? 0, []);
 
   if (failure !== undefined) {
     throw failure.error;
   }
 
-  return { typesetter: made, onLayout, getComposedFrame, getCodeUnitCount };
+  return { typesetter: made, onLayout, getComposedFrame, getCodeUnitCount, frame: shown?.frame, composedFrameId: shown?.id ?? 0 };
 }
