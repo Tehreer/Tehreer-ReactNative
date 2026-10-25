@@ -7,6 +7,7 @@ import { prepareAssetTests } from './tests/AssetTests';
 import { loadFonts } from './tests/fontData';
 import { runSuites } from './tests/runSuites';
 import type { SuiteReport } from './tests/runSuites';
+import { DemoApp } from './demo/DemoApp';
 import { LabelTestHost } from './tests/LabelTests';
 import { VisualCheck } from './tests/VisualCheck';
 
@@ -58,6 +59,8 @@ export default function App() {
   const [pending, setPending] = useState<SyncRun | undefined>();
   // The screen that QA looks at; the tests run and report whether or not it is shown.
   const [visual, setVisual] = useState(false);
+  // The demo screens; they open from the test report once the run has finished, so they never take part in it.
+  const [demo, setDemo] = useState(false);
   // The rendering suite reports when it is done.
   const [viewReports, setViewReports] = useState<SuiteReport[]>([]);
   const addViewReport = useCallback((report: SuiteReport) => setViewReports((previous) => [...previous, report]), []);
@@ -111,6 +114,10 @@ export default function App() {
     return <VisualCheck onClose={() => setVisual(false)} />;
   }
 
+  if (demo && (result !== undefined || error !== undefined)) {
+    return <DemoApp onClose={() => setDemo(false)} />;
+  }
+
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Tehreer</Text>
@@ -123,6 +130,11 @@ export default function App() {
       <Text testID="tests" style={styles.text}>
         {`Tests: ${result ? `${result.passed}/${result.total}` : '...'}`}
       </Text>
+      {(result !== undefined || error !== undefined) && (
+        <Pressable onPress={() => setDemo(true)} style={styles.button} testID="openDemo">
+          <Text style={styles.buttonText}>Open demo</Text>
+        </Pressable>
+      )}
       {__DEV__ && pending !== undefined && (
         <Pressable onPress={() => setVisual(true)} style={styles.button} testID="showVisual">
           <Text style={styles.buttonText}>Show frames</Text>

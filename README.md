@@ -72,6 +72,38 @@ Use `-sdk iphoneos -destination 'generic/platform=iOS' ARCHS=arm64` for a device
 
 `npm run test:ios` builds the example app for the booted simulator, starts Metro, launches the app and runs every suite registered in `example/tests/index.ts` and prints a per-suite summary and the names of failing tests. It exits non-zero on a failing test, a timeout or a missing result line. `npm run test:ios -- --release` does the same with the Release configuration, which bundles the JavaScript into the app and starts no Metro.
 
+## Demo
+
+The example app has a demo of the library: the screens of the Tehreer-Web demo on `TLabel` and `TTextView`, written against the public API only (`import ... from 'tehreer-react-native'`, no internal imports) and without a navigation library. Run the example app (`npm run test:ios` / `npm run test:android` start it, or start Metro in `example/` and launch the app), wait for the test report to finish, and tap **Open demo**. The report and its `TEHREER_*` log lines are unchanged; the demo opens from it only after the run has ended.
+
+| Screen | What it shows |
+|--------|---------------|
+| Bidirectional Algorithm | Embedding levels, logical runs and visual order of mixed-direction text (`BidiAlgorithm`) |
+| Typeface Information | Names and metrics of a typeface, and a specimen in a `TLabel` |
+| Typeface Glyphs | Every glyph ID of a typeface; glyphs that a character maps to are drawn by a `TLabel` |
+| OpenType Shaping | Script and language tags, clusters, glyph IDs, offsets and advances (`ShapingEngine`) |
+| Variable Fonts | Instances, color palettes and axes of a variable font (`getVariationInstance`, `getColorInstance`) |
+| Custom Label | A `TLabel` of styled Urdu text with tappable links |
+| Custom Text View | A `TTextView` of colored Arabic text with justification, verse selection and an adjustable size |
+
+The fonts are in `example/assets/demo-fonts` (see the README there) and `example/assets/fonts`. The glyph screen cannot draw a glyph that no character maps to (a ligature, a contextual form), because the library draws text and not a glyph by its ID; those show only their ID in the list of all glyphs.
+
+iPhone 16 Pro simulator:
+
+| | |
+|---|---|
+| ![Home](docs/screenshots/ios-home.png) | ![Bidirectional Algorithm](docs/screenshots/ios-bidi.png) |
+| ![Typeface Information](docs/screenshots/ios-typeface-info.png) | ![Typeface Glyphs](docs/screenshots/ios-glyphs.png) |
+| ![OpenType Shaping](docs/screenshots/ios-shaping.png) | ![Variable Fonts](docs/screenshots/ios-variable-fonts.png) |
+| ![Custom Label](docs/screenshots/ios-custom-label.png) | ![Custom Text View](docs/screenshots/ios-text-view.png) |
+
+Android emulator (Pixel-sized, API 30):
+
+| | | |
+|---|---|---|
+| ![Home](docs/screenshots/android-home.png) | ![Bidirectional Algorithm](docs/screenshots/android-bidi.png) | ![Typeface Glyphs](docs/screenshots/android-glyphs.png) |
+| ![Variable Fonts](docs/screenshots/android-variable-fonts.png) | ![Custom Label](docs/screenshots/android-custom-label.png) | ![Custom Text View](docs/screenshots/android-text-view.png) |
+
 ## Packaging
 
 The npm package contains the source of Tehreer Core and of its dependencies (FreeType, HarfBuzz, libunibreak, SheenBidi), so `pod install` and the Gradle build compile everything locally and nothing is downloaded at install or build time. The `prepack` script copies them from `Libraries/` (run `git submodule update --init` and `npm run setup` first; `npm pack` fails with a message if either is missing). Only sources, headers, the CMake files the builds read and the licence files are packed, about 3.3 MiB compressed. The licences of the bundled libraries are listed in `NOTICE`. `npm run test:packed` packs the library, installs the tarball into a scratch copy of the example app and builds it (Android with Gradle, iOS with `pod install`).
