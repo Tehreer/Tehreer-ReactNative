@@ -13,10 +13,10 @@ export interface TextSource {
   /**
    * A typesetter, which is preferred as it avoids making one; it stays owned by the caller, who keeps
    * it alive while it is shown. It must hold no replacement: the native side cannot call JavaScript,
-   * so a replacement of JavaScript in it gets a room of zero when the view lays the text out, and
-   * the view cannot tell (a typesetter does not say what it holds). Give a text with replacements as
-   * `attributedText`, and the view makes the replacements itself. `typeface` and `textSize` are not
-   * used with it.
+   * so one in it would get a room of zero when the view lays the text out. The view refuses such a
+   * typesetter with an `Error` (a text remembers that a replacement was set on it, so this costs
+   * nothing); give a text with replacements as `attributedText`, and the view makes the replacements
+   * itself. `typeface` and `textSize` are not used with it.
    */
   readonly typesetter?: Typesetter;
   /** Plain text, which is shown in `typeface` at `textSize`. */

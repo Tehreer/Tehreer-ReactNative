@@ -161,7 +161,7 @@ export const TTextView = forwardRef<TTextViewHandle, TTextViewProps>(function TT
       const frame = getComposedFrame();
       return frame === undefined ? undefined : getCaretPosition(frame, index);
     },
-    scrollToCodeUnit: (index, smooth = false) => scrollToCodeUnit(checkScrollCodeUnit(index, getCodeUnitCount()), smooth),
+    scrollToCodeUnit: (index, smooth = false) => scrollToCodeUnit(checkScrollCodeUnit(index, getCodeUnitCount() || undefined), smooth),
     scrollToOffset: (distance, smooth = false) => scrollToOffset(checkScrollOffset(distance), smooth),
   }), [getComposedFrame, getCodeUnitCount, scrollToCodeUnit, scrollToOffset]);
 

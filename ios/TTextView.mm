@@ -10,6 +10,7 @@
 #include <algorithm>
 #include <atomic>
 #include <cmath>
+#include <memory>
 #include <vector>
 
 using namespace facebook::react;
@@ -47,8 +48,9 @@ void CollectRect(void *userData, TRRect rect, TRBoolean *)
   TRLineLocatorRef _locator;
   CGFloat _frameWidth;
   // Read by the layout queue to skip a layout that was replaced while it waited, so atomic (the only
-  // field that two threads share).
-  std::atomic<NSUInteger> _generation;
+  // field that two threads share). The block holds the counter and not the view, so the last release of
+  // the view is always on the main thread, where UIKit may be touched.
+  std::shared_ptr<std::atomic<NSUInteger>> _generation;
 
   NSMutableDictionary<NSNumber *, LineView *> *_attached;
   NSMutableArray<LineView *> *_pool;
@@ -76,6 +78,7 @@ void CollectRect(void *userData, TRRect rect, TRBoolean *)
     [self addSubview:_scrollView];
     self.clipsToBounds = YES;
 
+    _generation = std::make_shared<std::atomic<NSUInteger>>(0);
     _attached = [NSMutableDictionary new];
     _pool = [NSMutableArray new];
     [self addGestureRecognizer:[[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(handleTap:)]];
@@ -91,7 +94,7 @@ void CollectRect(void *userData, TRRect rect, TRBoolean *)
 // Lets go of everything that this view owns: the lines, the frame, the locator and the typesetter.
 - (void)releaseAll
 {
-  _generation++;
+  (*_generation)++;
   [self releaseLayout];
   if (_typesetter != nullptr) {
     TRTypesetterRelease(_typesetter);
@@ -175,23 +178,23 @@ void CollectRect(void *userData, TRRect rect, TRBoolean *)
   if (_typesetter == nullptr || width <= 0) {
     // Nothing to lay out, and nothing shown that would have to go (this runs for every change of the
     // layout metrics, also while the width is still 0).
-    if (_frame != nullptr || _generation != 0) {
-      _generation++;
+    if (_frame != nullptr || _generation->load() != 0) {
+      (*_generation)++;
       [self releaseLayout];
     }
     return;
   }
-  _generation++;
+  (*_generation)++;
 
-  const NSUInteger generation = _generation;
+  const NSUInteger generation = _generation->load();
+  const std::shared_ptr<std::atomic<NSUInteger>> counter = _generation;
   TRTypesetterRef typesetter = TRTypesetterRetain(_typesetter);
   const FrameSettings settings = _settings;
   const float scale = UIScreen.mainScreen.scale;
   __weak TTextView *weakSelf = self;
   dispatch_async(dispatch_get_global_queue(QOS_CLASS_USER_INITIATED, 0), ^{
     // A layout that was replaced while it waited in the queue is not made.
-    TTextView *early = weakSelf;
-    if (early == nil || early->_generation != generation) {
+    if (counter->load() != generation) {
       TRTypesetterRelease(typesetter);
       return;
     }
@@ -208,7 +211,7 @@ void CollectRect(void *userData, TRRect rect, TRBoolean *)
 
     dispatch_async(dispatch_get_main_queue(), ^{
       TTextView *strongSelf = weakSelf;
-      if (strongSelf == nil || strongSelf->_generation != generation) {
+      if (strongSelf == nil || strongSelf->_generation->load() != generation) {
         if (locator != nullptr) {
           TRLineLocatorRelease(locator);
         }

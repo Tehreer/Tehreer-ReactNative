@@ -63,6 +63,9 @@ export function useTextView(source: TextSource & RenderingProps, settings: Frame
   useLayoutEffect(() => {
     // A throw below must not leave a typesetter that was already disposed as the current one.
     current.current = undefined;
+    // An error of a delegate belongs to the text that it came from; a new text starts clean (the view
+    // that threw is normally unmounted by its error boundary, which also clears it).
+    setFailure(undefined);
     const created = ViewTypesetter.create({ text, attributedText, typesetter, typeface, textSize }, layoutWidth);
     current.current = created;
     setMade(created);
