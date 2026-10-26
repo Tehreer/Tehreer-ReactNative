@@ -4,7 +4,7 @@ import { SfntTag, TLabel } from 'tehreer-react-native';
 import type { Typeface } from 'tehreer-react-native';
 import { FontChoice } from './FontChoice';
 import { VARIABLE_FONTS, useFontFile } from './fonts';
-import { Card, Label, Choice, Message, Page, Slider, colors } from './ui';
+import { Card, Label, Message, Page, Segmented, Select, Slider, colors, mono } from './ui';
 
 const PREVIEW_LINES = ['ABCDEFGHIJK', 'LMNOPQRSTU', 'VWXYZ', '0123456789'];
 
@@ -86,45 +86,48 @@ export function VariableFontsScreen({ onBack }: { onBack: () => void }) {
 
   const shownPalette = palettes[paletteIndex] ?? palettes[0];
 
+  const isLoading = typeface === undefined && font.error === undefined;
+
   return (
-    <Page title="Variable Fonts" summary="Adjust axes, pick instances and swap colour palettes." onBack={onBack}>
+    <Page title="Variable Fonts" onBack={onBack}>
       {font.error !== undefined && <Message tone="error">{`Could not load the font: ${font.error.message}`}</Message>}
-      {typeface === undefined && font.error === undefined && <Message>Loading the font...</Message>}
-      {typeface !== undefined && (
-        <Card style={styles.preview}>
-          {PREVIEW_LINES.map((line) => (
-            <TLabel key={line} lineHeightMultiplier={1.1} text={line} textColor="#171915" textSize={34} typeface={typeface} />
-          ))}
-        </Card>
-      )}
-
-      <Card title="Controls">
-        <FontChoice onChange={changeFont} options={VARIABLE_FONTS} value={fontId} />
-
-        {instanceNames.length > 1 && (
-          <>
-            <Label>Instance</Label>
-            <Choice onChange={changeInstance} options={instanceNames.map((name, index) => ({ value: index, label: name }))} value={instanceIndex} />
-          </>
-        )}
+      <Card style={styles.controls}>
+        <View style={styles.pair}>
+          <View style={styles.half}>
+            <FontChoice disabled={isLoading} onChange={changeFont} options={VARIABLE_FONTS} value={fontId} />
+          </View>
+          <View style={styles.half}>
+            <Select
+              disabled={instanceNames.length <= 1}
+              label="Instance"
+              onChange={changeInstance}
+              options={instanceNames.map((name, index) => ({ value: index, label: name }))}
+              testID="instanceSelect"
+              value={instanceIndex}
+            />
+          </View>
+        </View>
 
         {palettes.length > 0 && (
           <>
-            <Label>Palette</Label>
-            {palettes.length > 1 && (
-              <Choice
-                onChange={setPaletteIndex}
-                options={palettes.map((palette, index) => ({ value: index, label: palette.name ?? `Palette ${index + 1}` }))}
-                value={paletteIndex}
-              />
-            )}
-            <View style={styles.swatches}>
-              {shownPalette?.colors.map((color, index) => (
-                <View key={index} style={styles.swatch}>
-                  <View style={[styles.chip, { backgroundColor: toHex(color) }]} />
-                  <Text style={styles.swatchText}>{toHex(color).slice(1)}</Text>
-                </View>
-              ))}
+            <View style={styles.rule} />
+            <View style={styles.palette}>
+              <Label>Palette</Label>
+              {palettes.length > 1 && (
+                <Segmented
+                  onChange={setPaletteIndex}
+                  options={palettes.map((palette, index) => ({ value: index, label: palette.name ?? `${index + 1}` }))}
+                  value={paletteIndex}
+                />
+              )}
+              <View style={styles.swatches}>
+                {shownPalette?.colors.map((color, index) => (
+                  <View key={index} style={styles.swatch}>
+                    <View style={[styles.chip, { backgroundColor: toHex(color) }]} />
+                    <Text style={styles.swatchText}>{toHex(color).slice(1)}</Text>
+                  </View>
+                ))}
+              </View>
             </View>
           </>
         )}
@@ -132,31 +135,47 @@ export function VariableFontsScreen({ onBack }: { onBack: () => void }) {
         {axes.map(({ axis, index }) => {
           const value = coordinates[index] ?? axis.defaultValue;
           return (
-            <View key={`${fontId}-${instanceIndex}-${axis.tag}`}>
-              <View style={styles.axisHead}>
-                <Label>{axis.name ?? SfntTag.toString(axis.tag)}</Label>
-                <Text style={styles.axisValue}>{value.toFixed(1)}</Text>
-              </View>
-              <Slider max={axis.maxValue} min={axis.minValue} onChange={(next) => setCoordinate(index, next)} step={0.1} testID={`axis-${SfntTag.toString(axis.tag).trim()}`} value={value} />
-              <View style={styles.axisRange}>
-                <Text style={styles.axisValue}>{axis.minValue.toFixed(1)}</Text>
-                <Text style={styles.axisValue}>{axis.maxValue.toFixed(1)}</Text>
+            <View key={`${fontId}-${instanceIndex}-${axis.tag}`} style={{ gap: 14 }}>
+              <View style={styles.rule} />
+              <View>
+                <View style={styles.axisHead}>
+                  <Label>{axis.name ?? SfntTag.toString(axis.tag)}</Label>
+                  <Text style={styles.axisValue}>{value.toFixed(1)}</Text>
+                </View>
+                <Slider max={axis.maxValue} min={axis.minValue} onChange={(next) => setCoordinate(index, next)} step={0.1} testID={`axis-${SfntTag.toString(axis.tag).trim()}`} value={value} />
+                <View style={styles.axisRange}>
+                  <Text style={styles.axisBound}>{axis.minValue.toFixed(1)}</Text>
+                  <Text style={styles.axisBound}>{axis.maxValue.toFixed(1)}</Text>
+                </View>
               </View>
             </View>
           );
         })}
+      </Card>
+
+      <Card style={styles.preview}>
+        {isLoading && <Message>Loading the font…</Message>}
+        {typeface !== undefined && PREVIEW_LINES.map((line) => (
+          <TLabel key={line} lineHeightMultiplier={1.1} text={line} textColor="#171915" textSize={34} typeface={typeface} />
+        ))}
       </Card>
     </Page>
   );
 }
 
 const styles = StyleSheet.create({
-  preview: { alignItems: 'flex-start' },
-  swatches: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
-  swatch: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  chip: { width: 16, height: 16, borderRadius: 4, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border },
-  swatchText: { fontSize: 11, color: colors.muted },
-  axisHead: { flexDirection: 'row', justifyContent: 'space-between' },
-  axisRange: { flexDirection: 'row', justifyContent: 'space-between' },
-  axisValue: { fontSize: 12, color: colors.muted },
+  controls: { gap: 14 },
+  pair: { flexDirection: 'row', gap: 10 },
+  half: { flex: 1, minWidth: 0 },
+  rule: { height: 1, backgroundColor: colors.divider, marginHorizontal: -16 },
+  palette: { gap: 8 },
+  swatches: { flexDirection: 'row', gap: 12, paddingHorizontal: 2 },
+  swatch: { flex: 1, alignItems: 'center', gap: 4 },
+  chip: { width: '100%', height: 36, borderRadius: 8, borderWidth: 1, borderColor: colors.inputBorder },
+  swatchText: { fontFamily: mono, fontSize: 11, color: colors.label },
+  axisHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline' },
+  axisValue: { fontFamily: mono, fontSize: 13, fontWeight: '500', color: colors.text },
+  axisRange: { flexDirection: 'row', justifyContent: 'space-between', marginTop: -4 },
+  axisBound: { fontFamily: mono, fontSize: 11, color: colors.muted },
+  preview: { paddingVertical: 12, alignItems: 'flex-start', gap: 0 },
 });

@@ -1,6 +1,9 @@
-import { Linking, StyleSheet, Text } from 'react-native';
-import { Color, DrawStyle, TLabel, TMutableText, TextAlignment, initialize } from 'tehreer-react-native';
-import { useTypeface } from './fonts';
+import { useRef, useState } from 'react';
+import { Linking, StyleSheet, Text, View } from 'react-native';
+import type { GestureResponderEvent } from 'react-native';
+import { Color, TLabel, TMutableText, TextAlignment, initialize } from 'tehreer-react-native';
+import type { Rect, TLabelHandle } from 'tehreer-react-native';
+import { DEFAULT_TEXT_FONT, useTypeface } from './fonts';
 import { ARTICLE_REFERENCE, ARTICLE_SEGMENTS, ARTICLE_TITLE } from './data/article';
 import { Card, Message, Page, colors } from './ui';
 import { useOwned } from './useOwned';
@@ -33,44 +36,69 @@ function makeArticle(): TMutableText {
 }
 
 export function CustomLabelScreen({ onBack }: { onBack: () => void }) {
-  const { typeface, error } = useTypeface('mehr');
+  const { typeface, error } = useTypeface(DEFAULT_TEXT_FONT);
   const article = useOwned(makeArticle, []);
   // The label reads the text when it changes identity, so it gets a copy that nobody edits.
   const shown = useOwned(() => article?.copy(), [article]);
+  const label = useRef<TLabelHandle>(null);
+  // The rectangles of the link that is under the finger; the label has no highlights, so they are
+  // views behind it. The touch events bubble up from the label, which keeps its own tap.
+  const [pressed, setPressed] = useState<readonly Rect[]>([]);
+  const [isSourcePressed, setSourcePressed] = useState(false);
+
+  const linkAt = (index: number | undefined) =>
+    index === undefined ? undefined : LINKS.find((candidate) => index >= candidate.fromIndex && index < candidate.toIndex);
+  const press = (event: GestureResponderEvent) => {
+    const link = linkAt(label.current?.indexOfCodeUnit(event.nativeEvent.locationX, event.nativeEvent.locationY));
+    setPressed(link === undefined ? [] : label.current?.getSelectionRects(link.fromIndex, link.toIndex) ?? []);
+  };
+  const release = () => setPressed([]);
 
   return (
-    <Page title="Custom Label" summary="A label that lays out styled, mixed-script text. Tap a blue link to open it." onBack={onBack}>
-      <Card>
+    <Page title="Custom Label" onBack={onBack}>
+      <Card style={styles.article}>
         <Text style={styles.title}>{ARTICLE_TITLE}</Text>
         {error !== undefined && <Message tone="error">{`Could not load the typeface: ${error.message}`}</Message>}
+        {typeface === undefined && error === undefined && <Message>Loading the typeface…</Message>}
         {typeface !== undefined && shown !== undefined && (
-          <TLabel
-            attributedText={shown}
-            drawStyle={DrawStyle.FillStroke}
-            lineHeightMultiplier={1.15}
-            onTap={(index) => {
-              const link = index === undefined ? undefined : LINKS.find((candidate) => index >= candidate.fromIndex && index < candidate.toIndex);
-              if (link !== undefined) {
-                void Linking.openURL(link.href);
-              }
-            }}
-            strokeColor="#FF7F00"
-            strokeRadius={0.25}
-            style={{ alignSelf: 'stretch' }}
-            testID="articleLabel"
-            textAlignment={TextAlignment.Right}
-            textColor="#1E5A3C"
-            textSize={24}
-            typeface={typeface}
-          />
+          <View onTouchCancel={release} onTouchEnd={release} onTouchStart={press}>
+            {pressed.map((rect, index) => (
+              <View key={index} pointerEvents="none" style={[styles.pressed, { left: rect.x, top: rect.y, width: rect.width, height: rect.height }]} />
+            ))}
+            <TLabel
+              attributedText={shown}
+              lineHeightMultiplier={1.3}
+              onTap={(index) => {
+                const link = linkAt(index);
+                if (link !== undefined) {
+                  void Linking.openURL(link.href);
+                }
+              }}
+              ref={label}
+              style={{ alignSelf: 'stretch' }}
+              testID="articleLabel"
+              textAlignment={TextAlignment.Right}
+              textColor="#1E5A3C"
+              textSize={26}
+              typeface={typeface}
+            />
+          </View>
         )}
-        <Text onPress={() => void Linking.openURL(ARTICLE_REFERENCE)} style={styles.source}>{ARTICLE_REFERENCE}</Text>
+        <Text
+          onPress={() => void Linking.openURL(ARTICLE_REFERENCE)}
+          onPressIn={() => setSourcePressed(true)}
+          onPressOut={() => setSourcePressed(false)}
+          style={[styles.source, isSourcePressed && styles.sourcePressed]}
+        >{ARTICLE_REFERENCE}</Text>
       </Card>
     </Page>
   );
 }
 
 const styles = StyleSheet.create({
-  title: { fontSize: 20, fontWeight: '600', color: colors.text },
-  source: { fontSize: 13, color: colors.ltr, textDecorationLine: 'underline' },
+  article: { gap: 6, paddingTop: 16, paddingBottom: 4 },
+  title: { fontSize: 28, lineHeight: 34, fontStyle: 'italic', fontWeight: '500', color: colors.link },
+  pressed: { position: 'absolute', borderRadius: 3, backgroundColor: 'rgba(26,86,196,0.22)' },
+  sourcePressed: { backgroundColor: 'rgba(26,86,196,0.22)' },
+  source: { alignSelf: 'flex-start', paddingVertical: 14, fontSize: 14, fontStyle: 'italic', fontWeight: '500', color: colors.link },
 });

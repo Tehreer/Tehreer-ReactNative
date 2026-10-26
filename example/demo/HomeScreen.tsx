@@ -1,7 +1,7 @@
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StatusBar, StyleSheet, Text, View } from 'react-native';
 import { TLabel, TextAlignment } from 'tehreer-react-native';
-import { useTypeface } from './fonts';
-import { colors } from './ui';
+import { DEFAULT_TEXT_FONT, useTypeface } from './fonts';
+import { Chevron, TOP_INSET, colors, mono } from './ui';
 
 export interface ScreenEntry {
   readonly id: string;
@@ -10,43 +10,48 @@ export interface ScreenEntry {
 }
 
 export function HomeScreen({ screens, onOpen, onClose }: { screens: readonly ScreenEntry[]; onOpen: (id: string) => void; onClose: () => void }) {
-  const { typeface } = useTypeface('mehr');
+  const { typeface } = useTypeface(DEFAULT_TEXT_FONT);
 
   return (
     <View style={styles.page}>
+      <StatusBar barStyle="light-content" />
       <ScrollView contentContainerStyle={styles.content}>
-        <View style={styles.hero}>
-          <Text style={styles.title}>Tehreer Demo</Text>
-          <Text style={styles.lead}>Explore the text engine behind Tehreer: bidirectional resolution, glyph access, OpenType shaping and variable fonts.</Text>
+        <View style={styles.header}>
+          <View style={styles.headerText}>
+            <Text style={styles.title}>Tehreer Demo</Text>
+            <Text style={styles.lead}>Explore the Tehreer text engine: bidi, glyphs, shaping and variable fonts.</Text>
+          </View>
           {typeface !== undefined && (
             <TLabel
-              lineHeightMultiplier={1.15}
+              lineHeightMultiplier={1}
               style={styles.word}
               text={'تحریر'}
-              textAlignment={TextAlignment.Center}
-              textColor="#00A100"
-              textSize={72}
+              textAlignment={TextAlignment.Right}
+              textColor="#3FCB3F"
+              textSize={46}
               typeface={typeface}
             />
           )}
         </View>
 
-        {screens.map((screen, index) => (
-          <Pressable
-            accessibilityRole="button"
-            key={screen.id}
-            onPress={() => onOpen(screen.id)}
-            style={({ pressed }) => [styles.row, pressed && { opacity: 0.7 }]}
-            testID={`open-${screen.id}`}
-          >
-            <Text style={styles.number}>{String(index + 1).padStart(2, '0')}</Text>
-            <View style={styles.rowText}>
-              <Text style={styles.rowTitle}>{screen.title}</Text>
-              <Text style={styles.rowSummary}>{screen.summary}</Text>
-            </View>
-            <Text style={styles.chevron}>{'›'}</Text>
-          </Pressable>
-        ))}
+        <View style={styles.list}>
+          {screens.map((screen, index) => (
+            <Pressable
+              accessibilityRole="button"
+              key={screen.id}
+              onPress={() => onOpen(screen.id)}
+              style={({ pressed }) => [styles.row, index < screens.length - 1 && styles.rowRule, pressed && { backgroundColor: colors.pressed }]}
+              testID={`open-${screen.id}`}
+            >
+              <Text style={styles.number}>{String(index + 1).padStart(2, '0')}</Text>
+              <View style={styles.rowText}>
+                <Text style={styles.rowTitle}>{screen.title}</Text>
+                <Text style={styles.rowSummary}>{screen.summary}</Text>
+              </View>
+              <Chevron color={colors.primary} direction="right" size={11} />
+            </Pressable>
+          ))}
+        </View>
 
         <Pressable accessibilityRole="button" onPress={onClose} style={styles.exit} testID="demoClose">
           <Text style={styles.exitText}>Back to test report</Text>
@@ -58,17 +63,19 @@ export function HomeScreen({ screens, onOpen, onClose }: { screens: readonly Scr
 
 const styles = StyleSheet.create({
   page: { flex: 1, backgroundColor: colors.background },
-  content: { paddingTop: 64, paddingHorizontal: 16, paddingBottom: 48, gap: 10 },
-  hero: { gap: 8, marginBottom: 8 },
-  title: { fontSize: 30, fontWeight: '700', color: colors.text },
-  lead: { fontSize: 15, lineHeight: 21, color: colors.muted },
-  word: { alignSelf: 'center', paddingVertical: 8 },
-  row: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: colors.card, borderRadius: 12, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, padding: 14 },
-  number: { fontSize: 13, color: colors.accent, fontWeight: '600', width: 22 },
+  content: { paddingBottom: 32 },
+  header: { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', gap: 12, paddingTop: TOP_INSET + 6, paddingBottom: 28, paddingHorizontal: 24, backgroundColor: colors.primary },
+  headerText: { flex: 1, gap: 8 },
+  title: { fontSize: 36, fontWeight: '600', lineHeight: 40, letterSpacing: -0.7, color: '#FFFFFF' },
+  lead: { fontSize: 15, lineHeight: 22, color: '#DCEBE0' },
+  word: { flexShrink: 0 },
+  list: { margin: 16, marginTop: 20, backgroundColor: colors.card, borderRadius: 14, borderWidth: 1, borderColor: colors.border, overflow: 'hidden' },
+  row: { flexDirection: 'row', alignItems: 'center', gap: 14, minHeight: 72, paddingVertical: 12, paddingHorizontal: 16 },
+  rowRule: { borderBottomWidth: 1, borderBottomColor: colors.divider },
+  number: { width: 22, fontFamily: mono, fontSize: 13, color: colors.muted },
   rowText: { flex: 1, gap: 2 },
-  rowTitle: { fontSize: 16, fontWeight: '600', color: colors.text },
-  rowSummary: { fontSize: 13, lineHeight: 18, color: colors.muted },
-  chevron: { fontSize: 24, color: colors.muted },
-  exit: { alignSelf: 'center', paddingVertical: 12, paddingHorizontal: 16, marginTop: 8 },
+  rowTitle: { fontSize: 17, fontWeight: '600', color: colors.text },
+  rowSummary: { fontSize: 14, lineHeight: 19, color: colors.label },
+  exit: { alignSelf: 'center', paddingVertical: 12, paddingHorizontal: 16 },
   exitText: { fontSize: 14, color: colors.muted },
 });

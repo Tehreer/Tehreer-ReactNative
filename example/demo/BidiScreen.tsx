@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { StyleSheet, Text, TextInput, View } from 'react-native';
 import { BaseDirection, BidiAlgorithm, initialize } from 'tehreer-react-native';
 import type { BidiRun } from 'tehreer-react-native';
-import { Button, Card, Choice, Label, Message, Mono, Page, colors } from './ui';
+import { Button, Card, Field, Message, Mono, Page, Section, Segmented, colors, inputStyle } from './ui';
 
 type Direction = 'auto' | 'ltr' | 'rtl';
 
@@ -89,21 +89,24 @@ export function BidiScreen({ onBack }: { onBack: () => void }) {
   }, [applied]);
 
   return (
-    <Page title="Bidirectional Algorithm" summary="Resolve embedding levels and visual runs of mixed-direction text." onBack={onBack}>
-      <Card title="Input text">
-        <TextInput
-          multiline
-          onChangeText={setText}
-          style={styles.input}
-          testID="bidiInput"
-          value={text}
-        />
-        <Label>Paragraph direction</Label>
-        <Choice
-          onChange={setDirection}
-          options={[{ value: 'auto', label: 'Auto' }, { value: 'ltr', label: 'LTR' }, { value: 'rtl', label: 'RTL' }]}
-          value={direction}
-        />
+    <Page title="Bidirectional Algorithm" onBack={onBack}>
+      <Card>
+        <Field label="Input text">
+          <TextInput
+            multiline
+            onChangeText={setText}
+            style={styles.input}
+            testID="bidiInput"
+            value={text}
+          />
+        </Field>
+        <Field label="Paragraph direction">
+          <Segmented
+            onChange={setDirection}
+            options={[{ value: 'auto', label: 'Auto' }, { value: 'ltr', label: 'LTR' }, { value: 'rtl', label: 'RTL' }]}
+            value={direction}
+          />
+        </Field>
         {problem !== undefined && <Message tone="error">{problem}</Message>}
         <Button label="Resolve" onPress={apply} testID="bidiResolve" />
       </Card>
@@ -111,46 +114,43 @@ export function BidiScreen({ onBack }: { onBack: () => void }) {
       {result.error !== undefined && <Message tone="error">{result.error}</Message>}
       {result.paragraphs?.map((paragraph, index) => (
         <View key={index} style={styles.results}>
-          <Card
+          <Section
+            meta={`Base ${paragraph.level} · ${isRtl(paragraph.level) ? 'RTL' : 'LTR'}`}
             title={result.paragraphs!.length > 1 ? `Resolved runs · paragraph ${index + 1}` : 'Resolved runs'}
-            meta={`Base level ${paragraph.level} · ${isRtl(paragraph.level) ? 'RTL' : 'LTR'} · ${paragraph.logical.length} run${paragraph.logical.length === 1 ? '' : 's'}`}
           >
-            <View style={styles.tableHead}>
-              <Text style={[styles.th, styles.cRange]}>Range</Text>
-              <Text style={[styles.th, styles.cLevel]}>Level</Text>
-              <Text style={[styles.th, styles.cDir]}>Dir</Text>
-              <Text style={[styles.th, styles.cText]}>Text</Text>
+            <View style={styles.runs}>
+              {paragraph.logical.map((run, runIndex) => (
+                <View key={run.start} style={[styles.runRow, runIndex < paragraph.logical.length - 1 && styles.runRule]}>
+                  <Mono style={styles.cRange}>{`${run.start} – ${run.end - 1}`}</Mono>
+                  <Mono style={styles.cLevel}>{run.level}</Mono>
+                  <Text style={[styles.cDir, { color: isRtl(run.level) ? colors.rtl : colors.ltr }]}>{isRtl(run.level) ? 'RTL' : 'LTR'}</Text>
+                  <Text style={[styles.cText, isRtl(run.level) && styles.cTextRtl, { writingDirection: isRtl(run.level) ? 'rtl' : 'ltr' }]}>{printable(run.text)}</Text>
+                </View>
+              ))}
             </View>
-            {paragraph.logical.map((run) => (
-              <View key={run.start} style={styles.tableRow}>
-                <Mono style={styles.cRange}>{`${run.start}–${run.end - 1}`}</Mono>
-                <Mono style={styles.cLevel}>{run.level}</Mono>
-                <Text style={[styles.cDir, { color: isRtl(run.level) ? colors.rtl : colors.ltr, fontWeight: '600' }]}>{isRtl(run.level) ? 'RTL' : 'LTR'}</Text>
-                <Text style={[styles.cText, styles.runText, { writingDirection: isRtl(run.level) ? 'rtl' : 'ltr' }]}>{printable(run.text)}</Text>
-              </View>
-            ))}
-          </Card>
+          </Section>
 
-          <Card title="Visual order">
+          <Section title="Visual order">
             <View style={styles.visual}>
               {paragraph.visual.map((run) => (
-                <Text
-                  key={run.start}
-                  style={[
-                    styles.visualRun,
-                    isRtl(run.level) ? styles.visualRtl : styles.visualLtr,
-                    { writingDirection: isRtl(run.level) ? 'rtl' : 'ltr' },
-                  ]}
-                >
-                  {run.text.replace(/[\r\n\u2029]/g, '')}
-                </Text>
+                <View key={run.start} style={[styles.visualRun, { borderBottomColor: isRtl(run.level) ? colors.rtl : colors.ltr }]}>
+                  <Text style={[styles.visualText, { writingDirection: isRtl(run.level) ? 'rtl' : 'ltr' }]}>
+                    {run.text.replace(/[\r\n\u2029]/g, '')}
+                  </Text>
+                </View>
               ))}
             </View>
             <View style={styles.legend}>
-              <Text style={[styles.legendItem, { color: colors.ltr }]}>{'■ Level 0 · LTR'}</Text>
-              <Text style={[styles.legendItem, { color: colors.rtl }]}>{'■ Level 1 · RTL'}</Text>
+              <View style={styles.legendItem}>
+                <View style={[styles.swatch, { backgroundColor: colors.ltr }]} />
+                <Text style={styles.legendText}>Level 0 · LTR</Text>
+              </View>
+              <View style={styles.legendItem}>
+                <View style={[styles.swatch, { backgroundColor: colors.rtl }]} />
+                <Text style={styles.legendText}>Level 1 · RTL</Text>
+              </View>
             </View>
-          </Card>
+          </Section>
         </View>
       ))}
     </Page>
@@ -158,20 +158,21 @@ export function BidiScreen({ onBack }: { onBack: () => void }) {
 }
 
 const styles = StyleSheet.create({
-  input: { minHeight: 64, borderWidth: 1, borderColor: colors.border, borderRadius: 8, padding: 10, fontSize: 18, color: colors.text, textAlignVertical: 'top' },
-  results: { gap: 14 },
-  tableHead: { flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: colors.border, paddingBottom: 4 },
-  tableRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 5 },
-  th: { fontSize: 12, fontWeight: '600', color: colors.muted },
-  cRange: { width: 64 },
-  cLevel: { width: 44 },
-  cDir: { width: 44, fontSize: 13 },
-  cText: { flex: 1 },
-  runText: { fontSize: 16, color: colors.text, textAlign: 'left' },
-  visual: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
-  visualRun: { fontSize: 20, paddingVertical: 4, paddingHorizontal: 8, borderRadius: 6, overflow: 'hidden' },
-  visualLtr: { color: colors.ltr, backgroundColor: '#E8EFFB' },
-  visualRtl: { color: colors.rtl, backgroundColor: '#FBEAE9' },
-  legend: { flexDirection: 'row', gap: 16 },
-  legendItem: { fontSize: 12 },
+  input: { ...inputStyle, minHeight: 78, height: undefined, paddingVertical: 10, backgroundColor: colors.inputBackground, fontSize: 20, fontWeight: '400', textAlignVertical: 'top' },
+  results: { gap: 12 },
+  runs: { marginTop: -6 },
+  runRow: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 48, paddingVertical: 6 },
+  runRule: { borderBottomWidth: 1, borderBottomColor: colors.divider },
+  cRange: { width: 56, color: colors.label },
+  cLevel: { width: 14 },
+  cDir: { width: 34, fontSize: 13, fontWeight: '700' },
+  cText: { flex: 1, fontSize: 16, color: colors.text, textAlign: 'left' },
+  cTextRtl: { fontSize: 20 },
+  visual: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'flex-end' },
+  visualRun: { borderBottomWidth: 3, paddingBottom: 3 },
+  visualText: { fontSize: 19, lineHeight: 28, color: colors.text },
+  legend: { flexDirection: 'row', gap: 18 },
+  legendItem: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  swatch: { width: 16, height: 3 },
+  legendText: { fontSize: 13, color: colors.label },
 });

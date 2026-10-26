@@ -10,11 +10,17 @@ export interface FontOption {
 }
 
 export const TEXT_FONTS: readonly FontOption[] = [
+  { id: 'taj', label: 'AlQalam Taj Nastaleeq', asset: require('../assets/demo-fonts/taj-nastaleeq.ttf') as number },
   { id: 'mehr', label: 'Mehr Nastaliq Web', asset: require('../assets/demo-fonts/mehr-nastaliq.ttf') as number },
   { id: 'noto', label: 'Noto Nastaliq Urdu', asset: require('../assets/fonts/NotoNastaliqUrdu-Regular.ttf') as number },
   { id: 'nafees', label: 'Nafees Web Naskh', asset: require('../assets/demo-fonts/nafees-web.ttf') as number },
-  { id: 'noorehuda', label: 'Noorehuda', asset: require('../assets/demo-fonts/noorehuda.ttf') as number },
 ];
+
+/** The font of the Quran screen only: it has no Latin or Urdu letters, so it is not offered to the other screens. */
+export const QURAN_FONT: FontOption = { id: 'noorehuda', label: 'Noorehuda', asset: require('../assets/demo-fonts/noorehuda.ttf') as number };
+
+/** The typeface that the text screens start with, as in the Web demo. */
+export const DEFAULT_TEXT_FONT = 'taj';
 
 export const VARIABLE_FONTS: readonly FontOption[] = [
   { id: 'rocher', label: 'RocherColor', asset: require('../assets/demo-fonts/rocher-color.ttf') as number },
@@ -23,7 +29,7 @@ export const VARIABLE_FONTS: readonly FontOption[] = [
   { id: 'league', label: 'League Mono', asset: require('../assets/demo-fonts/league-mono.ttf') as number },
 ];
 
-const ALL_FONTS = [...TEXT_FONTS, ...VARIABLE_FONTS];
+const ALL_FONTS = [...TEXT_FONTS, QURAN_FONT, ...VARIABLE_FONTS];
 
 const files = new Map<string, Promise<FontFile>>();
 

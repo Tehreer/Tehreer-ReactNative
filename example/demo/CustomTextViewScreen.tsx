@@ -1,9 +1,9 @@
 import { useMemo, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { Color, TMutableText, TTextView, TextAlignment, initialize } from 'tehreer-react-native';
-import { useTypeface } from './fonts';
+import { QURAN_FONT, useTypeface } from './fonts';
 import { SURAH, SURAH_TITLE } from './data/surah';
-import { Card, Message, Page, Slider, colors } from './ui';
+import { Message, Page, Section, Slider, colors, mono, Card } from './ui';
 import { useOwned } from './useOwned';
 
 const MIN_TEXT_SIZE = 24;
@@ -36,7 +36,7 @@ function makeSurah(): Surah & { dispose(): void } {
 }
 
 export function CustomTextViewScreen({ onBack }: { onBack: () => void }) {
-  const { typeface, error } = useTypeface('noorehuda');
+  const { typeface, error } = useTypeface(QURAN_FONT.id);
   const surah = useOwned(makeSurah, []);
   const shown = useOwned(() => surah?.text.copy(), [surah]);
   const [size, setSize] = useState(DEFAULT_TEXT_SIZE);
@@ -51,15 +51,17 @@ export function CustomTextViewScreen({ onBack }: { onBack: () => void }) {
   // Like the Android demo, the verse is deselected when the slider is grabbed and the text is
   // resized when it is released.
   return (
-    <Page title="Custom Text View" summary="A text view for long, colour-annotated Arabic text with adjustable size. Tap a verse to select it." onBack={onBack} scroll={false}>
-      <View style={styles.size}>
-        <Text style={styles.sizeLabel}>Text size</Text>
+    <Page title="Custom Text View" onBack={onBack} scroll={false}>
+      <Card style={styles.size}>
+        <View style={styles.sizeHead}>
+          <Text style={styles.sizeLabel}>Text size</Text>
+          <Text style={styles.sizeValue}>{`${size} px`}</Text>
+        </View>
         <View style={styles.slider}>
           <Slider max={MAX_TEXT_SIZE} min={MIN_TEXT_SIZE} onChange={setSize} onComplete={setApplied} onStart={() => setSelected(undefined)} step={1} testID="textSize" value={size} />
         </View>
-        <Text style={styles.sizeValue}>{`${size} px`}</Text>
-      </View>
-      <Card style={styles.surah} title={SURAH_TITLE}>
+      </Card>
+      <Section style={styles.surah} title={SURAH_TITLE}>
         {error !== undefined && <Message tone="error">{`Could not load the typeface: ${error.message}`}</Message>}
         {typeface !== undefined && shown !== undefined && (
           <TTextView
@@ -80,16 +82,17 @@ export function CustomTextViewScreen({ onBack }: { onBack: () => void }) {
             typeface={typeface}
           />
         )}
-      </Card>
+      </Section>
     </Page>
   );
 }
 
 const styles = StyleSheet.create({
-  size: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  sizeLabel: { fontSize: 14, color: colors.muted },
-  slider: { flex: 1 },
-  sizeValue: { width: 56, fontSize: 13, color: colors.text, textAlign: 'right' },
-  surah: { flex: 1 },
+  size: { gap: 8 },
+  sizeHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline' },
+  sizeLabel: { fontSize: 13, fontWeight: '600', color: colors.label },
+  sizeValue: { fontFamily: mono, fontSize: 13, color: colors.text },
+  slider: { marginTop: -6 },
+  surah: { flex: 1, minHeight: 0, overflow: 'hidden' },
   textView: { flex: 1 },
 });

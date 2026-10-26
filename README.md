@@ -80,13 +80,13 @@ The example app has a demo of the library: the screens of the Tehreer-Web demo o
 |--------|---------------|
 | Bidirectional Algorithm | Embedding levels, logical runs and visual order of mixed-direction text (`BidiAlgorithm`) |
 | Typeface Information | Names and metrics of a typeface, and a specimen in a `TLabel` |
-| Typeface Glyphs | Every glyph ID of a typeface; glyphs that a character maps to are drawn by a `TLabel` |
+| Typeface Glyphs | Every glyph ID of a typeface, each drawn from its ID, a "Go to glyph ID" field, and a Glyph Info screen with the outline, metrics and previous/next buttons |
 | OpenType Shaping | Script and language tags, clusters, glyph IDs, offsets and advances (`ShapingEngine`) |
 | Variable Fonts | Instances, color palettes and axes of a variable font (`getVariationInstance`, `getColorInstance`) |
 | Custom Label | A `TLabel` of styled Urdu text with tappable links |
 | Custom Text View | A `TTextView` of colored Arabic text with justification, verse selection and an adjustable size |
 
-The fonts are in `example/assets/demo-fonts` (see the README there) and `example/assets/fonts`. The glyph screen cannot draw a glyph that no character maps to (a ligature, a contextual form), because the library draws text and not a glyph by its ID; those show only their ID in the list of all glyphs.
+The fonts are in `example/assets/demo-fonts` (see the README there) and `example/assets/fonts`. The default text typeface is AlQalam Taj Nastaleeq. The glyph screens draw any glyph by its ID with the public `Renderer` only: `getGlyphImage` / `getStrokeImage` give the pixels, which the demo wraps in a PNG (`example/demo/glyphBitmap.ts`) and shows with an `Image`, so no dependency or native code is needed.
 
 iPhone 16 Pro simulator:
 

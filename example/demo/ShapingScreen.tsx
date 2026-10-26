@@ -3,8 +3,8 @@ import { StyleSheet, Text, TextInput, View } from 'react-native';
 import { ShapingEngine, SfntTag } from 'tehreer-react-native';
 import type { Typeface } from 'tehreer-react-native';
 import { FontChoice } from './FontChoice';
-import { TEXT_FONTS, useTypeface } from './fonts';
-import { Button, Card, Label, Message, Mono, Page, colors } from './ui';
+import { DEFAULT_TEXT_FONT, TEXT_FONTS, useTypeface } from './fonts';
+import { Button, Card, Field, Message, Page, Section, colors, inputStyle, mono } from './ui';
 
 const DEFAULT_TEXT = 'زبان کو مختلف علامتوں اور رموز کے ذریعے لکھنے کو تحریر کہتے ہیں۔';
 
@@ -22,8 +22,13 @@ interface GlyphInfo {
   readonly advance: number;
 }
 
+interface Character {
+  readonly shown: string;
+  readonly code: string;
+}
+
 interface Cluster {
-  readonly characters: string[];
+  readonly characters: Character[];
   readonly glyphs: GlyphInfo[];
 }
 
@@ -39,9 +44,10 @@ function isValidTag(tag: string): boolean {
   }
 }
 
-function describe(character: string): string {
-  const code = hex(character.codePointAt(0)!);
-  return character === ' ' ? `${code} (space)` : `${code} (\u2066${character}\u2069)`;
+/** A character of the input as the list shows it: the character itself (a visible mark for a space) and its code. */
+function describe(character: string): Character {
+  const point = character.codePointAt(0)!;
+  return { shown: point === 0x20 ? '␣' : point < 0x20 || point === 0x2029 ? '↵' : character, code: hex(point) };
 }
 
 /** Shapes the text and groups characters and glyphs by cluster, copying what it needs out of Core. */
@@ -73,7 +79,7 @@ function shape(typeface: Typeface, settings: Settings): Cluster[] {
         }
         const next = starts[starts.indexOf(glyphStart) + 1] ?? ids.length;
 
-        const characters: string[] = [];
+        const characters: Character[] = [];
         for (const character of settings.text.slice(index, end)) {
           characters.push(describe(character));
         }
@@ -93,8 +99,18 @@ function shape(typeface: Typeface, settings: Settings): Cluster[] {
   }
 }
 
+/** One field of a cluster: the same height and spacing for every row, the name on the left and the value on the right. */
+function Row({ term, value, isMono = false }: { term: string; value: string; isMono?: boolean }) {
+  return (
+    <View style={styles.row}>
+      <Text style={styles.term}>{term}</Text>
+      <Text style={[styles.value, isMono && styles.mono]}>{value}</Text>
+    </View>
+  );
+}
+
 export function ShapingScreen({ onBack }: { onBack: () => void }) {
-  const [fontId, setFontId] = useState('mehr');
+  const [fontId, setFontId] = useState(DEFAULT_TEXT_FONT);
   const { typeface, error } = useTypeface(fontId);
 
   const [size, setSize] = useState('2048');
@@ -130,66 +146,66 @@ export function ShapingScreen({ onBack }: { onBack: () => void }) {
   }, [typeface, applied]);
 
   return (
-    <Page title="OpenType Shaping" summary="Shape text with script and language tags, then inspect each glyph's ID, offset and advance." onBack={onBack}>
-      <Card title="Settings">
-        <FontChoice onChange={setFontId} options={TEXT_FONTS} value={fontId} />
-        <Label>Type size</Label>
-        <TextInput inputMode="numeric" onChangeText={setSize} style={styles.input} testID="shapingSize" value={size} />
-        <Label>Script tag</Label>
-        <TextInput autoCapitalize="none" autoCorrect={false} onChangeText={setScript} style={styles.input} testID="shapingScript" value={script} />
-        <Label>Language tag</Label>
-        <TextInput autoCapitalize="none" autoCorrect={false} onChangeText={setLanguage} style={styles.input} testID="shapingLanguage" value={language} />
-        <Label>Input text</Label>
-        <TextInput multiline onChangeText={setText} style={[styles.input, styles.urdu]} testID="shapingText" value={text} />
+    <Page title="OpenType Shaping" onBack={onBack}>
+      <Card>
+        <Field label="Input text">
+          <TextInput multiline onChangeText={setText} style={[styles.input, styles.urdu]} testID="shapingText" value={text} />
+        </Field>
+        <FontChoice disabled={typeface === undefined} onChange={setFontId} options={TEXT_FONTS} value={fontId} />
+        <View style={styles.tags}>
+          <Field label="Type size" style={{ flex: 1.3 }}>
+            <TextInput inputMode="numeric" onChangeText={setSize} style={styles.tag} testID="shapingSize" value={size} />
+          </Field>
+          <Field label="Script" style={{ flex: 1 }}>
+            <TextInput autoCapitalize="none" autoCorrect={false} onChangeText={setScript} style={styles.tag} testID="shapingScript" value={script} />
+          </Field>
+          <Field label="Language" style={{ flex: 1 }}>
+            <TextInput autoCapitalize="none" autoCorrect={false} onChangeText={setLanguage} style={styles.tag} testID="shapingLanguage" value={language} />
+          </Field>
+        </View>
         {problem !== undefined && <Message tone="error">{problem}</Message>}
         <Button label="Shape" onPress={apply} testID="shapingShape" />
       </Card>
 
-      <Card title="OpenType Info" meta="Grouped by cluster">
+      <Section meta={Array.isArray(clusters) ? `${clusters.length} cluster${clusters.length === 1 ? '' : 's'}` : undefined} title="Shaping Info">
         {error !== undefined && <Message tone="error">{`Could not load the typeface: ${error.message}`}</Message>}
+        {typeface === undefined && error === undefined && <Message>Loading the typeface…</Message>}
         {typeof clusters === 'string' && <Message tone="error">{clusters}</Message>}
         {Array.isArray(clusters) && (
-          <>
-            <View style={styles.head}>
-              <Text style={[styles.th, styles.cChar]}>Character</Text>
-              <Text style={[styles.th, styles.cGlyph]}>Glyph ID</Text>
-              <Text style={[styles.th, styles.cOffset]}>Offset</Text>
-              <Text style={[styles.th, styles.cAdvance]}>Advance</Text>
-            </View>
-            {clusters.map((cluster, index) => {
-              const rows = Math.max(cluster.characters.length, cluster.glyphs.length);
-              return (
-                <View key={index} style={styles.cluster}>
-                  {Array.from({ length: rows }, (_, row) => {
-                    const glyph = cluster.glyphs[row];
-                    return (
-                      <View key={row} style={styles.line}>
-                        <Mono style={styles.cChar}>{cluster.characters[row] ?? ''}</Mono>
-                        <Mono style={styles.cGlyph}>{glyph ? hex(glyph.id) : ''}</Mono>
-                        <Mono style={styles.cOffset}>{glyph ? `(${glyph.x}, ${glyph.y})` : ''}</Mono>
-                        <Mono style={styles.cAdvance}>{glyph ? String(glyph.advance) : ''}</Mono>
-                      </View>
-                    );
-                  })}
-                </View>
-              );
-            })}
-          </>
+          <View style={styles.list}>
+            {clusters.map((cluster, index) => (
+              <View key={index} style={[styles.cluster, index < clusters.length - 1 && styles.rule]}>
+                <Text style={styles.clusterTitle}>{`Cluster ${index + 1}`}</Text>
+                {cluster.characters.map((character, at) => (
+                  <Row key={`c${at}`} term="Character" value={`${character.shown}   U+${character.code}`} />
+                ))}
+                {cluster.glyphs.map((glyph, at) => (
+                  <View key={`g${at}`}>
+                    <Row term="GID" value={hex(glyph.id)} isMono />
+                    <Row term="Offset" value={`(${glyph.x}, ${glyph.y})`} isMono />
+                    <Row term="Advance" value={String(glyph.advance)} isMono />
+                  </View>
+                ))}
+              </View>
+            ))}
+          </View>
         )}
-      </Card>
+      </Section>
     </Page>
   );
 }
 
 const styles = StyleSheet.create({
-  input: { borderWidth: 1, borderColor: colors.border, borderRadius: 8, padding: 10, fontSize: 16, color: colors.text },
-  urdu: { minHeight: 64, textAlign: 'right', writingDirection: 'rtl', textAlignVertical: 'top' },
-  head: { flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: colors.border, paddingBottom: 4 },
-  th: { fontSize: 12, fontWeight: '600', color: colors.muted },
-  cluster: { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border, paddingVertical: 4 },
-  line: { flexDirection: 'row', alignItems: 'center', paddingVertical: 1 },
-  cChar: { width: 92, fontSize: 12 },
-  cGlyph: { width: 56, fontSize: 12 },
-  cOffset: { flex: 1, fontSize: 12 },
-  cAdvance: { width: 56, fontSize: 12, textAlign: 'right' },
+  input: { ...inputStyle, height: undefined, backgroundColor: colors.inputBackground },
+  urdu: { minHeight: 104, paddingVertical: 6, fontSize: 22, fontWeight: '400', textAlign: 'right', writingDirection: 'rtl', textAlignVertical: 'top' },
+  tags: { flexDirection: 'row', gap: 10 },
+  tag: { ...inputStyle, fontFamily: mono },
+  list: { marginTop: -6 },
+  cluster: { paddingVertical: 10 },
+  rule: { borderBottomWidth: 1, borderBottomColor: colors.divider },
+  clusterTitle: { height: 28, fontSize: 13, fontWeight: '600', color: colors.label },
+  row: { height: 32, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 16 },
+  term: { fontSize: 13, letterSpacing: 0.4, textTransform: 'uppercase', color: colors.muted },
+  value: { fontSize: 15, color: colors.text },
+  mono: { fontFamily: mono, fontSize: 14 },
 });
