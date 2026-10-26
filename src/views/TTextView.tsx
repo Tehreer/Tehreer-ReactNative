@@ -197,6 +197,8 @@ export const TTextView = forwardRef<TTextViewHandle, TTextViewProps>(function TT
   const links = useMemo(() => findLinks(attributedText), [attributedText]);
   const scroller = useRef<ScrollViewInstance>(null);
   const offset = useRef(0);
+  // The scroll position as the scroll view reports it, with the inset above the text included.
+  const rawOffset = useRef(0);
   const viewport = useRef({ width: 0, height: 0 });
   const lastLayout = useRef<LayoutChangeEvent | undefined>(undefined);
   const [width, setWidth] = useState(0);
@@ -311,23 +313,35 @@ export const TTextView = forwardRef<TTextViewHandle, TTextViewProps>(function TT
 
   const handleScroll = useCallback((event: NativeSyntheticEvent<NativeScrollEvent>) => {
     // The text starts at 0, below the inset; a bounce above it is still 0.
+    rawOffset.current = event.nativeEvent.contentOffset.y;
     offset.current = Math.max(0, event.nativeEvent.contentOffset.y - insetTop);
     updateRange(offset.current);
     onScroll?.(offset.current);
   }, [onScroll, updateRange, insetTop]);
 
   const handlePress = useCallback((event: GestureResponderEvent) => {
-    const known = getComposedFrame();
-    // On Android `locationY` does not include how far the scroll view is scrolled, so the offset
-    // is added to get the position in the text.
-    const y = event.nativeEvent.locationY + (Platform.OS === "android" ? offset.current : 0);
-    const index = known === undefined ? undefined : indexOfCodeUnit(known, event.nativeEvent.locationX, y);
-    onTap?.(index);
-    const link = isLinkInteractionEnabled ? linkAt(links, index) : undefined;
-    if (link !== undefined) {
-      onLinkClick?.(link.userData, link.fromIndex, link.toIndex);
+    const { locationX, locationY, pageX, pageY } = event.nativeEvent;
+    const finish = (x: number, y: number) => {
+      const known = getComposedFrame();
+      const index = known === undefined ? undefined : indexOfCodeUnit(known, x, y);
+      onTap?.(index);
+      const link = isLinkInteractionEnabled ? linkAt(links, index) : undefined;
+      if (link !== undefined) {
+        onLinkClick?.(link.userData, link.fromIndex, link.toIndex);
+      }
+    };
+
+    const scrollView = scroller.current;
+    if (Platform.OS !== "android" || scrollView === null) {
+      finish(locationX, locationY);
+      return;
     }
-  }, [getComposedFrame, onTap, isLinkInteractionEnabled, links, onLinkClick]);
+    // On Android `locationY` does not follow the scrolling, so the position in the text is worked
+    // out from where the view is on the screen, how far it is scrolled and the inset.
+    scrollView.measure((_x, _y, _width, _height, viewPageX, viewPageY) => {
+      finish(pageX - viewPageX - insetLeft, pageY - viewPageY - insetTop + rawOffset.current);
+    });
+  }, [getComposedFrame, onTap, isLinkInteractionEnabled, links, onLinkClick, insetLeft, insetTop]);
 
   // A range that reaches past the end of the text covers nothing: the text may change in the same render.
   const highlightViews = useMemo(() => {
@@ -342,7 +356,11 @@ export const TTextView = forwardRef<TTextViewHandle, TTextViewProps>(function TT
       }
       const color = rgba(highlight.color);
       frame.getSelectionRects(highlight.fromIndex, toIndex).forEach((rect, rectIndex) => {
-        views.push({ key: `${rangeIndex}:${rectIndex}`, x: rect.x, y: rect.y, width: rect.width, height: rect.height, color });
+        // Whole pixels, so that the rects of neighbouring runs meet without a gap.
+        const scale = PixelRatio.get();
+        const left = Math.floor(rect.x * scale) / scale;
+        const top = Math.floor(rect.y * scale) / scale;
+        views.push({ key: `${rangeIndex}:${rectIndex}`, x: left, y: top, width: Math.ceil((rect.x + rect.width) * scale) / scale - left, height: Math.ceil((rect.y + rect.height) * scale) / scale - top, color });
       });
     });
     return views;
