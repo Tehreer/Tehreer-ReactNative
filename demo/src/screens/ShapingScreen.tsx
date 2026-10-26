@@ -156,8 +156,8 @@ function GlyphIdRow({ renderer, glyphId }: { renderer: Renderer | undefined; gly
     <View style={[styles.row, styles.glyphRow]}>
       <Text style={styles.term}>Glyph ID</Text>
       <View style={styles.glyphContent}>
-        <Text style={[styles.value, styles.mono]}>{hex(glyphId)}</Text>
-        {renderer !== undefined && <GlyphThumbnail glyphId={glyphId} renderer={renderer} />}
+        <Text style={[styles.value, styles.mono]}>{`0x${hex(glyphId)}`}</Text>
+        {renderer !== undefined && <GlyphThumbnail glyphId={glyphId} height={32} renderer={renderer} size={22} width={44} />}
       </View>
     </View>
   );
@@ -264,8 +264,8 @@ const styles = StyleSheet.create({
   row: { height: 32, flexDirection: 'row', alignItems: 'center', paddingLeft: 8 },
   term: { width: 96, fontSize: 13, letterSpacing: 0.4, textTransform: 'uppercase', color: colors.muted },
   value: { fontSize: 15, color: colors.text, textAlign: 'left' },
-  glyphRow: { height: 48 },
-  glyphContent: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 12 },
+  glyphRow: { height: 44 },
+  glyphContent: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10 },
   character: { flex: 1, flexDirection: 'row', alignItems: 'baseline', gap: 12 },
   shown: { fontFamily: naskh, fontSize: 18, color: colors.text },
   mono: { fontFamily: mono, fontSize: 14 },
