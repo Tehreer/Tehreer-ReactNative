@@ -1,0 +1,21 @@
+/** The colors of the mockups of the demo. */
+export const colors = {
+  background: '#F4F7F4',
+  card: '#FFFFFF',
+  border: '#E0E8E1',
+  divider: '#E9EFEA',
+  inputBorder: '#C9D6CC',
+  inputBackground: '#FAFCFA',
+  text: '#111A14',
+  label: '#3F4E44',
+  muted: '#55655A',
+  disabled: '#8A988F',
+  primary: '#1B4D2E',
+  pressed: '#EDF3EE',
+  skeleton: '#EDF3EE',
+  ltr: '#1B4D2E',
+  rtl: '#A8530C',
+  link: '#1A56C4',
+  error: '#B3261E',
+  bounds: '#D32F2F',
+};

@@ -2,7 +2,7 @@
 
 React Native wrapper of [Tehreer Core](https://github.com/Tehreer/Tehreer-Core), a lightweight, dependency-free text engine written in C89. It exposes the public Core API to React Native through one C++ JSI layer shared by iOS and Android, with a TypeScript API shaped like Tehreer-Web, Tehreer-Android and Tehreer-Cocoa.
 
-This package is at the skeleton stage: the native layer and the public API land in later issues.
+The package has the whole public Core API in TypeScript (`src/`), the two views `TLabel` and `TTextView` (with the thin native `TLinePaint` view that draws lines), a test-runner app (`example/`) and a demo app (`demo/`).
 
 ## Constraints
 
@@ -24,7 +24,7 @@ npm test            # node:test suites in tests/
 npm run build       # emit dist/ (JavaScript and declarations) from src/
 ```
 
-`.npmrc` sets `legacy-peer-deps` so that npm does not install `react` and `react-native` for this skeleton; revisit it when the example app lands.
+`.npmrc` sets `legacy-peer-deps`: `react` and `react-native` are peer dependencies with the range `*`, and the pinned copies in `devDependencies` are the ones the type checks and the apps use, so npm must not resolve or install a second copy for the peers.
 
 ## Core and its dependencies
 
@@ -71,6 +71,49 @@ xcodebuild -workspace TehreerExample.xcworkspace -scheme TehreerExample -sdk iph
 Use `-sdk iphoneos -destination 'generic/platform=iOS' ARCHS=arm64` for a device build. The wrapper sources must stay free of compiler warnings; warnings from Core and the dependencies are reported by Xcode too and are not fixed here.
 
 `npm run test:ios` builds the example app for the booted simulator, starts Metro, launches the app and runs every suite registered in `example/tests/index.ts` and prints a per-suite summary and the names of failing tests. It exits non-zero on a failing test, a timeout or a missing result line. `npm run test:ios -- --release` does the same with the Release configuration, which bundles the JavaScript into the app and starts no Metro.
+
+## Demo
+
+`demo/` is a React Native app of its own (`TehreerDemo`, separate from the test runner in `example/`): the screens of the Tehreer-Web demo on `TLabel` and `TTextView`, written against the public API only (`import ... from 'tehreer-react-native'`, no internal imports) and without a navigation library. It links the library from the repository root, like `example/`, and runs it from its TypeScript sources.
+
+```bash
+cd demo && npm install
+cd ios && LANG=en_US.UTF-8 pod install && cd ..   # iOS only
+npm start                                          # Metro
+npm run ios                                        # or: npm run android
+```
+
+The code follows the usual React Native layout: `demo/src/App.tsx` (navigation state and transitions), `components/` (one file per component), `screens/` (one file per screen), `hooks/`, `theme/`, `utils/`, `data/` and `fonts/` (the font list and loader).
+
+| Screen | What it shows |
+|--------|---------------|
+| Bidirectional Algorithm | Embedding levels, logical runs and visual order of mixed-direction text (`BidiAlgorithm`) |
+| Typeface Information | Names and metrics of a typeface, and a specimen in a `TLabel` |
+| Typeface Glyphs | Every glyph ID of a typeface, each drawn from its ID, a "Go to glyph ID" field, and a Glyph Info screen with the outline, metrics and previous/next buttons |
+| OpenType Shaping | Script and language tags, clusters, glyph IDs, offsets and advances (`ShapingEngine`) |
+| Variable Fonts | Instances, color palettes and axes of a variable font (`getVariationInstance`, `getColorInstance`) |
+| Custom Label | A `TLabel` of styled Urdu text with tappable links |
+| Custom Text View | A `TTextView` of colored Arabic text with justification, verse selection and an adjustable size |
+
+The fonts are in `demo/assets/fonts` (see the README there). The default text typeface is AlQalam Taj Nastaleeq. The Unicode value of a glyph is found by scanning only the Basic Multilingual Plane (up to U+FFFF), so a glyph that only a supplementary-plane code point reaches has none. The glyph screens draw any glyph by its ID with the public `Renderer` only: `getGlyphImage` / `getStrokeImage` give the pixels, which the demo wraps in a PNG (`demo/src/utils/glyphBitmap.ts`) and shows with an `Image`, so no dependency or native code is needed.
+
+iPhone 16 Pro simulator:
+
+| | |
+|---|---|
+| ![Home](docs/screenshots/ios-home.png) | ![Bidirectional Algorithm](docs/screenshots/ios-bidi.png) |
+| ![Typeface Information](docs/screenshots/ios-typeface-info.png) | ![Typeface Glyphs](docs/screenshots/ios-glyphs.png) |
+| ![Glyph Info](docs/screenshots/ios-glyph-info.png) | ![OpenType Shaping](docs/screenshots/ios-shaping.png) |
+| ![Variable Fonts](docs/screenshots/ios-variable-fonts.png) | ![Custom Label](docs/screenshots/ios-custom-label.png) |
+| ![Custom Text View](docs/screenshots/ios-text-view.png) | |
+
+Android emulator (Pixel-sized, API 28, arm64):
+
+| | | |
+|---|---|---|
+| ![Home](docs/screenshots/android-home.png) | ![Bidirectional Algorithm](docs/screenshots/android-bidi.png) | ![Typeface Information](docs/screenshots/android-typeface-info.png) |
+| ![Typeface Glyphs](docs/screenshots/android-glyphs.png) | ![Glyph Info](docs/screenshots/android-glyph-info.png) | ![OpenType Shaping](docs/screenshots/android-shaping.png) |
+| ![Variable Fonts](docs/screenshots/android-variable-fonts.png) | ![Custom Label](docs/screenshots/android-custom-label.png) | ![Custom Text View](docs/screenshots/android-text-view.png) |
 
 ## Packaging
 

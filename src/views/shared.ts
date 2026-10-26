@@ -175,3 +175,50 @@ export function toNativeRenderer(props: RenderingProps): NativeRenderer {
     glyphShadowDy: props.shadowDy,
   };
 }
+
+/** The space between the edges of a scrolling view and its content, in layout units. Every side is optional and 0 by default. */
+export interface ContentInset {
+  readonly top?: number;
+  readonly left?: number;
+  readonly bottom?: number;
+  readonly right?: number;
+}
+
+/**
+ * Fills the sides of a content inset that are not given with 0.
+ *
+ * @throws RangeError if a side is not a finite number from 0.
+ */
+export function resolveContentInset(inset: ContentInset | undefined): { top: number; left: number; bottom: number; right: number } {
+  const { top = 0, left = 0, bottom = 0, right = 0 } = inset ?? {};
+  for (const [side, value] of Object.entries({ top, left, bottom, right })) {
+    if (!Number.isFinite(value) || value < 0) {
+      throw new RangeError(`The ${side} of the content inset, ${value}, is not a finite number from 0.`);
+    }
+  }
+  return { top, left, bottom, right };
+}
+
+/** The size that the text is laid out for: the size of the view without the inset, never below 0. */
+export function insetSize(size: { width: number; height: number }, inset: { top: number; left: number; bottom: number; right: number }): { width: number; height: number } {
+  return { width: Math.max(0, size.width - inset.left - inset.right), height: Math.max(0, size.height - inset.top - inset.bottom) };
+}
+
+/**
+ * The position in the text of a press on Android, where `locationY` does not follow the scrolling:
+ * it comes from where the press and the scroll view are on the screen, how far the scroll view is
+ * scrolled (`scrollOffset` includes the inset above the text) and the inset.
+ */
+export function androidTextPosition(
+  press: { pageX: number; pageY: number },
+  view: { pageX: number; pageY: number },
+  inset: { top: number; left: number },
+  scrollOffset: number,
+): { x: number; y: number } {
+  return { x: press.pageX - view.pageX - inset.left, y: press.pageY - view.pageY - inset.top + scrollOffset };
+}
+
+/** The farthest a scroll view scrolls, for a text of `content` height shown in a view of `viewportHeight` with the inset around it. */
+export function maxScrollOffset(content: number, viewportHeight: number, inset: { top: number; bottom: number }): number {
+  return Math.max(0, content - viewportHeight + inset.top + inset.bottom);
+}

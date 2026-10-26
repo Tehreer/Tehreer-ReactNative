@@ -140,6 +140,9 @@ export function useTextView(source: TextSource & RenderingProps, settings: Frame
     return frame.current.frame;
   }, [releaseFrame, settingsKey]);
 
+  // What the commit of this view has adopted: a registered frame that was never committed is released by the effect that made it.
+  const adoptedFrames = useRef(new Set<number>()).current;
+
   // The frame that the views draw is made after each layout, and again when the text or the settings change.
   useEffect(() => {
     const laidOut = made === undefined ? undefined : getComposedFrame();
@@ -149,8 +152,32 @@ export function useTextView(source: TextSource & RenderingProps, settings: Frame
       return undefined;
     }
     setShown({ frame: laidOut, id });
-    return () => getNativeBindings().unregisterComposedFrame(id);
+    return () => {
+      if (!adoptedFrames.has(id)) {
+        getNativeBindings().unregisterComposedFrame(id);
+      }
+    };
   }, [made, size, settingsKey, getComposedFrame]);
+
+  // The frame that a view draws stays registered until the render that shows the next one has been
+  // committed, so that the view is never left with the id of a frame that is gone (it would draw
+  // nothing). It is marked as adopted when it is committed, before any passive effect runs.
+  useLayoutEffect(() => {
+    if (shown !== undefined) {
+      adoptedFrames.add(shown.id);
+    }
+  }, [shown]);
+
+  useEffect(() => {
+    if (shown === undefined) {
+      return undefined;
+    }
+    const { id } = shown;
+    return () => {
+      adoptedFrames.delete(id);
+      getNativeBindings().unregisterComposedFrame(id);
+    };
+  }, [shown]);
 
   const getCodeUnitCount = useCallback(() => current.current?.typesetter.codeUnitCount ?? 0, []);
 
