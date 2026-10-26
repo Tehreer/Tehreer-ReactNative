@@ -115,3 +115,32 @@ export function measureGlyph(renderer: Renderer, glyphId: number, typeSize: numb
   const box = renderer.computeGlyphInkBox(glyphId);
   return { x: box.x / density, y: box.y / density, width: box.width / density, height: box.height / density };
 }
+
+/** A bitmap together with where its top left corner goes in the area it was fitted to. */
+export type PlacedGlyphBitmap = GlyphBitmap & { left: number; top: number };
+
+/**
+ * Makes the bitmap of a glyph, shrunk when its ink does not fit the area, and places it so that
+ * the middle of the ink is the middle of the area. The glyph keeps `padding` of the width free.
+ *
+ * @returns `undefined` for a glyph with nothing to draw.
+ */
+export function fitGlyphBitmap(renderer: Renderer, glyphId: number, typeSize: number, color: string, areaWidth: number, areaHeight: number, padding = 0): PlacedGlyphBitmap | undefined {
+  let size = typeSize;
+  let box = measureGlyph(renderer, glyphId, size);
+  if (box.width <= 0 || box.height <= 0) {
+    return undefined;
+  }
+  const fit = Math.min(1, (areaWidth - padding) / box.width, areaHeight / box.height);
+  if (fit < 1) {
+    size *= fit;
+    box = measureGlyph(renderer, glyphId, size);
+  }
+  const bitmap = makeGlyphBitmap(renderer, glyphId, size, color);
+  if (bitmap === undefined) {
+    return undefined;
+  }
+  const penX = areaWidth / 2 - (box.x + box.width / 2);
+  const penY = areaHeight / 2 - (box.y + box.height / 2);
+  return { ...bitmap, left: penX + bitmap.x, top: penY + bitmap.y };
+}

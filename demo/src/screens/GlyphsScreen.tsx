@@ -6,8 +6,8 @@ import { FontChoice } from '../components/FontChoice';
 import { DEFAULT_TEXT_FONT, TEXT_FONTS } from '../fonts/fonts';
 import { useTypeface } from '../hooks/useTypeface';
 import { GlyphInfoScreen } from './GlyphInfoScreen';
-import { makeGlyphBitmap, makeGlyphRenderer, measureGlyph } from '../utils/glyphBitmap';
-import type { GlyphBitmap } from '../utils/glyphBitmap';
+import { fitGlyphBitmap, makeGlyphRenderer } from '../utils/glyphBitmap';
+import type { PlacedGlyphBitmap } from '../utils/glyphBitmap';
 import { Button } from '../components/Button';
 import { Card } from '../components/Card';
 import { Field } from '../components/Field';
@@ -77,25 +77,8 @@ class GlyphRenderer {
 }
 
 /** The glyph of a cell, shrunk to fit its area, and where to put it in the area. */
-function drawCell(renderer: Renderer, glyphId: number, areaWidth: number): (GlyphBitmap & { left: number; top: number }) | undefined {
-  let size = GLYPH_SIZE;
-  let box = measureGlyph(renderer, glyphId, size);
-  if (box.width <= 0 || box.height <= 0) {
-    return undefined;
-  }
-  const fit = Math.min(1, (areaWidth - 6) / box.width, GLYPH_AREA / box.height);
-  if (fit < 1) {
-    size *= fit;
-    box = measureGlyph(renderer, glyphId, size);
-  }
-  const bitmap = makeGlyphBitmap(renderer, glyphId, size, colors.text);
-  if (bitmap === undefined) {
-    return undefined;
-  }
-  // The pen goes where the middle of the ink is in the middle of the area.
-  const penX = areaWidth / 2 - (box.x + box.width / 2);
-  const penY = GLYPH_AREA / 2 - (box.y + box.height / 2);
-  return { ...bitmap, left: penX + bitmap.x, top: penY + bitmap.y };
+function drawCell(renderer: Renderer, glyphId: number, areaWidth: number): PlacedGlyphBitmap | undefined {
+  return fitGlyphBitmap(renderer, glyphId, GLYPH_SIZE, colors.text, areaWidth, GLYPH_AREA, 6);
 }
 
 const GlyphCell = memo(function GlyphCell({ glyphId, renderer, width, onPick }: {

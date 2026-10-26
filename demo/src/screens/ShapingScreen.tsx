@@ -1,18 +1,21 @@
 import { useMemo, useState } from 'react';
 import { StyleSheet, Text, TextInput, View } from 'react-native';
 import { ShapingEngine, SfntTag } from 'tehreer-react-native';
-import type { Typeface } from 'tehreer-react-native';
+import type { Renderer, Typeface } from 'tehreer-react-native';
 import { FontChoice } from '../components/FontChoice';
 import { DEFAULT_TEXT_FONT, TEXT_FONTS } from '../fonts/fonts';
+import { useOwned } from '../hooks/useOwned';
 import { useTypeface } from '../hooks/useTypeface';
 import { Button } from '../components/Button';
 import { Card } from '../components/Card';
 import { Field } from '../components/Field';
+import { GlyphThumbnail } from '../components/GlyphThumbnail';
 import { Message } from '../components/Message';
 import { Page } from '../components/Page';
 import { Section } from '../components/Section';
 import { colors } from '../theme/colors';
 import { inputStyle } from '../theme/inputStyle';
+import { makeGlyphRenderer } from '../utils/glyphBitmap';
 import { mono } from '../theme/mono';
 import { naskh } from '../theme/naskh';
 
@@ -132,9 +135,40 @@ function CharacterRow({ character, isFirst }: { character: { shown: string; code
   );
 }
 
+/** A renderer together with the typeface it was made for. */
+class GlyphRenderer {
+  readonly typeface: Typeface;
+  readonly renderer: Renderer;
+
+  constructor(typeface: Typeface) {
+    this.typeface = typeface;
+    this.renderer = makeGlyphRenderer(typeface);
+  }
+
+  dispose(): void {
+    this.renderer.dispose();
+  }
+}
+
+/** The ID of a glyph along with the glyph itself. */
+function GlyphIdRow({ renderer, glyphId }: { renderer: Renderer | undefined; glyphId: number }) {
+  return (
+    <View style={[styles.row, styles.glyphRow]}>
+      <Text style={styles.term}>Glyph ID</Text>
+      <View style={styles.glyphContent}>
+        <Text style={[styles.value, styles.mono]}>{hex(glyphId)}</Text>
+        {renderer !== undefined && <GlyphThumbnail glyphId={glyphId} renderer={renderer} />}
+      </View>
+    </View>
+  );
+}
+
 export function ShapingScreen({ onBack }: { onBack: () => void }) {
   const [fontId, setFontId] = useState(DEFAULT_TEXT_FONT);
   const { typeface, error } = useTypeface(fontId);
+  // The renderer is used only for the typeface it was made for, so that a glyph ID is never drawn with another font.
+  const owned = useOwned(() => (typeface === undefined ? undefined : new GlyphRenderer(typeface)), [typeface]);
+  const renderer = owned !== undefined && owned.typeface === typeface ? owned.renderer : undefined;
 
   const [size, setSize] = useState('2048');
   const [script, setScript] = useState('arab');
@@ -204,7 +238,7 @@ export function ShapingScreen({ onBack }: { onBack: () => void }) {
                 ))}
                 {cluster.glyphs.map((glyph, at) => (
                   <View key={`g${at}`}>
-                    <Row term="Glyph ID" value={hex(glyph.id)} isMono />
+                    <GlyphIdRow glyphId={glyph.id} renderer={renderer} />
                     <Row term="Offset" value={`(${glyph.x}, ${glyph.y})`} isMono />
                     <Row term="Advance" value={String(glyph.advance)} isMono />
                   </View>
@@ -230,6 +264,8 @@ const styles = StyleSheet.create({
   row: { height: 32, flexDirection: 'row', alignItems: 'center', paddingLeft: 8 },
   term: { width: 96, fontSize: 13, letterSpacing: 0.4, textTransform: 'uppercase', color: colors.muted },
   value: { fontSize: 15, color: colors.text, textAlign: 'left' },
+  glyphRow: { height: 48 },
+  glyphContent: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 12 },
   character: { flex: 1, flexDirection: 'row', alignItems: 'baseline', gap: 12 },
   shown: { fontFamily: naskh, fontSize: 18, color: colors.text },
   mono: { fontFamily: mono, fontSize: 14 },
