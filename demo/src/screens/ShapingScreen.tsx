@@ -154,10 +154,10 @@ class GlyphRenderer {
 function GlyphIdRow({ renderer, glyphId }: { renderer: Renderer | undefined; glyphId: number }) {
   return (
     <View style={[styles.row, styles.glyphRow]}>
-      <Text style={styles.term}>Glyph ID</Text>
+      <Text style={styles.term}>Glyph</Text>
       <View style={styles.glyphContent}>
         <Text style={[styles.value, styles.mono]}>{`0x${hex(glyphId)}`}</Text>
-        {renderer !== undefined && <GlyphThumbnail glyphId={glyphId} height={32} renderer={renderer} size={22} width={44} />}
+        {renderer !== undefined && <GlyphThumbnail glyphId={glyphId} height={32} outlineColor={colors.bounds} renderer={renderer} size={22} width={44} />}
       </View>
     </View>
   );

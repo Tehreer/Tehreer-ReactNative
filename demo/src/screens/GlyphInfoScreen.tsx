@@ -23,7 +23,6 @@ const ORIGIN_X = 70;
 const SIDE = 70;
 const FILL_COLOR = '#E3F4E3';
 const OUTLINE_COLOR = '#111A14';
-const BOUNDS_COLOR = '#D32F2F';
 const OUTLINE_RADIUS = 0.75;
 
 interface Measure {
@@ -121,7 +120,7 @@ function GlyphFigure({ typeface, glyphId, measured }: { typeface: Typeface; glyp
             width: (measured.right - measured.left) * unit * scale,
             height: (measured.top - measured.bottom) * unit * scale,
             borderWidth: 1,
-            borderColor: BOUNDS_COLOR,
+            borderColor: colors.bounds,
           }}
         />
       )}
@@ -130,7 +129,7 @@ function GlyphFigure({ typeface, glyphId, measured }: { typeface: Typeface; glyp
       <Text style={[styles.tag, { left: 4, top: ASCENT_Y * scale - 14 }]}>ascent</Text>
       <Text style={[styles.tag, { left: 4, top: DESCENT_Y * scale + 3 }]}>descent</Text>
       {!measured.isEmpty && (
-        <Text style={[styles.tag, { left: originPx + measured.right * unit * scale + 4, top: baselinePx - measured.top * unit * scale - 2, color: BOUNDS_COLOR }]}>bounds</Text>
+        <Text style={[styles.tag, { left: originPx + measured.right * unit * scale + 4, top: baselinePx - measured.top * unit * scale - 2, color: colors.bounds }]}>bounds</Text>
       )}
     </View>
   );

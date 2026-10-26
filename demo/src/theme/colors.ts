@@ -17,4 +17,5 @@ export const colors = {
   rtl: '#A8530C',
   link: '#1A56C4',
   error: '#B3261E',
+  bounds: '#D32F2F',
 };
