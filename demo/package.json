@@ -8,9 +8,11 @@
     "android": "react-native run-android"
   },
   "dependencies": {
+    "base64-js": "^1.5.1",
     "react": "19.3.1",
     "react-native": "0.88.0",
-    "tehreer-react-native": "file:.."
+    "tehreer-react-native": "file:..",
+    "upng-js": "^2.1.0"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",
@@ -19,7 +21,8 @@
     "@react-native-community/cli-platform-ios": "20.2.0",
     "@react-native/babel-preset": "0.88.0",
     "@react-native/metro-config": "0.88.0",
-    "@react-native/typescript-config": "0.88.0"
+    "@react-native/typescript-config": "0.88.0",
+    "@types/upng-js": "^2.1.5"
   },
   "engines": {
     "node": ">= 22.11.0"
