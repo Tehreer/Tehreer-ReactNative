@@ -1,6 +1,6 @@
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from "react";
 import type { GestureResponderEvent, LayoutChangeEvent, NativeScrollEvent, NativeSyntheticEvent, ScrollViewInstance, StyleProp, ViewStyle } from "react-native";
-import { PixelRatio, Pressable, ScrollView, View } from "react-native";
+import { PixelRatio, Platform, Pressable, ScrollView, View } from "react-native";
 import TLinePaintNativeComponent from "../specs/TLinePaintNativeComponent.js";
 import type { Rect } from "../geometry.js";
 import { Renderer } from "../graphics/Renderer.js";
@@ -318,7 +318,10 @@ export const TTextView = forwardRef<TTextViewHandle, TTextViewProps>(function TT
 
   const handlePress = useCallback((event: GestureResponderEvent) => {
     const known = getComposedFrame();
-    const index = known === undefined ? undefined : indexOfCodeUnit(known, event.nativeEvent.locationX, event.nativeEvent.locationY);
+    // On Android `locationY` does not include how far the scroll view is scrolled, so the offset
+    // is added to get the position in the text.
+    const y = event.nativeEvent.locationY + (Platform.OS === "android" ? offset.current : 0);
+    const index = known === undefined ? undefined : indexOfCodeUnit(known, event.nativeEvent.locationX, y);
     onTap?.(index);
     const link = isLinkInteractionEnabled ? linkAt(links, index) : undefined;
     if (link !== undefined) {
