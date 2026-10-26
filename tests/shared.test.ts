@@ -89,3 +89,15 @@ test("links are the runs that have a userData, and runs next to each other with 
   assert.equal(links.linkAt(found, undefined), undefined);
   assert.deepEqual(links.findLinks(undefined), []);
 });
+
+test("a content inset fills missing sides with 0, refuses bad sides, and is taken off the size of the text", () => {
+  assert.deepEqual(shared.resolveContentInset(undefined), { top: 0, left: 0, bottom: 0, right: 0 });
+  assert.deepEqual(shared.resolveContentInset({ left: 8, right: 4 }), { top: 0, left: 8, bottom: 0, right: 4 });
+  for (const bad of [-1, NaN, Infinity]) {
+    assert.throws(() => shared.resolveContentInset({ top: bad }), RangeError);
+  }
+  const inset = shared.resolveContentInset({ top: 10, left: 8, bottom: 6, right: 4 });
+  assert.deepEqual(shared.insetSize({ width: 200, height: 100 }, inset), { width: 188, height: 84 });
+  assert.deepEqual(shared.insetSize({ width: 5, height: 5 }, inset), { width: 0, height: 0 });
+  assert.deepEqual(shared.insetSize({ width: 200, height: 100 }, shared.resolveContentInset(undefined)), { width: 200, height: 100 });
+});

@@ -9,8 +9,8 @@ import { LineLocator } from "../layout/LineLocator.js";
 import { checkScrollCodeUnit, checkScrollOffset, getCaretPosition, getCodeUnitAtOffset, getLineTop, indexOfCodeUnit } from "./FrameQueries.js";
 import type { CaretPosition } from "./FrameQueries.js";
 import { findLinks, linkAt } from "./Links.js";
-import { resolveFrameSettings, resolveHighlights, toColor, toNativeRenderer } from "./shared.js";
-import type { ColorValue, ParagraphProps, RenderingProps, TextHighlight, TextSource } from "./shared.js";
+import { insetSize, resolveContentInset, resolveFrameSettings, resolveHighlights, toColor, toNativeRenderer } from "./shared.js";
+import type { ColorValue, ContentInset, ParagraphProps, RenderingProps, TextHighlight, TextSource } from "./shared.js";
 import { useTextView } from "./useTextView.js";
 
 /** How many lines one native view paints: fewer views to mount, a little more painted than is in sight. */
@@ -100,6 +100,16 @@ export interface TTextViewProps extends TextSource, RenderingProps, ParagraphPro
    */
   readonly onLinkClick?: (userData: number, fromIndex: number, toIndex: number) => void;
   /**
+   * The space between the edges of the view and the text, as `contentInset` of `UIScrollView` and the
+   * padding of the text view of Tehreer-Android. The text is laid out for the width that is left, the
+   * scroll indicator is drawn at the edge of the view, outside the text, and the inset scrolls with
+   * the text. Positions that the view reports (`onTap`, `onScroll`, the handle) stay relative to the
+   * text, without the inset. The default is no inset.
+   *
+   * @throws RangeError if a side is not a finite number from 0.
+   */
+  readonly contentInset?: ContentInset;
+  /**
    * The style of the view. The view scrolls what does not fit its height, so give it a height or
    * `flex: 1`; its width is the width the style gives, and the text is laid out for it.
    */
@@ -177,12 +187,18 @@ export const TTextView = forwardRef<TTextViewHandle, TTextViewProps>(function TT
     onScroll, onFrameReady, onLayout: onLayoutProp, attributedText,
   } = props;
   const renderer = toNativeRenderer(props);
+  const inset = resolveContentInset(props.contentInset);
+  const insetTop = inset.top;
+  const insetLeft = inset.left;
+  const insetBottom = inset.bottom;
+  const insetRight = inset.right;
   const settings = resolveFrameSettings(props);
   const { typesetter, onLayout: onTextLayout, getComposedFrame, getCodeUnitCount, frame, composedFrameId } = useTextView(props, settings, true);
   const links = useMemo(() => findLinks(attributedText), [attributedText]);
   const scroller = useRef<ScrollViewInstance>(null);
   const offset = useRef(0);
   const viewport = useRef({ width: 0, height: 0 });
+  const lastLayout = useRef<LayoutChangeEvent | undefined>(undefined);
   const [width, setWidth] = useState(0);
   const [range, setRange] = useState({ first: 0, last: -1 });
   // A request that comes before the first frame waits for it, because what it needs is not known yet.
@@ -211,9 +227,10 @@ export const TTextView = forwardRef<TTextViewHandle, TTextViewProps>(function TT
   }, [visibleRange]);
 
   const send = useCallback((distance: number, smooth: boolean) => {
-    const limit = Math.max(0, content - viewport.current.height);
-    scroller.current?.scrollTo({ y: Math.min(Math.max(0, distance), limit), animated: smooth });
-  }, [content]);
+    const limit = Math.max(0, content - viewport.current.height + insetTop + insetBottom);
+    // The text starts below the inset, so its distance is moved by it to be the offset of the scroll view.
+    scroller.current?.scrollTo({ y: Math.min(Math.max(0, distance + insetTop), limit), animated: smooth });
+  }, [content, insetTop, insetBottom]);
 
   const scrollToCodeUnit = useCallback((index: number, smooth: boolean) => {
     const top = frame === undefined ? undefined : getLineTop(frame, index);
@@ -270,19 +287,34 @@ export const TTextView = forwardRef<TTextViewHandle, TTextViewProps>(function TT
     scrollToOffset: (distance, smooth = false) => scrollToOffset(checkScrollOffset(distance), smooth),
   }), [getComposedFrame, getCodeUnitCount, scrollToCodeUnit, scrollToOffset]);
 
+  // The text is laid out for the view without its inset; the owner hears the size of the view itself.
+  const layoutText = useCallback((event: LayoutChangeEvent) => {
+    const layout = event.nativeEvent.layout;
+    const size = insetSize(layout, { top: insetTop, left: insetLeft, bottom: insetBottom, right: insetRight });
+    viewport.current = layout;
+    setWidth(size.width);
+    onTextLayout({ ...event, nativeEvent: { ...event.nativeEvent, layout: { ...layout, ...size } } });
+  }, [onTextLayout, insetTop, insetLeft, insetBottom, insetRight]);
+
   const handleLayout = useCallback((event: LayoutChangeEvent) => {
-    viewport.current = event.nativeEvent.layout;
-    setWidth(event.nativeEvent.layout.width);
-    onTextLayout(event);
+    lastLayout.current = event;
+    layoutText(event);
     onLayoutProp?.(event);
-  }, [onTextLayout, onLayoutProp]);
+  }, [layoutText, onLayoutProp]);
+
+  // A new inset changes the room of the text without a new layout of the view.
+  useEffect(() => {
+    if (lastLayout.current !== undefined) {
+      layoutText(lastLayout.current);
+    }
+  }, [layoutText]);
 
   const handleScroll = useCallback((event: NativeSyntheticEvent<NativeScrollEvent>) => {
-    // The text starts at 0; a bounce above it is still 0.
-    offset.current = Math.max(0, event.nativeEvent.contentOffset.y);
+    // The text starts at 0, below the inset; a bounce above it is still 0.
+    offset.current = Math.max(0, event.nativeEvent.contentOffset.y - insetTop);
     updateRange(offset.current);
     onScroll?.(offset.current);
-  }, [onScroll, updateRange]);
+  }, [onScroll, updateRange, insetTop]);
 
   const handlePress = useCallback((event: GestureResponderEvent) => {
     const known = getComposedFrame();
@@ -325,7 +357,8 @@ export const TTextView = forwardRef<TTextViewHandle, TTextViewProps>(function TT
   const last = lastChunk === undefined ? -1 : lastChunk.firstLine + lastChunk.lineCount - 1;
 
   return (
-    <ScrollView ref={scroller} testID={testID} style={style} onLayout={handleLayout} onScroll={handleScroll} scrollEventThrottle={16} nestedScrollEnabled>
+    <ScrollView ref={scroller} testID={testID} style={style} onLayout={handleLayout} onScroll={handleScroll} scrollEventThrottle={16} nestedScrollEnabled
+      contentContainerStyle={{ paddingTop: insetTop, paddingLeft: insetLeft, paddingBottom: insetBottom, paddingRight: insetRight }}>
       <Pressable onPress={handlePress} style={{ width, height: content }}>
         {highlightViews.map((view) => (
           <View key={view.key} pointerEvents="none" style={{ position: "absolute", left: view.x, top: view.y, width: view.width, height: view.height, backgroundColor: view.color }} />

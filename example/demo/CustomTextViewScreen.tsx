@@ -66,6 +66,7 @@ export function CustomTextViewScreen({ onBack }: { onBack: () => void }) {
         {typeface !== undefined && shown !== undefined && (
           <TTextView
             attributedText={shown}
+            contentInset={{ top: 4, left: 12, right: 12, bottom: 8 }}
             highlights={highlights}
             isJustificationEnabled
             lineHeightMultiplier={0.8}
@@ -93,6 +94,7 @@ const styles = StyleSheet.create({
   sizeLabel: { fontSize: 13, fontWeight: '600', color: colors.label },
   sizeValue: { fontFamily: mono, fontSize: 13, color: colors.text },
   slider: { marginTop: -6 },
-  surah: { flex: 1, minHeight: 0, overflow: 'hidden' },
+  // The card keeps 4 of its 16 of side padding, so the scroll indicator is at the edge of the card and the 12 of the text view's inset keep the text where it was.
+  surah: { flex: 1, minHeight: 0, overflow: 'hidden', paddingHorizontal: 4 },
   textView: { flex: 1 },
 });

@@ -229,7 +229,8 @@ export function LabelTestHost({ onDone }: { onDone: (report: SuiteReport) => voi
   const handles = useRef<Record<string, TLabelHandle | null>>({});
   const viewHandle = useRef<TTextViewHandle | null>(null);
   const chipHandle = useRef<TTextViewHandle | null>(null);
-  const view = useRef({ frames: 0, offsets: [] as number[], lastOffset: -1, chipFrames: 0, earlyOffset: -1, earlyFrames: 0 });
+  const view = useRef({ frames: 0, offsets: [] as number[], lastOffset: -1, chipFrames: 0, earlyOffset: -1, earlyFrames: 0, insetOffset: -1, insetFrames: 0 });
+  const insetHandle = useRef<TTextViewHandle | null>(null);
   const started = useRef(false);
   // A typesetter that a label is given, which stays the caller's.
   const given = useRef<Typesetter | undefined>(undefined);
@@ -389,7 +390,7 @@ export function LabelTestHost({ onDone }: { onDone: (report: SuiteReport) => voi
 
         // The text view.
         setStage('views');
-        ok(await waitFor(() => view.current.frames > 0 && viewHandle.current !== null && view.current.chipFrames > 0 && view.current.earlyFrames > 0), 'view: no frame');
+        ok(await waitFor(() => view.current.frames > 0 && viewHandle.current !== null && view.current.chipFrames > 0 && view.current.earlyFrames > 0 && view.current.insetFrames > 0 && insetHandle.current !== null), 'view: no frame');
         const handle = viewHandle.current;
         if (handle === null) {
           ok(false, 'view: no handle');
@@ -470,6 +471,16 @@ export function LabelTestHost({ onDone }: { onDone: (report: SuiteReport) => voi
 
         // A request that came before the first frame was kept until there was one.
         ok(near(view.current.earlyOffset, 300, 1), `view/early: a scroll requested before the first frame went to ${view.current.earlyOffset}, not 300`);
+
+        // A content inset is taken off the width of the layout, the handle stays in the coordinates of the text,
+        // and an offset is the distance of the text, without the inset.
+        const inset = insetHandle.current;
+        const insetFrame = inset?.composedFrame;
+        ok(insetFrame !== undefined && near(insetFrame.width, 170, 0.01), `view/inset: the frame is ${insetFrame?.width} wide, not 200 - 20 - 10`);
+        const rect = inset?.getSelectionRects(0, 1)[0];
+        ok(inset?.indexOfCodeUnit(0, 0) === 0 && rect !== undefined && rect.x < 20, `view/inset: the first character is at ${rect?.x}, which includes the inset`);
+        inset?.scrollToOffset(300);
+        ok(await waitFor(() => near(view.current.insetOffset, 300, 1)), `view/inset: the offset is ${view.current.insetOffset}, not 300`);
 
         // A new width does lay it out, and then it is quiet: no layout follows another without a reason.
         setWidth(240);
@@ -625,6 +636,17 @@ export function LabelTestHost({ onDone }: { onDone: (report: SuiteReport) => voi
             style={{ width: 200, height: 60 }}
             onScroll={(offset) => { view.current.earlyOffset = offset; }}
             onFrameReady={() => { view.current.earlyFrames++; }}
+          />
+          <TTextView
+            testID="view-inset"
+            ref={insetHandle}
+            attributedText={longText}
+            typeface={setup.roboto}
+            textSize={16}
+            contentInset={{ top: 12, left: 20, right: 10 }}
+            style={{ width: 200, height: 60 }}
+            onScroll={(offset) => { view.current.insetOffset = offset; }}
+            onFrameReady={() => { view.current.insetFrames++; }}
           />
         </>
       )}

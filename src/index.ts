@@ -62,4 +62,4 @@ export type { TLabelHandle, TLabelProps } from "./views/TLabel.js";
 export { TTextView } from "./views/TTextView.js";
 export type { TTextViewHandle, TTextViewProps } from "./views/TTextView.js";
 export type { CaretPosition } from "./views/FrameQueries.js";
-export type { ColorValue, ParagraphProps, RenderingProps, TextHighlight, TextSource } from "./views/shared.js";
+export type { ColorValue, ContentInset, ParagraphProps, RenderingProps, TextHighlight, TextSource } from "./views/shared.js";
