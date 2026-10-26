@@ -126,8 +126,7 @@ function GlyphFigure({ typeface, glyphId, measured }: { typeface: Typeface; glyp
         />
       )}
       <View style={[styles.origin, { left: originPx - 5, top: baselinePx - 5 }]} />
-      <Text style={[styles.tag, { left: originPx + 4, top: 12 * scale }]}>origin</Text>
-      <Text style={[styles.tag, { right: width - advancePx + 4, top: 12 * scale }]}>advance</Text>
+      <Text style={[styles.tag, { left: advancePx + 4, top: 12 * scale }]}>advance</Text>
       <Text style={[styles.tag, { left: 4, top: ASCENT_Y * scale - 14 }]}>ascent</Text>
       <Text style={[styles.tag, { left: 4, top: DESCENT_Y * scale + 3 }]}>descent</Text>
       {!measured.isEmpty && (
