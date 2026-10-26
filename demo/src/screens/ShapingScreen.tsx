@@ -108,7 +108,7 @@ function shape(typeface: Typeface, settings: Settings): Cluster[] {
   }
 }
 
-/** One field of a cluster: the same height and spacing for every row, the name on the left and the value on the right. */
+/** One field of a cluster: the same height for every row, in two columns of fixed size, with the name and then the value written from the left. */
 function Row({ term, value, isMono = false }: { term: string; value: string; isMono?: boolean }) {
   return (
     <View style={styles.row}>
@@ -186,7 +186,7 @@ export function ShapingScreen({ onBack }: { onBack: () => void }) {
               <View key={index} style={[styles.cluster, index < clusters.length - 1 && styles.rule]}>
                 <Text style={styles.clusterTitle}>{`Cluster ${index + 1}`}</Text>
                 {cluster.characters.map((character, at) => (
-                  <Row key={`c${at}`} term="Character" value={`${character.shown}   U+${character.code}`} />
+                  <Row key={`c${at}`} term="Character" value={`U+${character.code}   ${character.shown}`} />
                 ))}
                 {cluster.glyphs.map((glyph, at) => (
                   <View key={`g${at}`}>
@@ -213,8 +213,8 @@ const styles = StyleSheet.create({
   cluster: { paddingVertical: 10 },
   rule: { borderBottomWidth: 1, borderBottomColor: colors.divider },
   clusterTitle: { height: 28, fontSize: 13, fontWeight: '600', color: colors.label },
-  row: { height: 32, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 16 },
-  term: { fontSize: 13, letterSpacing: 0.4, textTransform: 'uppercase', color: colors.muted },
-  value: { fontSize: 15, color: colors.text },
+  row: { height: 32, flexDirection: 'row', alignItems: 'center', paddingLeft: 8 },
+  term: { width: 96, fontSize: 13, letterSpacing: 0.4, textTransform: 'uppercase', color: colors.muted },
+  value: { flex: 1, fontSize: 15, color: colors.text, textAlign: 'left' },
   mono: { fontFamily: mono, fontSize: 14 },
 });
