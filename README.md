@@ -74,7 +74,16 @@ Use `-sdk iphoneos -destination 'generic/platform=iOS' ARCHS=arm64` for a device
 
 ## Demo
 
-The example app has a demo of the library: the screens of the Tehreer-Web demo on `TLabel` and `TTextView`, written against the public API only (`import ... from 'tehreer-react-native'`, no internal imports) and without a navigation library. Run the example app (`npm run test:ios` / `npm run test:android` start it, or start Metro in `example/` and launch the app), wait for the test report to finish, and tap **Open demo**. The report and its `TEHREER_*` log lines are unchanged; the demo opens from it only after the run has ended.
+`demo/` is a React Native app of its own (`TehreerDemo`, separate from the test runner in `example/`): the screens of the Tehreer-Web demo on `TLabel` and `TTextView`, written against the public API only (`import ... from 'tehreer-react-native'`, no internal imports) and without a navigation library. It links the library from the repository root, like `example/`, and runs it from its TypeScript sources.
+
+```bash
+cd demo && npm install
+cd ios && LANG=en_US.UTF-8 pod install && cd ..   # iOS only
+npm start                                          # Metro
+npm run ios                                        # or: npm run android
+```
+
+The code follows the usual React Native layout: `demo/src/App.tsx` (navigation state and transitions), `components/` (one file per component), `screens/` (one file per screen), `hooks/`, `theme/`, `utils/`, `data/` and `fonts/` (the font list and loader).
 
 | Screen | What it shows |
 |--------|---------------|
@@ -86,7 +95,7 @@ The example app has a demo of the library: the screens of the Tehreer-Web demo o
 | Custom Label | A `TLabel` of styled Urdu text with tappable links |
 | Custom Text View | A `TTextView` of colored Arabic text with justification, verse selection and an adjustable size |
 
-The fonts are in `example/assets/demo-fonts` (see the README there) and `example/assets/fonts`. The default text typeface is AlQalam Taj Nastaleeq. The glyph screens draw any glyph by its ID with the public `Renderer` only: `getGlyphImage` / `getStrokeImage` give the pixels, which the demo wraps in a PNG (`example/demo/glyphBitmap.ts`) and shows with an `Image`, so no dependency or native code is needed.
+The fonts are in `demo/assets/fonts` (see the README there). The default text typeface is AlQalam Taj Nastaleeq. The glyph screens draw any glyph by its ID with the public `Renderer` only: `getGlyphImage` / `getStrokeImage` give the pixels, which the demo wraps in a PNG (`demo/src/utils/glyphBitmap.ts`) and shows with an `Image`, so no dependency or native code is needed.
 
 iPhone 16 Pro simulator:
 

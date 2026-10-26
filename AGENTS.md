@@ -18,6 +18,7 @@ The wrapper exposes the whole public Core API to React Native through one C++ JS
 | `scripts/` | Binding generator, dependency fetch, Core sync |
 | `src/` | TypeScript API, same folders and names as Tehreer-Web, plus `views/` |
 | `example/` | Test-runner app used by tests and QA |
+| `demo/` | Demo app (`TehreerDemo`), a separate React Native app from the test-runner `example/`; screens of the Web demo on `TLabel` and `TTextView` |
 | `tests/` | Node tests for the generator and pure TypeScript |
 
 Sibling repos (read-only references): `../Tehreer-Core`, `../Tehreer-Web`, `/Users/mta/Personal/UrduFeeds/tehreerAndroid`, `/Users/mta/Personal/UrduFeeds/tehreerCocoa`.

@@ -1,0 +1,13 @@
+{
+  "extends": "@react-native/typescript-config",
+  "compilerOptions": {
+    "noEmit": true,
+    "types": [],
+    "lib": ["ES2022", "ESNext.Disposable"],
+    "paths": {
+      "tehreer-react-native": ["../src/index.ts"]
+    }
+  },
+  "include": ["index.js", "src/**/*.ts", "src/**/*.tsx"],
+  "exclude": ["**/node_modules", "**/Pods"]
+}
