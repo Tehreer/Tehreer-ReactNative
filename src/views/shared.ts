@@ -203,3 +203,22 @@ export function resolveContentInset(inset: ContentInset | undefined): { top: num
 export function insetSize(size: { width: number; height: number }, inset: { top: number; left: number; bottom: number; right: number }): { width: number; height: number } {
   return { width: Math.max(0, size.width - inset.left - inset.right), height: Math.max(0, size.height - inset.top - inset.bottom) };
 }
+
+/**
+ * The position in the text of a press on Android, where `locationY` does not follow the scrolling:
+ * it comes from where the press and the scroll view are on the screen, how far the scroll view is
+ * scrolled (`scrollOffset` includes the inset above the text) and the inset.
+ */
+export function androidTextPosition(
+  press: { pageX: number; pageY: number },
+  view: { pageX: number; pageY: number },
+  inset: { top: number; left: number },
+  scrollOffset: number,
+): { x: number; y: number } {
+  return { x: press.pageX - view.pageX - inset.left, y: press.pageY - view.pageY - inset.top + scrollOffset };
+}
+
+/** The farthest a scroll view scrolls, for a text of `content` height shown in a view of `viewportHeight` with the inset around it. */
+export function maxScrollOffset(content: number, viewportHeight: number, inset: { top: number; bottom: number }): number {
+  return Math.max(0, content - viewportHeight + inset.top + inset.bottom);
+}

@@ -2,7 +2,7 @@
 
 React Native wrapper of [Tehreer Core](https://github.com/Tehreer/Tehreer-Core), a lightweight, dependency-free text engine written in C89. It exposes the public Core API to React Native through one C++ JSI layer shared by iOS and Android, with a TypeScript API shaped like Tehreer-Web, Tehreer-Android and Tehreer-Cocoa.
 
-This package is at the skeleton stage: the native layer and the public API land in later issues.
+The package has the whole public Core API in TypeScript (`src/`), the two views `TLabel` and `TTextView` (with the thin native `TLinePaint` view that draws lines), a test-runner app (`example/`) and a demo app (`demo/`).
 
 ## Constraints
 
@@ -24,7 +24,7 @@ npm test            # node:test suites in tests/
 npm run build       # emit dist/ (JavaScript and declarations) from src/
 ```
 
-`.npmrc` sets `legacy-peer-deps` so that npm does not install `react` and `react-native` for this skeleton; revisit it when the example app lands.
+`.npmrc` sets `legacy-peer-deps`: `react` and `react-native` are peer dependencies with the range `*`, and the pinned copies in `devDependencies` are the ones the type checks and the apps use, so npm must not resolve or install a second copy for the peers.
 
 ## Core and its dependencies
 
@@ -95,7 +95,7 @@ The code follows the usual React Native layout: `demo/src/App.tsx` (navigation s
 | Custom Label | A `TLabel` of styled Urdu text with tappable links |
 | Custom Text View | A `TTextView` of colored Arabic text with justification, verse selection and an adjustable size |
 
-The fonts are in `demo/assets/fonts` (see the README there). The default text typeface is AlQalam Taj Nastaleeq. The glyph screens draw any glyph by its ID with the public `Renderer` only: `getGlyphImage` / `getStrokeImage` give the pixels, which the demo wraps in a PNG (`demo/src/utils/glyphBitmap.ts`) and shows with an `Image`, so no dependency or native code is needed.
+The fonts are in `demo/assets/fonts` (see the README there). The default text typeface is AlQalam Taj Nastaleeq. The Unicode value of a glyph is found by scanning only the Basic Multilingual Plane (up to U+FFFF), so a glyph that only a supplementary-plane code point reaches has none. The glyph screens draw any glyph by its ID with the public `Renderer` only: `getGlyphImage` / `getStrokeImage` give the pixels, which the demo wraps in a PNG (`demo/src/utils/glyphBitmap.ts`) and shows with an `Image`, so no dependency or native code is needed.
 
 iPhone 16 Pro simulator:
 
@@ -103,16 +103,17 @@ iPhone 16 Pro simulator:
 |---|---|
 | ![Home](docs/screenshots/ios-home.png) | ![Bidirectional Algorithm](docs/screenshots/ios-bidi.png) |
 | ![Typeface Information](docs/screenshots/ios-typeface-info.png) | ![Typeface Glyphs](docs/screenshots/ios-glyphs.png) |
-| ![OpenType Shaping](docs/screenshots/ios-shaping.png) | ![Variable Fonts](docs/screenshots/ios-variable-fonts.png) |
-| ![Custom Label](docs/screenshots/ios-custom-label.png) | ![Custom Text View](docs/screenshots/ios-text-view.png) |
+| ![Glyph Info](docs/screenshots/ios-glyph-info.png) | ![OpenType Shaping](docs/screenshots/ios-shaping.png) |
+| ![Variable Fonts](docs/screenshots/ios-variable-fonts.png) | ![Custom Label](docs/screenshots/ios-custom-label.png) |
+| ![Custom Text View](docs/screenshots/ios-text-view.png) | |
 
 Android emulator (Pixel-sized, API 30):
 
 | | | |
 |---|---|---|
 | ![Home](docs/screenshots/android-home.png) | ![Bidirectional Algorithm](docs/screenshots/android-bidi.png) | ![Typeface Information](docs/screenshots/android-typeface-info.png) |
-| ![Typeface Glyphs](docs/screenshots/android-glyphs.png) | ![OpenType Shaping](docs/screenshots/android-shaping.png) | ![Variable Fonts](docs/screenshots/android-variable-fonts.png) |
-| ![Custom Label](docs/screenshots/android-custom-label.png) | ![Custom Text View](docs/screenshots/android-text-view.png) | |
+| ![Typeface Glyphs](docs/screenshots/android-glyphs.png) | ![Glyph Info](docs/screenshots/android-glyph-info.png) | ![OpenType Shaping](docs/screenshots/android-shaping.png) |
+| ![Variable Fonts](docs/screenshots/android-variable-fonts.png) | ![Custom Label](docs/screenshots/android-custom-label.png) | ![Custom Text View](docs/screenshots/android-text-view.png) |
 
 ## Packaging
 

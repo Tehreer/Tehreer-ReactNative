@@ -101,3 +101,18 @@ test("a content inset fills missing sides with 0, refuses bad sides, and is take
   assert.deepEqual(shared.insetSize({ width: 5, height: 5 }, inset), { width: 0, height: 0 });
   assert.deepEqual(shared.insetSize({ width: 200, height: 100 }, shared.resolveContentInset(undefined)), { width: 200, height: 100 });
 });
+
+test("the position of a press on Android follows the screen position, the scroll and the inset", () => {
+  // Unscrolled, with an inset of 12 above and 20 left: the press 50 right and 100 below the view is at 30, 88 in the text.
+  assert.deepEqual(shared.androidTextPosition({ pageX: 60, pageY: 150 }, { pageX: 10, pageY: 50 }, { top: 12, left: 20 }, 0), { x: 30, y: 88 });
+  // The scroll offset includes the inset above the text, so a scroll of 312 puts the same press 312 further down the text.
+  assert.deepEqual(shared.androidTextPosition({ pageX: 60, pageY: 150 }, { pageX: 10, pageY: 50 }, { top: 12, left: 20 }, 312), { x: 30, y: 400 });
+  // A press on the inset itself is left of the text.
+  assert.equal(shared.androidTextPosition({ pageX: 15, pageY: 55 }, { pageX: 10, pageY: 50 }, { top: 12, left: 20 }, 0).x < 0, true);
+});
+
+test("the scroll limit counts the inset above and below the text, and is never negative", () => {
+  assert.equal(shared.maxScrollOffset(1000, 60, { top: 12, bottom: 15 }), 967);
+  assert.equal(shared.maxScrollOffset(1000, 60, { top: 0, bottom: 0 }), 940);
+  assert.equal(shared.maxScrollOffset(10, 60, { top: 0, bottom: 0 }), 0);
+});

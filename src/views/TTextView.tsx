@@ -9,7 +9,7 @@ import { LineLocator } from "../layout/LineLocator.js";
 import { checkScrollCodeUnit, checkScrollOffset, getCaretPosition, getCodeUnitAtOffset, getLineTop, indexOfCodeUnit } from "./FrameQueries.js";
 import type { CaretPosition } from "./FrameQueries.js";
 import { findLinks, linkAt } from "./Links.js";
-import { insetSize, resolveContentInset, resolveFrameSettings, resolveHighlights, toColor, toNativeRenderer } from "./shared.js";
+import { androidTextPosition, insetSize, maxScrollOffset, resolveContentInset, resolveFrameSettings, resolveHighlights, toColor, toNativeRenderer } from "./shared.js";
 import type { ColorValue, ContentInset, ParagraphProps, RenderingProps, TextHighlight, TextSource } from "./shared.js";
 import { useTextView } from "./useTextView.js";
 
@@ -196,6 +196,12 @@ export const TTextView = forwardRef<TTextViewHandle, TTextViewProps>(function TT
   const { typesetter, onLayout: onTextLayout, getComposedFrame, getCodeUnitCount, frame, composedFrameId } = useTextView(props, settings, true);
   const links = useMemo(() => findLinks(attributedText), [attributedText]);
   const scroller = useRef<ScrollViewInstance>(null);
+  // `measure` answers later, and a press must not report to an owner that is gone by then.
+  const isMounted = useRef(true);
+  useEffect(() => {
+    isMounted.current = true;
+    return () => { isMounted.current = false; };
+  }, []);
   const offset = useRef(0);
   // The scroll position as the scroll view reports it, with the inset above the text included.
   const rawOffset = useRef(0);
@@ -229,7 +235,7 @@ export const TTextView = forwardRef<TTextViewHandle, TTextViewProps>(function TT
   }, [visibleRange]);
 
   const send = useCallback((distance: number, smooth: boolean) => {
-    const limit = Math.max(0, content - viewport.current.height + insetTop + insetBottom);
+    const limit = maxScrollOffset(content, viewport.current.height, { top: insetTop, bottom: insetBottom });
     // The text starts below the inset, so its distance is moved by it to be the offset of the scroll view.
     scroller.current?.scrollTo({ y: Math.min(Math.max(0, distance + insetTop), limit), animated: smooth });
   }, [content, insetTop, insetBottom]);
@@ -337,14 +343,23 @@ export const TTextView = forwardRef<TTextViewHandle, TTextViewProps>(function TT
       return;
     }
     // On Android `locationY` does not follow the scrolling, so the position in the text is worked
-    // out from where the view is on the screen, how far it is scrolled and the inset.
+    // out from where the view is on the screen, how far it is scrolled and the inset. The scroll
+    // position is read now, with the press: a fling before `measure` answers must not move the index.
+    const scrolled = rawOffset.current;
     scrollView.measure((_x, _y, _width, _height, viewPageX, viewPageY) => {
-      finish(pageX - viewPageX - insetLeft, pageY - viewPageY - insetTop + rawOffset.current);
+      if (!isMounted.current) {
+        return;
+      }
+      const position = androidTextPosition({ pageX, pageY }, { pageX: viewPageX, pageY: viewPageY }, { top: insetTop, left: insetLeft }, scrolled);
+      finish(position.x, position.y);
     });
   }, [getComposedFrame, onTap, isLinkInteractionEnabled, links, onLinkClick, insetLeft, insetTop]);
 
   // A range that reaches past the end of the text covers nothing: the text may change in the same render.
+  // The rects are snapped outward to whole device pixels on both platforms, deliberately: the rects of
+  // neighbouring runs then meet without a seam, which fractional edges would show as a hairline.
   const highlightViews = useMemo(() => {
+    const scale = PixelRatio.get();
     const views: { key: string; x: number; y: number; width: number; height: number; color: string }[] = [];
     if (frame === undefined || highlights === undefined) {
       return views;
@@ -356,8 +371,6 @@ export const TTextView = forwardRef<TTextViewHandle, TTextViewProps>(function TT
       }
       const color = rgba(highlight.color);
       frame.getSelectionRects(highlight.fromIndex, toIndex).forEach((rect, rectIndex) => {
-        // Whole pixels, so that the rects of neighbouring runs meet without a gap.
-        const scale = PixelRatio.get();
         const left = Math.floor(rect.x * scale) / scale;
         const top = Math.floor(rect.y * scale) / scale;
         views.push({ key: `${rangeIndex}:${rectIndex}`, x: left, y: top, width: Math.ceil((rect.x + rect.width) * scale) / scale - left, height: Math.ceil((rect.y + rect.height) * scale) / scale - top, color });

@@ -478,9 +478,17 @@ export function LabelTestHost({ onDone }: { onDone: (report: SuiteReport) => voi
         const insetFrame = inset?.composedFrame;
         ok(insetFrame !== undefined && near(insetFrame.width, 170, 0.01), `view/inset: the frame is ${insetFrame?.width} wide, not 200 - 20 - 10`);
         const rect = inset?.getSelectionRects(0, 1)[0];
-        ok(inset?.indexOfCodeUnit(0, 0) === 0 && rect !== undefined && rect.x < 20, `view/inset: the first character is at ${rect?.x}, which includes the inset`);
+        // Left-aligned left-to-right text starts at the left edge of the text, not at the 20 of the inset.
+        ok(inset?.indexOfCodeUnit(0, 0) === 0 && rect !== undefined && near(rect.x, 0, 1), `view/inset: the first character is at ${rect?.x}, not at 0 of the text`);
         inset?.scrollToOffset(300);
         ok(await waitFor(() => near(view.current.insetOffset, 300, 1)), `view/inset: the offset is ${view.current.insetOffset}, not 300`);
+        // The inset below the text scrolls with it: the end of the scroll is the height of the text plus the
+        // bottom inset less the view (the top inset is the offset of the scroll view, not of the text).
+        inset?.scrollToOffset(1e7);
+        const insetEnd = insetFrame === undefined ? 0 : insetFrame.height + 15 - 60;
+        ok(await waitFor(() => near(view.current.insetOffset, insetEnd, 1.5)), `view/inset: the end of the scroll is ${view.current.insetOffset}, not ${insetEnd} (height + bottom inset - view)`);
+        // The press path of Android (position from the screen, the scroll and the inset) is covered by the node
+        // tests of androidTextPosition: a press cannot be made without a touch here.
 
         // A new width does lay it out, and then it is quiet: no layout follows another without a reason.
         setWidth(240);
@@ -643,7 +651,7 @@ export function LabelTestHost({ onDone }: { onDone: (report: SuiteReport) => voi
             attributedText={longText}
             typeface={setup.roboto}
             textSize={16}
-            contentInset={{ top: 12, left: 20, right: 10 }}
+            contentInset={{ top: 12, left: 20, right: 10, bottom: 15 }}
             style={{ width: 200, height: 60 }}
             onScroll={(offset) => { view.current.insetOffset = offset; }}
             onFrameReady={() => { view.current.insetFrames++; }}

@@ -23,3 +23,7 @@ repository carries the license texts yet, so they have to be added next to the f
 
 The test-runner app (`example/`) uses none of these files; it keeps its own fonts in
 `example/assets/fonts`, so nothing is shared or aliased between the two apps.
+
+The Typeface Glyphs screen shows a Unicode value only for glyphs that a code point up to U+FFFF reaches
+(it scans the Basic Multilingual Plane); a glyph that only a supplementary-plane code point reaches
+is shown without one.

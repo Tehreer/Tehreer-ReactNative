@@ -33,6 +33,10 @@ const CHUNK = 4096;
 /**
  * Finds a character for each glyph that the character map reaches, to show its Unicode value. It
  * works in chunks and gives the JS thread back between them, so the screen stays responsive.
+ *
+ * It scans only the Basic Multilingual Plane (up to 0xFFFF, without the surrogates), so a glyph that
+ * is reachable only from a supplementary-plane code point shows no Unicode value. That is a limit of
+ * the demo, to keep the scan short, not of the library.
  */
 function mapCharacters(typeface: Typeface, onDone: (characters: Map<number, number>) => void): () => void {
   const characters = new Map<number, number>();

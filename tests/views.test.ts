@@ -67,9 +67,11 @@ const line = (startIndex: number, endIndex: number, top: number, extra: Partial<
 
 let out = "";
 let queries: typeof import("../src/views/FrameQueries.ts");
+let shared: typeof import("../src/views/shared.ts");
 before(async () => {
-  out = compileModules(["src/views/FrameQueries.ts"]);
+  out = compileModules(["src/views/FrameQueries.ts", "src/views/shared.ts"]);
   queries = (await importModule(out, "views/FrameQueries.js")) as typeof queries;
+  shared = (await importModule(out, "views/shared.js")) as typeof shared;
 });
 after(() => rmSync(out, { recursive: true, force: true }));
 
@@ -170,4 +172,22 @@ test("an offset above the text (a bounce) is the top, and a scroll to a code uni
     assert.throws(() => queries.checkScrollCodeUnit(index, length), RangeError);
   }
   assert.equal(queries.checkScrollCodeUnit(12000), 12000, "without a length only the shape is checked");
+});
+
+test("a tap on Android with an inset and a scrolled view finds the code unit under the finger", () => {
+  // Three lines of 20 units, the text at 10 units per code unit, inset 12 above and 20 left, scrolled
+  // by 37 (the inset and 25 units of text). The view is at (0, 100) on the screen.
+  const frame = makeFrame([line(0, 5, 0), line(5, 10, 20), line(10, 15, 40)]) as never;
+  const inset = { top: 12, left: 20 };
+  const tap = (pageX: number, pageY: number) => {
+    const position = shared.androidTextPosition({ pageX, pageY }, { pageX: 0, pageY: 100 }, inset, 37);
+    return queries.indexOfCodeUnit(frame, position.x, position.y);
+  };
+  // The scroll offset 37 includes the inset, so the top of the text is at 12 - 37 = -25 in the view; a press 12 into
+  // the view is y 37 of the text: the second line.
+  assert.equal(tap(20 + 12, 100 + 12), 6);
+  // 20 units further down is y 57, the third line.
+  assert.equal(tap(20 + 2, 100 + 32), 10);
+  // On the inset, left of the text, nothing is there.
+  assert.equal(tap(10, 100 + 12), undefined);
 });
