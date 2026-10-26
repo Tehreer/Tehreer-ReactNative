@@ -1,10 +1,17 @@
 import { useEffect, useRef, useState } from 'react';
-import { Animated, Modal, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { Animated, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import type { LayoutChangeEvent } from 'react-native';
 import { colors } from '../theme/colors';
 import { slide } from '../theme/slide';
 import { Chevron } from './Chevron';
 import { Field } from './Field';
+
+const SHEET_PADDING = 24;
+// The window of a Modal draws under the Android navigation bar, and core React Native cannot measure
+// it (the screen and window heights are the same). 48 dp is the height of the 3-button bar, the
+// tallest one; gesture navigation only leaves a little more space. On iOS the sheet needs no inset
+// beyond SHEET_PADDING, which already clears the home indicator.
+const BOTTOM_INSET = Platform.OS === 'android' ? 48 : 0;
 
 /**
  * A dropdown: a field that opens a bottom sheet with the choices. It is built of core components
@@ -69,7 +76,7 @@ export function Select<T extends string | number>({ label, options, value, onCha
           </Animated.View>
           <Animated.View
             onLayout={(event: LayoutChangeEvent) => setSheetHeight(event.nativeEvent.layout.height)}
-            style={[styles.sheet, { transform: [{ translateY: progress.interpolate({ inputRange: [0, 1], outputRange: [sheetHeight, 0] }) }] }]}
+            style={[styles.sheet, { paddingBottom: SHEET_PADDING + BOTTOM_INSET, transform: [{ translateY: progress.interpolate({ inputRange: [0, 1], outputRange: [sheetHeight, 0] }) }] }]}
           >
             <View style={styles.sheetHandle} />
             <Text style={styles.sheetTitle}>{label}</Text>
@@ -109,7 +116,7 @@ const styles = StyleSheet.create({
   selectChevron: { position: 'absolute', right: 16, top: 14, width: 16, height: 16, alignItems: 'center', justifyContent: 'center', paddingBottom: 3 },
   sheetHost: { flex: 1, justifyContent: 'flex-end' },
   backdrop: { ...StyleSheet.absoluteFill, backgroundColor: 'rgba(17,26,20,0.45)' },
-  sheet: { backgroundColor: colors.card, borderTopLeftRadius: 18, borderTopRightRadius: 18, maxHeight: '65%', paddingTop: 8, paddingBottom: 24 },
+  sheet: { backgroundColor: colors.card, borderTopLeftRadius: 18, borderTopRightRadius: 18, maxHeight: '65%', paddingTop: 8 },
   sheetHandle: { alignSelf: 'center', width: 36, height: 4, borderRadius: 2, backgroundColor: colors.inputBorder, marginBottom: 12 },
   sheetTitle: { fontSize: 13, fontWeight: '600', color: colors.label, paddingHorizontal: 20, paddingBottom: 8 },
   option: { minHeight: 52, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, paddingHorizontal: 20 },

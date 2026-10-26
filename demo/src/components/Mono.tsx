@@ -4,8 +4,8 @@ import type { StyleProp, TextStyle } from 'react-native';
 import { colors } from '../theme/colors';
 import { mono } from '../theme/mono';
 
-export function Mono({ children, style }: { children: ReactNode; style?: StyleProp<TextStyle> }) {
-  return <Text style={[styles.mono, style]}>{children}</Text>;
+export function Mono({ children, style, numberOfLines }: { children: ReactNode; style?: StyleProp<TextStyle>; numberOfLines?: number }) {
+  return <Text numberOfLines={numberOfLines} style={[styles.mono, style]}>{children}</Text>;
 }
 
 const styles = StyleSheet.create({

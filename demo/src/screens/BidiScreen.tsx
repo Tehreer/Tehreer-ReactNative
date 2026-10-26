@@ -103,8 +103,11 @@ export function BidiScreen({ onBack }: { onBack: () => void }) {
       <Card>
         <Field label="Input text">
           <TextInput
+            autoCapitalize="none"
+            autoCorrect={false}
             multiline
             onChangeText={setText}
+            spellCheck={false}
             style={styles.input}
             testID="bidiInput"
             value={text}
@@ -131,7 +134,7 @@ export function BidiScreen({ onBack }: { onBack: () => void }) {
             <View style={styles.runs}>
               {paragraph.logical.map((run, runIndex) => (
                 <View key={run.start} style={[styles.runRow, runIndex < paragraph.logical.length - 1 && styles.runRule]}>
-                  <Mono style={styles.cRange}>{`${run.start} – ${run.end - 1}`}</Mono>
+                  <Mono numberOfLines={1} style={styles.cRange}>{`${run.start} – ${run.end - 1}`}</Mono>
                   <Mono style={styles.cLevel}>{run.level}</Mono>
                   <Text style={[styles.cDir, { color: isRtl(run.level) ? colors.rtl : colors.ltr }]}>{isRtl(run.level) ? 'RTL' : 'LTR'}</Text>
                   <Text style={[styles.cText, isRtl(run.level) && styles.cTextRtl, { writingDirection: isRtl(run.level) ? 'rtl' : 'ltr' }]}>{printable(run.text)}</Text>
@@ -173,7 +176,7 @@ const styles = StyleSheet.create({
   runs: { marginTop: -6 },
   runRow: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 48, paddingVertical: 6 },
   runRule: { borderBottomWidth: 1, borderBottomColor: colors.divider },
-  cRange: { width: 56, color: colors.label },
+  cRange: { width: 76, color: colors.label },
   cLevel: { width: 14 },
   cDir: { width: 34, fontSize: 13, fontWeight: '700' },
   cText: { flex: 1, fontSize: 16, color: colors.text, textAlign: 'left' },

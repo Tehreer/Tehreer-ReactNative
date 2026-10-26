@@ -206,7 +206,7 @@ export function ShapingScreen({ onBack }: { onBack: () => void }) {
     <Page title="OpenType Shaping" onBack={onBack}>
       <Card>
         <Field label="Input text">
-          <TextInput multiline onChangeText={setText} style={[styles.input, styles.urdu]} testID="shapingText" value={text} />
+          <TextInput autoCapitalize="none" autoCorrect={false} multiline onChangeText={setText} spellCheck={false} style={[styles.input, styles.urdu]} testID="shapingText" value={text} />
         </Field>
         <FontChoice disabled={typeface === undefined} onChange={setFontId} options={TEXT_FONTS} value={fontId} />
         <View style={styles.tags}>
@@ -214,10 +214,10 @@ export function ShapingScreen({ onBack }: { onBack: () => void }) {
             <TextInput inputMode="numeric" onChangeText={setSize} style={styles.tag} testID="shapingSize" value={size} />
           </Field>
           <Field label="Script" style={{ flex: 1 }}>
-            <TextInput autoCapitalize="none" autoCorrect={false} onChangeText={setScript} style={styles.tag} testID="shapingScript" value={script} />
+            <TextInput autoCapitalize="none" autoCorrect={false} onChangeText={setScript} spellCheck={false} style={styles.tag} testID="shapingScript" value={script} />
           </Field>
           <Field label="Language" style={{ flex: 1 }}>
-            <TextInput autoCapitalize="none" autoCorrect={false} onChangeText={setLanguage} style={styles.tag} testID="shapingLanguage" value={language} />
+            <TextInput autoCapitalize="none" autoCorrect={false} onChangeText={setLanguage} spellCheck={false} style={styles.tag} testID="shapingLanguage" value={language} />
           </Field>
         </View>
         {problem !== undefined && <Message tone="error">{problem}</Message>}

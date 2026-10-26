@@ -125,7 +125,15 @@ export function GlyphsScreen({ onBack }: { onBack: () => void }) {
   const [characters, setCharacters] = useState<Map<number, number>>();
   const [goTo, setGoTo] = useState('0000');
   const [gridWidth, setGridWidth] = useState(0);
+  const [problem, setProblem] = useState<string | undefined>();
+  // Drawing the cells blocks the JS thread for seconds on slow devices. The grid is mounted a tick
+  // after the spinner, and a jump scrolls a tick after it, so the spinner is on the screen first.
+  const [gridMounted, setGridMounted] = useState(false);
+  const [drawing, setDrawing] = useState(true);
   const list = useRef<FlatList<number>>(null);
+  const visible = useRef<readonly number[]>([]);
+  const awaited = useRef<number | undefined>(undefined);
+  const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
 
   const owned = useOwned(() => (typeface === undefined ? undefined : new GlyphRenderer(typeface)), [typeface]);
   const renderer = owned !== undefined && owned.typeface === typeface ? owned.renderer : undefined;
@@ -134,6 +142,11 @@ export function GlyphsScreen({ onBack }: { onBack: () => void }) {
     setSelected(undefined);
     setCharacters(undefined);
     setGoTo('0000');
+    setProblem(undefined);
+    setGridMounted(false);
+    setDrawing(true);
+    visible.current = [];
+    awaited.current = undefined;
     if (typeface === undefined) {
       return;
     }
@@ -141,19 +154,61 @@ export function GlyphsScreen({ onBack }: { onBack: () => void }) {
     return mapCharacters(typeface, setCharacters);
   }, [typeface]);
 
+  const rendererReady = renderer !== undefined;
+  useEffect(() => {
+    if (!rendererReady) {
+      return;
+    }
+    const timer = setTimeout(() => setGridMounted(true), 50);
+    return () => clearTimeout(timer);
+  }, [rendererReady]);
+
+  useEffect(() => () => timers.current.forEach(clearTimeout), []);
+
+  const viewabilityConfig = useRef({ itemVisiblePercentThreshold: 1 }).current;
+  const onViewableItemsChanged = useRef(({ viewableItems }: { viewableItems: { item: unknown }[] }) => {
+    visible.current = viewableItems.map((token) => token.item as number);
+    if (visible.current.length === 0) {
+      return;
+    }
+    if (awaited.current === undefined || visible.current.includes(awaited.current)) {
+      awaited.current = undefined;
+      setDrawing(false);
+    }
+  }).current;
+
   const glyphCount = typeface?.glyphCount ?? 0;
   const glyphIds = useMemo(() => Array.from({ length: glyphCount }, (_, index) => index), [glyphCount]);
   const cellWidth = Math.floor((gridWidth - GAP * (COLUMNS - 1)) / COLUMNS);
   const pick = useCallback((glyphId: number) => setSelected(glyphId), []);
 
   const jump = () => {
-    const id = Number.parseInt(goTo, 16);
-    if (Number.isNaN(id) || glyphCount === 0) {
+    const trimmed = goTo.trim();
+    if (!/^[0-9a-f]{1,8}$/i.test(trimmed)) {
+      setProblem('Write a valid glyph ID!');
       return;
     }
-    const target = Math.min(Math.max(id, 0), glyphCount - 1);
+    if (glyphCount === 0) {
+      return;
+    }
+    const id = Number.parseInt(trimmed, 16);
+    const target = Math.min(id, glyphCount - 1);
+    setProblem(id > target ? `Write a glyph ID up to ${hex(target)}!` : undefined);
     setGoTo(hex(target));
-    list.current?.scrollToOffset({ offset: Math.floor(target / COLUMNS) * ROW_HEIGHT, animated: false });
+    if (!visible.current.includes(target)) {
+      awaited.current = target;
+      setDrawing(true);
+      timers.current.push(setTimeout(() => {
+        list.current?.scrollToOffset({ offset: Math.floor(target / COLUMNS) * ROW_HEIGHT, animated: false });
+      }, 50));
+      // A target that never becomes viewable must not leave the spinner on for good.
+      timers.current.push(setTimeout(() => {
+        if (awaited.current === target) {
+          awaited.current = undefined;
+          setDrawing(false);
+        }
+      }, 15000));
+    }
   };
 
   const isLoading = typeface === undefined && error === undefined;
@@ -167,9 +222,13 @@ export function GlyphsScreen({ onBack }: { onBack: () => void }) {
             <TextInput
               autoCapitalize="characters"
               autoCorrect={false}
-              onChangeText={setGoTo}
+              onChangeText={(text) => {
+                setGoTo(text);
+                setProblem(undefined);
+              }}
               onSubmitEditing={jump}
               returnKeyType="go"
+              spellCheck={false}
               style={[inputStyle, { fontFamily: mono }]}
               testID="glyphGoTo"
               value={goTo}
@@ -177,6 +236,7 @@ export function GlyphsScreen({ onBack }: { onBack: () => void }) {
           </Field>
           <Button label="Go" onPress={jump} style={styles.go} testID="glyphGo" />
         </View>
+        {problem !== undefined && <Message tone="error">{problem}</Message>}
       </Card>
 
       <Card style={styles.all}>
@@ -199,7 +259,7 @@ export function GlyphsScreen({ onBack }: { onBack: () => void }) {
               </View>
             </View>
           )}
-          {typeface !== undefined && renderer !== undefined && cellWidth > 0 && (
+          {typeface !== undefined && renderer !== undefined && gridMounted && cellWidth > 0 && (
             <FlatList
               columnWrapperStyle={styles.columns}
               data={glyphIds}
@@ -208,10 +268,18 @@ export function GlyphsScreen({ onBack }: { onBack: () => void }) {
               keyExtractor={(glyphId) => String(glyphId)}
               maxToRenderPerBatch={16}
               numColumns={COLUMNS}
+              onViewableItemsChanged={onViewableItemsChanged}
               ref={list}
               renderItem={({ item }) => <GlyphCell glyphId={item} onPick={pick} renderer={renderer} width={cellWidth} />}
+              viewabilityConfig={viewabilityConfig}
               windowSize={7}
             />
+          )}
+          {typeface !== undefined && drawing && (
+            <View accessibilityRole="progressbar" pointerEvents="auto" style={styles.drawing}>
+              <ActivityIndicator color={colors.primary} size="large" />
+              <Text style={styles.loadingText}>Drawing the glyphs…</Text>
+            </View>
           )}
         </View>
       </Card>
@@ -244,6 +312,7 @@ const styles = StyleSheet.create({
   cellId: { fontSize: 11, color: colors.muted },
   loading: { alignItems: 'center', gap: 12, paddingTop: 8, paddingBottom: 16 },
   loadingText: { fontSize: 15, color: colors.label },
+  drawing: { ...StyleSheet.absoluteFill, alignItems: 'center', justifyContent: 'flex-start', gap: 12, paddingTop: 24, backgroundColor: colors.card },
   skeletons: { flexDirection: 'row', flexWrap: 'wrap', gap: GAP },
   skeleton: { height: CELL_HEIGHT, borderRadius: 10, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.skeleton },
 });

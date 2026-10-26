@@ -107,7 +107,7 @@ iPhone 16 Pro simulator:
 | ![Variable Fonts](docs/screenshots/ios-variable-fonts.png) | ![Custom Label](docs/screenshots/ios-custom-label.png) |
 | ![Custom Text View](docs/screenshots/ios-text-view.png) | |
 
-Android emulator (Pixel-sized, API 30):
+Android emulator (Pixel-sized, API 28, arm64):
 
 | | | |
 |---|---|---|
