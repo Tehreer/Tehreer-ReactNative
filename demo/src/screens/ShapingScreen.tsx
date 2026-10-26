@@ -14,6 +14,7 @@ import { Section } from '../components/Section';
 import { colors } from '../theme/colors';
 import { inputStyle } from '../theme/inputStyle';
 import { mono } from '../theme/mono';
+import { naskh } from '../theme/naskh';
 
 const DEFAULT_TEXT = 'زبان کو مختلف علامتوں اور رموز کے ذریعے لکھنے کو تحریر کہتے ہیں۔';
 
@@ -118,6 +119,19 @@ function Row({ term, value, isMono = false }: { term: string; value: string; isM
   );
 }
 
+/** A character of a cluster: its code and the character itself on one baseline; the characters after the first have "..." in place of the name. */
+function CharacterRow({ character, isFirst }: { character: { shown: string; code: string }; isFirst: boolean }) {
+  return (
+    <View style={styles.row}>
+      <Text style={styles.term}>{isFirst ? 'Character' : '...'}</Text>
+      <View style={styles.character}>
+        <Text style={styles.value}>{`U+${character.code}`}</Text>
+        <Text style={styles.shown}>{character.shown}</Text>
+      </View>
+    </View>
+  );
+}
+
 export function ShapingScreen({ onBack }: { onBack: () => void }) {
   const [fontId, setFontId] = useState(DEFAULT_TEXT_FONT);
   const { typeface, error } = useTypeface(fontId);
@@ -186,11 +200,11 @@ export function ShapingScreen({ onBack }: { onBack: () => void }) {
               <View key={index} style={[styles.cluster, index < clusters.length - 1 && styles.rule]}>
                 <Text style={styles.clusterTitle}>{`Cluster ${index + 1}`}</Text>
                 {cluster.characters.map((character, at) => (
-                  <Row key={`c${at}`} term="Character" value={`U+${character.code}   ${character.shown}`} />
+                  <CharacterRow key={`c${at}`} character={character} isFirst={at === 0} />
                 ))}
                 {cluster.glyphs.map((glyph, at) => (
                   <View key={`g${at}`}>
-                    <Row term="GID" value={hex(glyph.id)} isMono />
+                    <Row term="Glyph ID" value={hex(glyph.id)} isMono />
                     <Row term="Offset" value={`(${glyph.x}, ${glyph.y})`} isMono />
                     <Row term="Advance" value={String(glyph.advance)} isMono />
                   </View>
@@ -206,7 +220,7 @@ export function ShapingScreen({ onBack }: { onBack: () => void }) {
 
 const styles = StyleSheet.create({
   input: { ...inputStyle, height: undefined, backgroundColor: colors.inputBackground },
-  urdu: { minHeight: 104, paddingVertical: 6, fontSize: 22, fontWeight: '400', textAlign: 'right', writingDirection: 'rtl', textAlignVertical: 'top' },
+  urdu: { fontFamily: naskh, minHeight: 104, paddingVertical: 6, fontSize: 22, fontWeight: '400', textAlign: 'right', writingDirection: 'rtl', textAlignVertical: 'top' },
   tags: { flexDirection: 'row', gap: 10 },
   tag: { ...inputStyle, fontFamily: mono },
   list: { marginTop: -6 },
@@ -215,6 +229,8 @@ const styles = StyleSheet.create({
   clusterTitle: { height: 28, fontSize: 13, fontWeight: '600', color: colors.label },
   row: { height: 32, flexDirection: 'row', alignItems: 'center', paddingLeft: 8 },
   term: { width: 96, fontSize: 13, letterSpacing: 0.4, textTransform: 'uppercase', color: colors.muted },
-  value: { flex: 1, fontSize: 15, color: colors.text, textAlign: 'left' },
+  value: { fontSize: 15, color: colors.text, textAlign: 'left' },
+  character: { flex: 1, flexDirection: 'row', alignItems: 'baseline', gap: 12 },
+  shown: { fontFamily: naskh, fontSize: 18, color: colors.text },
   mono: { fontFamily: mono, fontSize: 14 },
 });

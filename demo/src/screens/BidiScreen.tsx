@@ -11,6 +11,7 @@ import { Page } from '../components/Page';
 import { Section } from '../components/Section';
 import { Segmented } from '../components/Segmented';
 import { colors } from '../theme/colors';
+import { naskh } from '../theme/naskh';
 import { inputStyle } from '../theme/inputStyle';
 
 type Direction = 'auto' | 'ltr' | 'rtl';
@@ -143,7 +144,7 @@ export function BidiScreen({ onBack }: { onBack: () => void }) {
             <View style={styles.visual}>
               {paragraph.visual.map((run) => (
                 <View key={run.start} style={[styles.visualRun, { borderBottomColor: isRtl(run.level) ? colors.rtl : colors.ltr }]}>
-                  <Text style={[styles.visualText, { writingDirection: isRtl(run.level) ? 'rtl' : 'ltr' }]}>
+                  <Text style={[styles.visualText, isRtl(run.level) && { fontFamily: naskh }, { writingDirection: isRtl(run.level) ? 'rtl' : 'ltr' }]}>
                     {run.text.replace(/[\r\n\u2029]/g, '')}
                   </Text>
                 </View>
@@ -176,7 +177,7 @@ const styles = StyleSheet.create({
   cLevel: { width: 14 },
   cDir: { width: 34, fontSize: 13, fontWeight: '700' },
   cText: { flex: 1, fontSize: 16, color: colors.text, textAlign: 'left' },
-  cTextRtl: { fontSize: 20 },
+  cTextRtl: { fontFamily: naskh, fontSize: 20 },
   visual: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'flex-end' },
   visualRun: { borderBottomWidth: 3, paddingBottom: 3 },
   visualText: { fontSize: 19, lineHeight: 28, color: colors.text },
