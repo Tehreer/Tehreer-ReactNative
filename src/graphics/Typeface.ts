@@ -82,10 +82,12 @@ export class Typeface extends NativeObject<"TRTypeface"> {
     return getNativeBindings().TRTypefaceGetWeight(this.nativeHandle);
   }
 
+  /** How condensed or expanded the typeface is. */
   get width(): TypeWidth {
     return getNativeBindings().TRTypefaceGetWidth(this.nativeHandle) as TypeWidth;
   }
 
+  /** Whether the typeface is upright, italic or oblique. */
   get slope(): TypeSlope {
     return getNativeBindings().TRTypefaceGetSlope(this.nativeHandle) as TypeSlope;
   }
@@ -110,6 +112,7 @@ export class Typeface extends NativeObject<"TRTypeface"> {
     return getNativeBindings().TRTypefaceGetLeading(this.nativeHandle);
   }
 
+  /** The number of glyphs in the typeface. */
   get glyphCount(): number {
     return getNativeBindings().TRTypefaceGetGlyphCount(this.nativeHandle);
   }
@@ -120,10 +123,12 @@ export class Typeface extends NativeObject<"TRTypeface"> {
     return { x: origin.x, y: origin.y, width: size.width, height: size.height };
   }
 
+  /** The position of the underline relative to the baseline, in font units. */
   get underlinePosition(): number {
     return getNativeBindings().TRTypefaceGetUnderlinePosition(this.nativeHandle);
   }
 
+  /** The thickness of the underline, in font units. */
   get underlineThickness(): number {
     return getNativeBindings().TRTypefaceGetUnderlineThickness(this.nativeHandle);
   }
@@ -133,6 +138,7 @@ export class Typeface extends NativeObject<"TRTypeface"> {
     return getNativeBindings().TRTypefaceGetStrikeoutPosition(this.nativeHandle);
   }
 
+  /** The thickness of the strikeout, in font units. */
   get strikeoutThickness(): number {
     return getNativeBindings().TRTypefaceGetStrikeoutThickness(this.nativeHandle);
   }

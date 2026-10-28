@@ -63,6 +63,11 @@ export class ScriptClassifier {
   readonly #scripts: Uint8Array;
   #isDisposed = false;
 
+  /**
+   * Classifies the text.
+   *
+   * @throws TypeError if the text is not a string.
+   */
   constructor(text: string) {
     if (typeof text !== "string") {
       throw new TypeError("text must be a string.");

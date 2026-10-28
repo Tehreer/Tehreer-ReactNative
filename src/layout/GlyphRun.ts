@@ -57,6 +57,7 @@ export class GlyphRun extends NativeObject<"TRGlyphRun"> {
     return getNativeBindings().TRGlyphRunGetBidiLevel(this.nativeHandle);
   }
 
+  /** The direction in which the glyphs of the run are written. */
   get writingDirection(): WritingDirection {
     return getNativeBindings().TRGlyphRunGetWritingDirection(this.nativeHandle) as WritingDirection;
   }
@@ -79,14 +80,17 @@ export class GlyphRun extends NativeObject<"TRGlyphRun"> {
     return handle === undefined ? undefined : Typeface.adopting(handle);
   }
 
+  /** The size of the em square used to scale the glyphs. */
   get typeSize(): number {
     return getNativeBindings().TRGlyphRunGetTypeSize(this.nativeHandle);
   }
 
+  /** The horizontal scale of the glyphs. */
   get scaleX(): number {
     return getNativeBindings().TRGlyphRunGetScaleX(this.nativeHandle);
   }
 
+  /** The vertical scale of the glyphs. */
   get scaleY(): number {
     return getNativeBindings().TRGlyphRunGetScaleY(this.nativeHandle);
   }
@@ -115,10 +119,12 @@ export class GlyphRun extends NativeObject<"TRGlyphRun"> {
     return getNativeBindings().TRGlyphRunGetDecorationColor(this.nativeHandle);
   }
 
+  /** Tells whether the run is underlined. */
   get hasUnderline(): boolean {
     return getNativeBindings().TRGlyphRunHasUnderline(this.nativeHandle);
   }
 
+  /** Tells whether the run is struck through. */
   get hasStrikethrough(): boolean {
     return getNativeBindings().TRGlyphRunHasStrikethrough(this.nativeHandle);
   }
@@ -128,14 +134,17 @@ export class GlyphRun extends NativeObject<"TRGlyphRun"> {
     return getNativeBindings().TRGlyphRunGetUserData(this.nativeHandle);
   }
 
+  /** The distance from the baseline to the top of the run. */
   get ascent(): number {
     return getNativeBindings().TRGlyphRunGetAscent(this.nativeHandle);
   }
 
+  /** The distance from the baseline to the bottom of the run. */
   get descent(): number {
     return getNativeBindings().TRGlyphRunGetDescent(this.nativeHandle);
   }
 
+  /** The extra space between this run and the next line. */
   get leading(): number {
     return getNativeBindings().TRGlyphRunGetLeading(this.nativeHandle);
   }
@@ -145,14 +154,17 @@ export class GlyphRun extends NativeObject<"TRGlyphRun"> {
     return getNativeBindings().TRGlyphRunGetOrigin(this.nativeHandle);
   }
 
+  /** The advance of the whole run. */
   get width(): number {
     return getNativeBindings().TRGlyphRunGetWidth(this.nativeHandle);
   }
 
+  /** The height of the run, which is its ascent plus its descent. */
   get height(): number {
     return getNativeBindings().TRGlyphRunGetHeight(this.nativeHandle);
   }
 
+  /** The number of glyphs in the run. */
   get glyphCount(): number {
     return getNativeBindings().TRGlyphRunGetGlyphCount(this.nativeHandle);
   }

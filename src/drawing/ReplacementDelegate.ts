@@ -14,9 +14,13 @@ export interface ReplacementRoom {
 export interface ReplacementBounds {
   /** The start of the replacement on its baseline. */
   readonly x: number;
+  /** The baseline of the replacement. */
   readonly y: number;
+  /** The distance from the baseline to the top. */
   readonly ascent: number;
+  /** The distance from the baseline to the bottom. */
   readonly descent: number;
+  /** The extent along the line. */
   readonly width: number;
 }
 

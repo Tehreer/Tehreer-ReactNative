@@ -17,18 +17,22 @@ export const Color = {
     return Color.argb(255, red, green, blue);
   },
 
+  /** The alpha channel of a color, from 0 to 255. */
   alpha(color: Color): number {
     return (color >>> 24) & 0xff;
   },
 
+  /** The red channel of a color, from 0 to 255. */
   red(color: Color): number {
     return (color >>> 16) & 0xff;
   },
 
+  /** The green channel of a color, from 0 to 255. */
   green(color: Color): number {
     return (color >>> 8) & 0xff;
   },
 
+  /** The blue channel of a color, from 0 to 255. */
   blue(color: Color): number {
     return color & 0xff;
   },

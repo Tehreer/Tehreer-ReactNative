@@ -5,8 +5,11 @@ import type { FrameSettings } from "./shared.js";
 
 /** Where the insertion point of a code unit boundary is drawn: a vertical line from `y` down by `height`. */
 export interface CaretPosition {
+  /** The x coordinate of the line. */
   readonly x: number;
+  /** The y coordinate of the top of the line. */
   readonly y: number;
+  /** The height of the line. */
   readonly height: number;
   /** The index of the line that holds the boundary. */
   readonly lineIndex: number;

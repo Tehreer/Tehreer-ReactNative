@@ -6,7 +6,10 @@ export interface VariationAxis {
   readonly name: string | undefined;
   /** Tells whether the font asks to hide the axis from user interfaces. */
   readonly isHidden: boolean;
+  /** The lowest value of the axis. */
   readonly minValue: number;
+  /** The highest value of the axis. */
   readonly maxValue: number;
+  /** The value of the axis when a typeface does not vary it. */
   readonly defaultValue: number;
 }

@@ -35,10 +35,12 @@ export class ComposedFrame extends NativeObject<"TRComposedFrame"> {
     return getNativeBindings().TRComposedFrameGetEndIndex(this.nativeHandle);
   }
 
+  /** The width of the frame, which is the extent of its widest line when the frame fits horizontally. */
   get width(): number {
     return getNativeBindings().TRComposedFrameGetWidth(this.nativeHandle);
   }
 
+  /** The height of the frame, which is the extent of all lines when the frame fits vertically. */
   get height(): number {
     return getNativeBindings().TRComposedFrameGetHeight(this.nativeHandle);
   }

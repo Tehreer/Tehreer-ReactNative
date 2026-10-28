@@ -13,8 +13,11 @@ export type BreakMode = (typeof BreakMode)[keyof typeof BreakMode];
 
 /** Which part of a line is replaced with the token when it is truncated. */
 export const TruncationPlace = {
+  /** The start of the line is replaced. */
   Start: 0,
+  /** The middle of the line is replaced. */
   Middle: 1,
+  /** The end of the line is replaced. */
   End: 2,
 } as const;
 
@@ -22,8 +25,11 @@ export type TruncationPlace = (typeof TruncationPlace)[keyof typeof TruncationPl
 
 /** The alignment of the lines of a paragraph. Leading and trailing follow its base direction. */
 export const TextAlignment = {
+  /** Lines start at the left edge. */
   Left: 0,
+  /** Lines are centered. */
   Center: 1,
+  /** Lines end at the right edge. */
   Right: 2,
   /** The edge where the paragraph starts: left for left-to-right text, right otherwise. */
   Leading: 3,
@@ -35,8 +41,11 @@ export type TextAlignment = (typeof TextAlignment)[keyof typeof TextAlignment];
 
 /** Where the lines go when a frame is taller than they are. */
 export const VerticalAlignment = {
+  /** The lines start at the top of the frame. */
   Top: 0,
+  /** The lines are centered in the frame. */
   Center: 1,
+  /** The lines end at the bottom of the frame. */
   Bottom: 2,
 } as const;
 

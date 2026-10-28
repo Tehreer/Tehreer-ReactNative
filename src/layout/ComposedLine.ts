@@ -14,7 +14,9 @@ import { GlyphRun } from "./GlyphRun.js";
 
 /** The left and the right edge of a part of a line, measured from its start. */
 export interface VisualEdge {
+  /** The x coordinate of the left edge of the range. */
   readonly left: number;
+  /** The x coordinate of the right edge of the range. */
   readonly right: number;
 }
 
