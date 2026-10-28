@@ -69,7 +69,7 @@ Counts: 318 public functions in 21 headers (`TRSheenBidi.h` has one, `TRTextGetS
 | `TRComposedLineGetGlyphRunCount` | bound | `ComposedLine.runs` |  |
 | `TRComposedLineGetGlyphRun` | bound | `ComposedLine.runs` |  |
 | `TRComposedLineGetCodeUnitDistance` | bound | `ComposedLine.getCodeUnitDistance()` |  |
-| `TRComposedLineEnumerateVisualEdges` | bound | `ComposedLine.getVisualEdges()` | Same. |
+| `TRComposedLineEnumerateVisualEdges` | bound | `ComposedLine.getVisualEdges()` | Core enumerates through a callback; JavaScript gets an array. |
 | `TRComposedLineGetCodeUnitIndexAtDistance` | bound | `ComposedLine.getCodeUnitIndexAtDistance()` |  |
 | `TRComposedLineGetPenOffset` | bound | `ComposedLine.getPenOffset()` |  |
 | `TRComposedLineComputeInkBox` | bound | `ComposedLine.computeInkBox()` |  |
@@ -214,7 +214,7 @@ Counts: 318 public functions in 21 headers (`TRSheenBidi.h` has one, `TRTextGetS
 | `TRLineLocatorCreate` | bound (constructor) | `new LineLocator(...)` |  |
 | `TRLineLocatorGetLineCount` | bound | `LineLocator.lineCount` |  |
 | `TRLineLocatorGetLineBox` | bound | `LineLocator.getLineBox()` |  |
-| `TRLineLocatorEnumerateLines` | renamed | `LineLocator.findLines()` | Same. |
+| `TRLineLocatorEnumerateLines` | renamed | `LineLocator.findLines()` | Core enumerates through a callback; JavaScript gets an array. |
 | `TRLineLocatorGetFirstLineIndexBelow` | bound | `LineLocator.getFirstLineIndexBelow()` |  |
 | `TRLineLocatorRetain` | bound (internal) | `Holding` (`holding()`) | Reached through `retainHandle`; the wrapper retains a handle while a call uses it. |
 | `TRLineLocatorRelease` | excluded | `dispose()` | A handle releases its one reference on `dispose()` or collection; a release from JavaScript would free it twice. |
@@ -424,7 +424,7 @@ Counts: 318 public functions in 21 headers (`TRSheenBidi.h` has one, `TRTextGetS
 | `TRTypefaceManagerGetMatchingTypefaceByFamilyID` | bound | `TypeFamily.getTypefaceByStyle()` |  |
 | `TRTypefaceManagerGetMatchingTypefaceByFamilyName` | bound | `TypefaceManager.getTypefaceByStyle()` |  |
 | `TRTypefaceManagerEnumerateTypefaces` | renamed | `TypefaceManager.getAvailableTypefaces()` | Core enumerates through a callback; JavaScript gets an array. |
-| `TRTypefaceManagerEnumerateFamilies` | renamed | `TypefaceManager.getAvailableFamilies()` | Same. |
+| `TRTypefaceManagerEnumerateFamilies` | renamed | `TypefaceManager.getAvailableFamilies()` | Core enumerates through a callback; JavaScript gets an array. |
 
 ### TRTypesetter.h
 
@@ -481,5 +481,5 @@ None of them is a Core function. Each is a decision for the owner, not a bug.
 2. **`toSvg` on `ComposedFrame`, `ComposedLine`, `GlyphRun` (Web), `Path.toPath2D`, `GlyphImage.toRgba`, `FontFile.fromUrl`.** Web-only by nature (SVG output, `Path2D`, `Uint8ClampedArray` for canvas, `fetch`). `Path.toSvgPathData` exists. `FontFile.fromAsset` and `fromPath` replace `fromUrl`.
 3. **`GlyphImage.adopting` / `retaining` (Web) and similar statics.** Here the constructor with the `adopt` token is `@internal`; no public equivalent is needed because JavaScript cannot hold a raw Core pointer.
 4. **SFNT table readers (Android `sfnt/tables`: `head`, `hhea`, `maxp`, `name`, `OS/2`, `post`; Cocoa `SFNT/Tables`).** Neither Web nor this wrapper has them. `Typeface.getTableSize` and `getTableData` return the raw bytes, so an application can parse a table. Core has no table API.
-5. **Core exposes no function that is unbound for lack of a decision.** The three `bound, unused` rows (`TRShapingEngineGetTypeface`, `TRShapingEngineGetOpenTypeFeaturesPtr`, `TRShapingEngineGetOpenTypeFeatureCount`) and `TRTextGetEncoding` are deliberate: the getters of `ShapingEngine` return what was set because a Core handle cannot give back the wrapper object.
+5. **Four bound functions have no TypeScript caller, by design.** The three `bound, unused` rows (`TRShapingEngineGetTypeface`, `TRShapingEngineGetOpenTypeFeaturesPtr`, `TRShapingEngineGetOpenTypeFeatureCount`) and `TRTextGetEncoding` are deliberate: the getters of `ShapingEngine` return what was set because a Core handle cannot give back the wrapper object.
 6. **TSDoc of generated enumerations.** The members of `BidiClass`, `GeneralCategory` and `Script` (`src/unicode/enums.ts`) have no per-member comment; the file is written by `scripts/generate-unicode-enums.mjs` and the constants carry their Unicode names. The declarations themselves are documented.

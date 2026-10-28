@@ -22,7 +22,7 @@ describe("docs/api-parity.md", { skip: !existsSync(headersDirectory) && "the Cor
 
   it("finds the public functions of Core", () => {
     const total = headers.reduce((sum, name) => sum + publicFunctions(readFileSync(join(headersDirectory, name), "utf8")).length, 0);
-    assert.ok(total > 0);
+    assert.ok(total >= 318, `expected at least 318 public functions, found ${total}`);
   });
 
   for (const header of headers) {

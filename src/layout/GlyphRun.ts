@@ -159,7 +159,7 @@ export class GlyphRun extends NativeObject<"TRGlyphRun"> {
     return getNativeBindings().TRGlyphRunGetWidth(this.nativeHandle);
   }
 
-  /** The height of the run, which is its ascent plus its descent. */
+  /** The height of the run, which is its ascent plus its descent plus its leading. */
   get height(): number {
     return getNativeBindings().TRGlyphRunGetHeight(this.nativeHandle);
   }
