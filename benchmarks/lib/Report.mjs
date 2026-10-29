@@ -45,7 +45,7 @@ const METHOD = `## Method
 Every runner executes the steps of [README.md](README.md) on the same scenarios, in Release builds
 (optimized native code; React Native: Hermes bytecode). Layout is timed from a prepared styled text to a
 frame; draw is the draw call of the frame onto an offscreen canvas with the wrapper's own painter (warm glyph
-caches); memory is the native heap in use with a typesetter and a frame alive. Each runner is launched
+caches); memory is the native heap in use with a frame alive (typesetter and resolver released, as in the native runners). Each runner is launched
 several times; a table cell is the median of the launches' medians with the lowest and highest launch in
 brackets. "RN / native" is flagged only when it is above 1.20, both sides are above the noise guard and the
 ranges of the launches do not overlap (React Native's best launch is slower or larger than the native
@@ -82,6 +82,21 @@ index floor(0.9 n) of the sorted ones.
   or release objects between scenarios, so a collection or finalizer may land in a timed loop of
   Tehreer-Android, while React Native and Cocoa release explicitly. This was not re-measured; it can only
   inflate Tehreer-Android's times, so the Android draw findings below are not helped by it.
+- Memory, what it was ([#64](https://github.com/Tehreer/Tehreer-ReactNative/issues/64),
+  [#66](https://github.com/Tehreer/Tehreer-ReactNative/issues/66)). The first tables read the React Native heap
+  with the typesetter alive and found it 1.3 to 2.4 times Tehreer-Cocoa's and 1.4 to 1.9 times Tehreer-Android's.
+  The steps were measured one by one (KB of native heap, long-latin, median of three launches of the step):
+  iOS styled text 292 (158 of it freed when the text is disposed, the rest is the typesetter's copy), typesetter
+  773, frame resolver 0, frame 390, typesetter and resolver released -250; Android 357 / 803 / 0 / 522, released
+  -313. Tehreer-Cocoa and Tehreer-Android drop the typesetter when their layout function returns (a frame does
+  not keep it: Core's lines hold runs, not the typesetter), React Native kept it. With it released, the same
+  steps give iOS 1046 KB (Cocoa 968) and Android 1163 KB (Tehreer-Android 1185 native plus Java). Nothing of the
+  wrapper is visible in the numbers: the JS handle objects and the resolver are under 1 KB, and the Hermes heap
+  is mapped, not malloc. On Android the old number also added \`mallinfo().hblkhd\` (what the allocator has mapped,
+  not in use), which moved a launch by up to 700 KB; it is no longer added. A mounted \`TLabel\`
+  or \`TTextView\` keeps its typesetter, which holds about 250 to 410 KB more in the long scenarios (a quarter to a
+  third of the frame's figure; shaped data that the frame shares is not counted twice), in Tehreer-Cocoa and
+  Tehreer-Android as well.
 - Findings are tracked in issues: Android draw [#63](https://github.com/Tehreer/Tehreer-ReactNative/issues/63),
   Android memory [#64](https://github.com/Tehreer/Tehreer-ReactNative/issues/64), iOS Urdu layout
   [#65](https://github.com/Tehreer/Tehreer-ReactNative/issues/65) (urdu-paragraph, long-urdu and the

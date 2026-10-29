@@ -57,11 +57,14 @@ Same steps in the three runners (`example/benchmark/runBenchmark.ts`, `android/.
   not cleared between draws. Only the draw call is timed, so the canvas and any read back are not in it.
   Warm-up draws fill the glyph caches, so the number is warm steady state.
 - **memLayoutKB**: native heap in use (Apple: `malloc_zone_statistics` of all zones; Android:
-  `mallinfo`, which is `Debug.getNativeHeapAllocatedSize`) with a typesetter and a frame alive, minus
-  the value read before the styled text is made. Median of three, each after releasing the previous one.
-  React Native and Cocoa release the styled text before reading the heap; Tehreer-Android keeps it and
-  adds its Java heap (after `System.gc()`). The JavaScript heap (Hermes) and, for React Native, the Java
-  heap are not in it.
+  `mallinfo().uordblks`, which is `Debug.getNativeHeapAllocatedSize`) with a frame alive, minus the value
+  read before the styled text is made. The typesetter and the frame resolver are already gone when the heap
+  is read: Tehreer-Android and Tehreer-Cocoa make them inside their layout function, and a frame does not
+  keep them (a line holds its runs, not the typesetter). React Native releases them explicitly before the
+  read, and the styled text as well, as Cocoa does; Tehreer-Android keeps its text and adds its Java heap
+  (after `System.gc()`). Median of three, each after releasing the previous one. The JavaScript heap
+  (Hermes) and, for React Native, the Java heap are not in it. A typesetter that stays alive (a mounted
+  `TLabel` keeps one) adds to that, see RESULTS.md.
 - **lines / frameHeight** are reported as a sanity check: differing line counts between wrappers mean the
   layouts differ and the timings are not comparable for that scenario.
 
