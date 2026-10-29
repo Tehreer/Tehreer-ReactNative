@@ -161,16 +161,26 @@ void CanvasPainter::SetPaintColor(jint color) {
         return;
     }
     _env->CallVoidMethod(_paint, _jni->setColor, color);
+    // A failed call leaves the state unknown, so the next glyph sets it again.
+    if (HasPendingException()) {
+        _paintColorKnown = false;
+        return;
+    }
     _paintColor = color;
     _paintColorKnown = true;
 }
 
 void CanvasPainter::SetPaintFilter(bool filter) {
-    if (_paintFilter == static_cast<int>(filter)) {
+    if (_paintFilterKnown && _paintFilter == filter) {
         return;
     }
     _env->CallVoidMethod(_paint, _jni->setFilterBitmap, static_cast<jboolean>(filter));
-    _paintFilter = static_cast<int>(filter);
+    if (HasPendingException()) {
+        _paintFilterKnown = false;
+        return;
+    }
+    _paintFilter = filter;
+    _paintFilterKnown = true;
 }
 
 jobject CanvasPainter::Retained(jobject local) {

@@ -60,7 +60,8 @@ private:
     /** What the paint holds now, so unchanged state is not set again. */
     jint _paintColor = 0;
     bool _paintColorKnown = false;
-    int _paintFilter = -1;
+    bool _paintFilter = false;
+    bool _paintFilterKnown = false;
 
     // The shadow scope. Every scope has a layer of its own, dropped at EndShadow.
     jobject _layerBitmap = nullptr;
