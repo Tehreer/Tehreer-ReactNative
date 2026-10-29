@@ -43,6 +43,8 @@ public:
 
 private:
     bool HasPendingException() const { return ClearException(_env); }
+    void SetPaintColor(jint color);
+    void SetPaintFilter(bool filter);
     jobject Retained(jobject local);
     void ReleaseLayer();
     void DrawShadow();
@@ -55,6 +57,10 @@ private:
 
     jobject _paint = nullptr;
     jobject _rectF = nullptr;
+    /** What the paint holds now, so unchanged state is not set again. */
+    jint _paintColor = 0;
+    bool _paintColorKnown = false;
+    int _paintFilter = -1;
 
     // The shadow scope. Every scope has a layer of its own, dropped at EndShadow.
     jobject _layerBitmap = nullptr;
