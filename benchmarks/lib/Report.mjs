@@ -45,8 +45,8 @@ const METHOD = `## Method
 Every runner executes the steps of [README.md](README.md) on the same scenarios, in Release builds
 (optimized native code; React Native: Hermes bytecode). Layout is timed from a prepared styled text to a
 frame; draw is the draw call of the frame onto an offscreen canvas with the wrapper's own painter (warm glyph
-caches); memory is the native heap in use with a typesetter and a frame alive. Each runner is launched
-several times; a table cell is the median of the launches' medians with the lowest and highest launch in
+caches); memory is the native heap in use with a frame alive (typesetter and resolver released, as in the
+native runners). Each runner is launched several times; a table cell is the median of the launches' medians with the lowest and highest launch in
 brackets. "RN / native" is flagged only when it is above 1.20, both sides are above the noise guard and the
 ranges of the launches do not overlap (React Native's best launch is slower or larger than the native
 wrapper's worst). The noise guard: a ratio is n/a when a value is not positive or the launches of either
@@ -58,8 +58,8 @@ index floor(0.9 n) of the sorted ones.
 
 - Simulator and emulator on a laptop, not devices. Absolute numbers are only good for this machine; ratios
   between runners that ran in the same session are the result. The Android emulator is noisy: the first
-  launch after an emulator boot was several times slower than later ones (seen while developing this), so the emulator is warmed up
-  (one discarded launch of every runner) before the launches that count.
+  launch after an emulator boot was several times slower than later ones (seen while developing this), so the emulator is
+  warmed up (one discarded launch of every runner) before the launches that count.
 - Core's test fonts are subsets: the Roboto font has only \`a\`, \`b\` and \`c\`, so the Latin texts are words of
   those letters and a space draws \`.notdef\`. The Urdu font is the full Noto Nastaliq Urdu.
 - All three wrappers build the same Core sources (the \`Source\` folders of the React Native submodule,
@@ -82,6 +82,30 @@ index floor(0.9 n) of the sorted ones.
   or release objects between scenarios, so a collection or finalizer may land in a timed loop of
   Tehreer-Android, while React Native and Cocoa release explicitly. This was not re-measured; it can only
   inflate Tehreer-Android's times, so the Android draw findings below are not helped by it.
+- Memory, what it was ([#64](https://github.com/Tehreer/Tehreer-ReactNative/issues/64),
+  [#66](https://github.com/Tehreer/Tehreer-ReactNative/issues/66)). The first tables read the React Native heap
+  with the typesetter alive and found it 1.3 to 2.4 times Tehreer-Cocoa's and 1.4 to 1.9 times Tehreer-Android's.
+  The steps were measured one by one (KB of native heap, long-latin, median of three launches of the step):
+  iOS styled text 292 (158 of it freed when the text is disposed, the rest is the typesetter's copy), typesetter
+  773, frame resolver 0, frame 390, typesetter and resolver released -250; Android 357 / 803 / 0 / 522, released
+  -313. Tehreer-Cocoa and Tehreer-Android drop the typesetter when their layout function returns (a frame does
+  not keep it: Core's lines hold runs, not the typesetter), React Native kept it. With it released, the same
+  steps land close to the native runners on long-latin (iOS about 1 MB for both, Android about 1.2 MB for
+  both, Tehreer-Android's figure being native plus Java heap). The step-measured values are indicative (a
+  few percent off the tables' medians); the tables are the reference. Nothing of the
+  wrapper is visible in the numbers: the JS handle objects and the resolver are under 1 KB, and the Hermes heap
+  is mapped, not malloc. On Android the old number also added \`mallinfo().hblkhd\` (what the allocator has mapped,
+  not in use), which moved a launch by up to 700 KB; it is no longer added. A mounted \`TLabel\`
+  or \`TTextView\` keeps its typesetter, which holds about 250 to 410 KB more in the long scenarios (a quarter to a
+  third of the frame's figure; shaped data that the frame shares is not counted twice), in Tehreer-Cocoa and
+  Tehreer-Android as well.
+- Memory, where React Native is well below the native runner (iOS urdu-paragraph 17 against 38 KB; Android
+  long-urdu 1037 against 1345 KB). This is not a saving of the wrapper. On Android about 180 KB of
+  Tehreer-Android's figure is its Java heap, which the native heap of React Native does not include. For
+  the rest the cause was not isolated: the samples are small differences of two heap reads, the allocator
+  hands out memory in chunks, and the glyph caches filled by earlier scenarios decide what a layout has to
+  allocate, so these rows may depend on the order of the scenarios and on the allocator, not on a
+  difference of Core or of the wrapper.
 - Findings are tracked in issues: Android draw [#63](https://github.com/Tehreer/Tehreer-ReactNative/issues/63),
   Android memory [#64](https://github.com/Tehreer/Tehreer-ReactNative/issues/64), iOS Urdu layout
   [#65](https://github.com/Tehreer/Tehreer-ReactNative/issues/65) (urdu-paragraph, long-urdu and the

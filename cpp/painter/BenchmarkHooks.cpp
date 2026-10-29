@@ -99,7 +99,10 @@ jsi::Value ReadMemory(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *, 
 #pragma clang diagnostic ignored "-Wdeprecated-declarations"
     struct mallinfo info = mallinfo();
 #pragma clang diagnostic pop
-    heap = static_cast<double>(info.uordblks) + static_cast<double>(info.hblkhd);
+    // uordblks only, as android.os.Debug.getNativeHeapAllocatedSize does for Tehreer-Android. hblkhd is
+    // what the allocator has mapped (scudo: StatMapped), which grows in steps of hundreds of KB and
+    // is not memory in use, so adding it made a launch's number jump by up to 700 KB.
+    heap = static_cast<double>(info.uordblks);
     if (FILE *file = std::fopen("/proc/self/statm", "r")) {
         long size = 0;
         long pages = 0;

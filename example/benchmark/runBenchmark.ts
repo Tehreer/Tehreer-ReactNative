@@ -88,18 +88,22 @@ function memory(bindings: NativeBindings): { heapKB: number; residentKB: number 
 
 async function runScenario(scenario: Scenario, faces: Map<string, Typeface>, bindings: NativeBindings) {
   // Memory first, three times with everything released in between: the median is the number.
-  // The native heap in use with a typesetter and a frame alive, minus before the text existed.
+  // The native heap in use with a frame alive, minus before the text existed. The styled text, the
+  // typesetter and the resolver are released before the heap is read, as in the other two runners:
+  // Tehreer-Android and Tehreer-Cocoa make them inside their layout function and a frame does not keep
+  // them (a line holds its runs, not the typesetter), so keeping them here would count the typesetter's
+  // shaped copy of the whole text (one to three times the frame's size) against React Native only.
   const memSamples: number[] = [];
   for (let i = 0; i < 3; i++) {
     const before = memory(bindings).heapKB;
     const text = makeText(scenario, faces);
     const made = layoutOnce(scenario, text);
     text.dispose();
+    made.resolver.dispose();
+    made.typesetter.dispose();
     const after = memory(bindings).heapKB;
     memSamples.push(after - before);
     made.frame.dispose();
-    made.resolver.dispose();
-    made.typesetter.dispose();
   }
 
   const layoutMs: number[] = [];

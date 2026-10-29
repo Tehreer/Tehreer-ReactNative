@@ -141,3 +141,23 @@ test("the benchmark is not a device test suite, and the runner never kills by na
   const banned = /\b(pkill|killall|taskkill|pgrep)\b/;
   assert.doesNotMatch(read("benchmarks/run.mjs").toString("utf8"), banned);
 });
+
+test("the memory window of the React Native runner is like the other runners' (#64, #66)", () => {
+  // Tehreer-Android and Tehreer-Cocoa read the heap with a frame alive and the typesetter already gone (a
+  // frame does not keep it); React Native releases it before the second read too.
+  const runner = read("example/benchmark/runBenchmark.ts").toString("utf8");
+  const loop = runner.slice(runner.indexOf("for (let i = 0; i < 3; i++)"));
+  const afterMatch = /const after = memory\(bindings\)\.heapKB/.exec(loop);
+  assert.ok(afterMatch, "the heap is read after the layout");
+  const afterRead = afterMatch.index;
+  for (const owner of ["text", "made\\.resolver", "made\\.typesetter"]) {
+    const release = new RegExp(`${owner}\\s*\\.dispose\\(`).exec(loop);
+    assert.ok(release && release.index < afterRead, `${owner} must be disposed before the heap is read`);
+  }
+  const frameRelease = /made\.frame\s*\.dispose\(/.exec(loop);
+  assert.ok(frameRelease && frameRelease.index > afterRead, "the frame stays alive while the heap is read");
+
+  // Android counts uordblks like Debug.getNativeHeapAllocatedSize; hblkhd is memory the allocator mapped.
+  const hooks = read("cpp/painter/BenchmarkHooks.cpp").toString("utf8");
+  assert.doesNotMatch(hooks, /heap\s*=[^;]*hblkhd/);
+});
