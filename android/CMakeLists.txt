@@ -54,6 +54,11 @@ endif()
 target_compile_reactnative_options(tehreer_module PRIVATE)
 target_compile_options(tehreer_module PRIVATE -Wno-error)
 
+# Only the benchmark build (example app, -PtehreerBenchmarks) has the hooks of cpp/painter/BenchmarkHooks.cpp.
+if(TEHREER_BENCHMARKS)
+    target_compile_definitions(tehreer_module PRIVATE TEHREER_BENCHMARKS=1)
+endif()
+
 target_include_directories(tehreer_module PUBLIC "${TEHREER_ROOT}/cpp")
 
 # React Native compiles with C++20; the standard is requested on the target only, so Core stays C.

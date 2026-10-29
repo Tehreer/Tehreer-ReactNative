@@ -279,6 +279,17 @@ export interface NativeBindings extends NativeFunctions, SheenBidiFunctions {
   ): { width: number; height: number; pixels: ArrayBuffer };
   /** How many platform images (bitmaps, layers) painters made and destroyed, in this process. */
   testGetPaintCounts?(): { created: number; destroyed: number };
+  /**
+   * Only builds with `TEHREER_BENCHMARKS` (benchmarks/): draws the frame `warmup + iterations` times
+   * onto one canvas of the platform and returns the milliseconds of each timed draw.
+   */
+  benchDrawFrame?(
+    frame: Handle<"TRComposedFrame">,
+    renderer: Handle<"TRRenderer">,
+    options: { width: number; height: number; warmup: number; iterations: number },
+  ): number[];
+  /** Only builds with `TEHREER_BENCHMARKS`: native heap in use and resident size of the process, in kilobytes. */
+  benchMemory?(): { heapKB: number; residentKB: number };
 }
 
 export const nativeBindingsName = "__tehreer";

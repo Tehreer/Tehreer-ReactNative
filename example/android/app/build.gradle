@@ -6,7 +6,14 @@ apply plugin: "com.facebook.react"
  * This is the configuration block to customize your React Native Android app.
  * By default you don't need to apply any configuration, just uncomment the lines you need.
  */
+// `-PtehreerBenchmarks` builds the benchmark of benchmarks/ instead of the test runner: the JavaScript
+// entry is index.benchmark.js and the native hooks that it needs are compiled in (see benchmarks/README.md).
+def isBenchmarkBuild = project.hasProperty("tehreerBenchmarks")
+
 react {
+    if (isBenchmarkBuild) {
+        entryFile = file("../../index.benchmark.js")
+    }
     /* Folders */
     //   The root of your project, i.e. where "package.json" lives. Default is '../..'
     // root = file("../../")
@@ -84,6 +91,13 @@ android {
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
         versionName "1.0"
+        if (isBenchmarkBuild) {
+            externalNativeBuild {
+                cmake {
+                    arguments "-DTEHREER_BENCHMARKS=ON"
+                }
+            }
+        }
     }
     signingConfigs {
         debug {

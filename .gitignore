@@ -5,6 +5,7 @@ dist
 *.xcuserstate
 Pods
 lib
+!benchmarks/lib/
 .gradle
 .cxx
 local.properties

@@ -1,0 +1,88 @@
+{
+  "schema": 1,
+  "description": "The scenario matrix of the benchmarks. Every runner (React Native, Tehreer-Android, Tehreer-Cocoa) reads this file. A scenario's text is its segments, in order, repeated `repeat` times; a segment's text is styled with its font and the scenario's typeSize. `characters` is the length in UTF-16 code units (a test checks it). Lengths are layout units, one unit is one pixel (render scale 1).",
+  "fontsDirectory": "Libraries/TehreerCore/Tests/Fonts",
+  "fonts": {
+    "latin": "Roboto-Regular.abc.ttf",
+    "urdu": "NotoNastaliqUrdu-Regular.ttf"
+  },
+  "frameHeight": 1000000,
+  "metrics": {
+    "layoutMs": "Typesetter creation plus FrameResolver creation plus frame creation from a prepared styled text; objects are released outside the timer.",
+    "drawMs": "One draw of the frame onto an offscreen canvas of the platform, with the wrapper's native painter, canvas created once and not cleared between draws; only the draw call is timed.",
+    "memLayoutKB": "Native heap in use (malloc) after a typesetter and a frame are alive, minus before the styled text was made; median of three. Tehreer-Android adds its Java heap (after a collection) because it keeps part of the layout there."
+  },
+  "scenarios": [
+    {
+      "id": "latin-label",
+      "title": "Short Latin label",
+      "segments": [{ "font": "latin", "text": "abc bca cab" }],
+      "repeat": 1,
+      "characters": 11,
+      "typeSize": 16,
+      "width": 200,
+      "layout": { "warmup": 50, "iterations": 300 },
+      "draw": { "warmup": 50, "iterations": 300 }
+    },
+    {
+      "id": "latin-paragraph",
+      "title": "Multi-line Latin paragraph",
+      "segments": [{ "font": "latin", "text": "abc bca cab acb cba bac aab bbc cca abb bcc caa " }],
+      "repeat": 12,
+      "characters": 576,
+      "typeSize": 16,
+      "width": 320,
+      "layout": { "warmup": 20, "iterations": 100 },
+      "draw": { "warmup": 20, "iterations": 100 }
+    },
+    {
+      "id": "urdu-paragraph",
+      "title": "Urdu (RTL, Nastaliq) paragraph",
+      "segments": [{ "font": "urdu", "text": "تحریر ایک متنی انجن ہے " }],
+      "repeat": 25,
+      "characters": 575,
+      "typeSize": 22,
+      "width": 320,
+      "layout": { "warmup": 10, "iterations": 40 },
+      "draw": { "warmup": 10, "iterations": 40 }
+    },
+    {
+      "id": "mixed-bidi",
+      "title": "Mixed bidirectional text",
+      "segments": [
+        { "font": "urdu", "text": "تحریر ایک متنی انجن ہے " },
+        { "font": "latin", "text": "abc bca cab " },
+        { "font": "urdu", "text": "123 " },
+        { "font": "latin", "text": "cba " }
+      ],
+      "repeat": 12,
+      "characters": 516,
+      "typeSize": 18,
+      "width": 320,
+      "layout": { "warmup": 10, "iterations": 40 },
+      "draw": { "warmup": 10, "iterations": 40 }
+    },
+    {
+      "id": "long-latin",
+      "title": "Long Latin text (20k characters)",
+      "segments": [{ "font": "latin", "text": "abc bca cab acb cba bac aab bbc cca abb bcc caa " }],
+      "repeat": 417,
+      "characters": 20016,
+      "typeSize": 16,
+      "width": 320,
+      "layout": { "warmup": 2, "iterations": 10 },
+      "draw": { "warmup": 2, "iterations": 10 }
+    },
+    {
+      "id": "long-urdu",
+      "title": "Long Urdu text (20k characters)",
+      "segments": [{ "font": "urdu", "text": "تحریر ایک متنی انجن ہے " }],
+      "repeat": 870,
+      "characters": 20010,
+      "typeSize": 18,
+      "width": 320,
+      "layout": { "warmup": 2, "iterations": 10 },
+      "draw": { "warmup": 2, "iterations": 10 }
+    }
+  ]
+}

@@ -1,0 +1,34 @@
+plugins {
+    id 'com.android.application'
+}
+
+android {
+    namespace = 'com.tehreer.benchmark'
+    compileSdk = 37
+
+    defaultConfig {
+        applicationId = "com.tehreer.benchmark"
+        minSdk = 23
+        targetSdk = 37
+        versionCode = 1
+        versionName = "1.0"
+    }
+
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_21
+        targetCompatibility = JavaVersion.VERSION_21
+    }
+
+    buildTypes {
+        release {
+            // Not debuggable, optimized native code of the library (CMake Release); signed with the
+            // debug key so that adb can install it.
+            minifyEnabled = false
+            signingConfig = signingConfigs.debug
+        }
+    }
+}
+
+dependencies {
+    implementation project(':tehreer-android')
+}

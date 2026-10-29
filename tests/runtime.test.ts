@@ -59,7 +59,7 @@ test("the runtime defines every function that GeneratedSupport.h declares withou
 
 test("the handle functions and the debug hooks agree between TypeScript and C++", () => {
   const typescript = read("src/internal/NativeBindings.ts");
-  const cpp = ["TehreerBindings", "ReplacementBindings", "DrawBindings", "TextBindings", "ViewBindings", "ViewTestHooks", "CallbackTestHooks", "GlyphImageTestHooks", "PointerBuffers", "PointerTestHooks"].map((name) => read(`cpp/runtime/${name}.cpp`)).concat(read("cpp/painter/PaintTestHooks.cpp")).join("\n");
+  const cpp = ["TehreerBindings", "ReplacementBindings", "DrawBindings", "TextBindings", "ViewBindings", "ViewTestHooks", "CallbackTestHooks", "GlyphImageTestHooks", "PointerBuffers", "PointerTestHooks"].map((name) => read(`cpp/runtime/${name}.cpp`)).concat(read("cpp/painter/PaintTestHooks.cpp"), read("cpp/painter/BenchmarkHooks.cpp")).join("\n");
   const names = [...typescript.matchAll(/^ {2}(\w+)\??\(/gm)].map((match) => match[1] as string);
 
   assert.deepEqual(names, [
@@ -72,6 +72,7 @@ test("the handle functions and the debug hooks agree between TypeScript and C++"
     "testGetMemoryBlockCount", "testDropPointerBufferOnOtherThread",
     "testAttachNativeData", "testGetNativeDataSerial", "testGetNativeDataCounts",
     "testPaintFrame", "testGetPaintCounts",
+    "benchDrawFrame", "benchMemory",
   ]);
   for (const name of names) {
     assert.ok(cpp.includes(`"${name}"`), `${name} is not installed by cpp/runtime`);
@@ -100,4 +101,9 @@ test("the handle functions and the debug hooks agree between TypeScript and C++"
     assert.ok(debugOnly(name), `${name} is not behind #ifndef NDEBUG`);
   }
   assert.ok(!bindings.slice(bindings.indexOf("#endif", start)).includes('"test'), "a hook is installed after the debug block");
+
+  // The benchmark hooks exist only in a build that asks for them (benchmarks/), never by default.
+  const benchmark = read("cpp/painter/BenchmarkHooks.cpp");
+  assert.ok(benchmark.startsWith('#include "BenchmarkBindings.h"\n\n#ifdef TEHREER_BENCHMARKS') && benchmark.trimEnd().endsWith("#endif"));
+  assert.match(bindings, /#ifdef TEHREER_BENCHMARKS\n\s+InstallBenchmarkHooks\(runtime, bindings\);\n#endif/);
 });

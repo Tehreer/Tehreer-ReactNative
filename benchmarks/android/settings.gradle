@@ -1,0 +1,5 @@
+// The Gradle project of the Tehreer-Android runner. benchmarks/run.mjs copies this folder to a
+// scratch directory next to a copy of the Tehreer-Android sources (tehreer-android, freetype,
+// harfbuzz, sheenbidi, unibreak, tehreer-core), so that nothing is built inside the sibling repository.
+rootProject.name = 'tehreer-android-benchmark'
+include ':app', ':tehreer-android'

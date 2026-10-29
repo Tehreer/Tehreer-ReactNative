@@ -179,6 +179,8 @@ npm run test:android       # same on the Android emulator
 - Views are checked by a screenshot of the example app in the simulator and the emulator, looked at, not only compared.
 - Do not weaken or delete a test to get green; report suspected conflicts.
 
+**Benchmarks (`benchmarks/`).** One scenario file, three runners (this wrapper, Tehreer-Android, Tehreer-Cocoa), `node benchmarks/run.mjs`; results in `benchmarks/RESULTS.md`. The RN runner is a separate entry of the example app (`example/index.benchmark.js`, built with `-PtehreerBenchmarks` / `ENTRY_FILE`) and uses two hooks that exist only with `TEHREER_BENCHMARKS` (`cpp/painter/BenchmarkHooks.cpp`), so Release numbers are possible. A change to layout or drawing code that may cost time should be re-run there.
+
 ## 12. Gotchas
 
 - Do not hold a raw pointer from Core (a buffer from a `*Ptr()` getter) across a call that can free its owner; keep the owner alive with the list or view that exposes it (a `PointerView` alone does not keep the Core object alive, only its handle wrapper; `createPointerBuffer` and `readPointerStructs` take a reference of their own). A reference does not keep the array alive for a **mutable** owner (a setter frees it): never cache a pointer, a length or a buffer of one, ask the getter and the count function again (section 5).
