@@ -7,6 +7,7 @@ export class BidiRun {
   /** The embedding level of the run. */
   readonly embeddingLevel: number;
 
+  /** Makes a run; the bidi line makes them, an application rarely needs to. */
   constructor(startIndex: number, endIndex: number, embeddingLevel: number) {
     this.startIndex = startIndex;
     this.endIndex = endIndex;
@@ -18,6 +19,7 @@ export class BidiRun {
     return (this.embeddingLevel & 1) === 1;
   }
 
+  /** Tells whether the other run has the same range and embedding level. */
   equals(other: BidiRun): boolean {
     return (
       this.startIndex === other.startIndex &&
@@ -26,6 +28,7 @@ export class BidiRun {
     );
   }
 
+  /** Describes the run for debugging. */
   toString(): string {
     return `BidiRun{startIndex=${this.startIndex}, endIndex=${this.endIndex}, embeddingLevel=${this.embeddingLevel}}`;
   }

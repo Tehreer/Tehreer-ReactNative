@@ -114,6 +114,7 @@ export interface TTextViewProps extends TextSource, RenderingProps, ParagraphPro
    * `flex: 1`; its width is the width the style gives, and the text is laid out for it.
    */
   readonly style?: StyleProp<ViewStyle>;
+  /** The identifier that tests use to find the view. */
   readonly testID?: string;
   /** Called when the text is tapped, with the code unit under the finger, or `undefined` if there is no character there. */
   readonly onTap?: (index: number | undefined) => void;

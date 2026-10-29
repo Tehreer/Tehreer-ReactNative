@@ -56,6 +56,7 @@ export class Path implements PathSink {
     return this.#coordinates;
   }
 
+  /** Tells whether the path has no segments. */
   get isEmpty(): boolean {
     return this.#verbs.length === 0;
   }

@@ -24,6 +24,7 @@ export interface TLabelProps extends TextSource, RenderingProps, ParagraphProps 
    * "stretch"` (or a `maxWidth` with `alignSelf: "flex-start"`) to wrap.
    */
   readonly style?: StyleProp<ViewStyle>;
+  /** The identifier that tests use to find the view. */
   readonly testID?: string;
   /** Called when the label is tapped, with the code unit under the finger, or `undefined` if there is no character there. */
   readonly onTap?: (index: number | undefined) => void;

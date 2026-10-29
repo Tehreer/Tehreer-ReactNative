@@ -42,15 +42,23 @@ export interface RenderingProps {
   readonly textColor?: ColorValue;
   /** How the glyphs are drawn: filled, stroked, or both. Core's default is filled. */
   readonly drawStyle?: DrawStyle;
+  /** The color of the outline when the draw style strokes. */
   readonly strokeColor?: ColorValue;
   /** Half of the width of the stroke, in layout units. */
   readonly strokeRadius?: number;
+  /** The shape at the end of an open outline. */
   readonly strokeCap?: StrokeCap;
+  /** The shape at the corners of an outline. */
   readonly strokeJoin?: StrokeJoin;
+  /** The limit at which a miter is cut off. */
   readonly strokeMiter?: number;
+  /** The color of the shadow. */
   readonly shadowColor?: ColorValue;
+  /** The blur radius of the shadow, in layout units. */
   readonly shadowRadius?: number;
+  /** The horizontal offset of the shadow, in layout units. */
   readonly shadowDx?: number;
+  /** The vertical offset of the shadow, in layout units. */
   readonly shadowDy?: number;
 }
 
@@ -66,7 +74,9 @@ export interface ParagraphProps {
 
 /** A range of code units to cover with a color, behind the text, such as a link or a selected verse. */
 export interface TextHighlight {
+  /** The first code unit of the range. */
   readonly fromIndex: number;
+  /** The code unit after the last one of the range. */
   readonly toIndex: number;
   /** The color of this highlight. The `highlightColor` of the view is used when there is none. */
   readonly color?: ColorValue;
@@ -178,9 +188,13 @@ export function toNativeRenderer(props: RenderingProps): NativeRenderer {
 
 /** The space between the edges of a scrolling view and its content, in layout units. Every side is optional and 0 by default. */
 export interface ContentInset {
+  /** The space above the content. */
   readonly top?: number;
+  /** The space on the left of the content. */
   readonly left?: number;
+  /** The space below the content. */
   readonly bottom?: number;
+  /** The space on the right of the content. */
   readonly right?: number;
 }
 

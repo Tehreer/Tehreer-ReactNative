@@ -56,6 +56,7 @@ export class TypeFamily {
     return this.#familyId === other.#familyId && this.#familyName === other.#familyName;
   }
 
+  /** Describes the family for debugging. */
   toString(): string {
     return `TypeFamily(${this.#familyName})`;
   }
