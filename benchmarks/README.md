@@ -76,3 +76,11 @@ space draws `.notdef`), so Latin scenarios use words made of `abc`. `NotoNastali
 full Urdu font. The example app serves byte-identical copies of the two fonts (`example/assets/fonts`;
 a test compares them with Core's files); Android copies Core's files into the runner's assets and Cocoa
 reads them from Core's directory.
+
+## History of the committed results
+
+- The iOS rows were measured again for #65 (pod target built with `-O2`, base commit 52d568c); the
+  Android rows are from the first run (base commit e32f0f5) and were not repeated, so the date and base
+  commit in `RESULTS.md` describe the iOS rows only.
+- Before #65 the pod target used CocoaPods' default `-Os`; layout ms of React Native then (3 launches,
+  same session as Tehreer-Cocoa 1.98 / 1.10 / 58.1): urdu-paragraph 3.81, mixed-bidi 2.08, long-urdu 132.8.

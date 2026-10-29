@@ -2218,7 +2218,7 @@ SPEC CHECKSUMS:
   ReactCommon: 145a14b942b19fc2fe38927f261955ada56978aa
   ReactNativeDependencies: d3b7423ba1e52525e42085c8470109abde583d2e
   SocketRocket: 37aec555668fb852ec12e3c0de59a86ca58f0871
-  tehreer-react-native: ffcde94326d652d4ddf64cd70e6446da37da7ec6
+  tehreer-react-native: e56b5353ddb97cb9f1f7f35f30e618e2afe13af5
   Yoga: d1c536142c5ff8ec8cd856ab2a7c227a1d875c8e
 
 PODFILE CHECKSUM: 9606ed48c7ba82aa5c31e1ca826949f9c762d227
