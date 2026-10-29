@@ -95,7 +95,8 @@ func runScenario(_ scenario: Scenario, _ faces: [String: Typeface], _ frameHeigh
     let first = faces[scenario.segments[0].font]!
     let defaults: [NSAttributedString.Key: Any] = [.typeface: first, .typeSize: scenario.typeSize]
 
-    // Memory first: native heap in use with a typesetter and a frame alive, minus before the text
+    // Memory first: native heap in use with only the frame alive (the typesetter is dropped when
+    // layout returns), minus before the text
     // existed; three times, the median is the number.
     var memSamples: [Double] = []
     for _ in 0 ..< 3 {

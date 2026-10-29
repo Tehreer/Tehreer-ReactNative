@@ -196,7 +196,8 @@ public class BenchActivity extends Activity {
     }
 
     private JSONObject runScenario(JSONObject scenario, Map<String, Typeface> faces, double frameHeight) throws Exception {
-        // Memory first: native heap in use with a typesetter and a frame alive, minus before the text
+        // Memory first: native heap in use with only the frame alive (the typesetter is dropped when
+        // layout returns), minus before the text
         // existed; three times, the median is the number.
         // memLayoutKB is the native heap plus the Java heap (after a collection), because this wrapper
         // keeps its layout in both; the two parts are reported as well.

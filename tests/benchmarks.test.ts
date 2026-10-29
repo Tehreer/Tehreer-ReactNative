@@ -147,13 +147,15 @@ test("the memory window of the React Native runner is like the other runners' (#
   // frame does not keep it); React Native releases it before the second read too.
   const runner = read("example/benchmark/runBenchmark.ts").toString("utf8");
   const loop = runner.slice(runner.indexOf("for (let i = 0; i < 3; i++)"));
-  const afterRead = loop.indexOf("const after = memory(bindings).heapKB");
-  assert.ok(afterRead > 0);
-  for (const release of ["text.dispose()", "made.resolver.dispose()", "made.typesetter.dispose()"]) {
-    const at = loop.indexOf(release);
-    assert.ok(at > 0 && at < afterRead, `${release} must come before the heap is read`);
+  const afterMatch = /const after = memory\(bindings\)\.heapKB/.exec(loop);
+  assert.ok(afterMatch, "the heap is read after the layout");
+  const afterRead = afterMatch.index;
+  for (const owner of ["text", "made\\.resolver", "made\\.typesetter"]) {
+    const release = new RegExp(`${owner}\\s*\\.dispose\\(`).exec(loop);
+    assert.ok(release && release.index < afterRead, `${owner} must be disposed before the heap is read`);
   }
-  assert.ok(loop.indexOf("made.frame.dispose()") > afterRead, "the frame stays alive while the heap is read");
+  const frameRelease = /made\.frame\s*\.dispose\(/.exec(loop);
+  assert.ok(frameRelease && frameRelease.index > afterRead, "the frame stays alive while the heap is read");
 
   // Android counts uordblks like Debug.getNativeHeapAllocatedSize; hblkhd is memory the allocator mapped.
   const hooks = read("cpp/painter/BenchmarkHooks.cpp").toString("utf8");
