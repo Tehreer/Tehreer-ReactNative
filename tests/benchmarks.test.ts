@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { test } from "node:test";
-import { aggregateRuns, compare, formatComparisonTable, isFinished, median, parseBenchLog } from "../benchmarks/lib/Results.mjs";
+import { aggregateRuns, compare, formatComparisonTable, isFinished, median, parseBenchLog, summarize } from "../benchmarks/lib/Results.mjs";
 import { formatReport } from "../benchmarks/lib/Report.mjs";
 import { validateScenarios } from "../benchmarks/lib/Scenarios.mjs";
 
@@ -90,6 +90,36 @@ test("runs are aggregated by median and compared with a 20 percent threshold", (
   const slower = compare(aggregateRuns(runs([2.5, 2.5, 2.5])), native);
   assert.equal(slower.find((row) => row.scenario === "a" && row.metric === "layoutMs")?.flagged, true);
   assert.match(formatComparisonTable(slower, "Native"), />20% worse/);
+});
+
+test("compare guards against zero, negative and noisy values", () => {
+  const entry = (value: number, min = value, max = value) => [{ scenario: "a", lines: 1, frameHeight: 1, metrics: { memLayoutKB: { value, min, max, runs: 3 }, layoutMs: { value, min, max, runs: 3 } } }];
+  const row = (rn: ReturnType<typeof entry>, native: ReturnType<typeof entry>, metric = "memLayoutKB") => {
+    const found = compare(rn, native).find((candidate) => candidate.metric === metric);
+    if (!found) throw new Error("no row");
+    return found;
+  };
+  for (const native of [0, -5]) {
+    const guarded = row(entry(10), entry(native));
+    assert.equal(guarded.quality, "noisy");
+    assert.ok(Number.isNaN(guarded.ratio));
+    assert.equal(guarded.flagged, false);
+  }
+  assert.equal(row(entry(-1), entry(10)).quality, "noisy");
+  assert.match(formatComparisonTable([row(entry(10), entry(0))], "Native"), /\| n\/a \| noisy, no ratio/);
+  assert.equal(row(entry(59, 54, 571), entry(43)).quality, "noisy", "launches spanning 10x");
+  assert.equal(row(entry(5, 5, 6), entry(672, 0, 4716)).quality, "noisy", "a lowest launch of 0");
+  assert.equal(row(entry(0.018), entry(0.01), "layoutMs").flagged, false, "under the time floor");
+  assert.equal(row(entry(0.018), entry(0.01), "layoutMs").quality, "floor");
+  assert.equal(row(entry(1.5, 1.0, 2.0), entry(1.0, 0.9, 1.2), "layoutMs").flagged, false, "overlapping launch ranges");
+  assert.equal(row(entry(1.5, 1.3, 1.6), entry(1.0, 0.9, 1.2), "layoutMs").flagged, true);
+});
+
+test("summarize reports min, median, p90 as the sample at floor(0.9 n), and max", () => {
+  const samples = summarize([10, 1, 2, 3, 4, 5, 6, 7, 8, 9]);
+  assert.deepEqual(samples, { n: 10, min: 1, median: 5.5, p90: 10, max: 10 });
+  assert.equal(summarize([4, 2, 3]).p90, 4);
+  assert.deepEqual(summarize([7]), { n: 1, min: 7, median: 7, p90: 7, max: 7 });
 });
 
 test("the report names the flagged rows", () => {

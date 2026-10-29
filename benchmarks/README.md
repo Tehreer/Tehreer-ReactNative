@@ -25,7 +25,8 @@ plus the two sibling checkouts (`TEHREER_ANDROID`, `TEHREER_COCOA`; defaults are
 Everything builds offline from what is already on the machine.
 
 ```bash
-node benchmarks/run.mjs --scratch /tmp/tehreer-bench          # everything, 3 launches per runner
+node benchmarks/run.mjs --scratch /tmp/tehreer-bench          # everything, 3 launches per runner (default)
+node benchmarks/run.mjs --runs 5 --scratch /tmp/tehreer-bench  # the committed results: 5 counted launches + 1 discarded warm-up per runner
 node benchmarks/run.mjs --platform ios --wrapper native --runs 5
 node benchmarks/run.mjs --skip-build                          # reuse the builds in --scratch
 ```
@@ -57,14 +58,16 @@ Same steps in the three runners (`example/benchmark/runBenchmark.ts`, `android/.
   Warm-up draws fill the glyph caches, so the number is warm steady state.
 - **memLayoutKB**: native heap in use (Apple: `malloc_zone_statistics` of all zones; Android:
   `mallinfo`, which is `Debug.getNativeHeapAllocatedSize`) with a typesetter and a frame alive, minus
-  the value before the styled text was made. Median of three, each after releasing the previous one.
-  The JavaScript heap (Hermes) and the Java heap are not in it.
+  the value read before the styled text is made. Median of three, each after releasing the previous one.
+  React Native and Cocoa release the styled text before reading the heap; Tehreer-Android keeps it and
+  adds its Java heap (after `System.gc()`). The JavaScript heap (Hermes) and, for React Native, the Java
+  heap are not in it.
 - **lines / frameHeight** are reported as a sanity check: differing line counts between wrappers mean the
   layouts differ and the timings are not comparable for that scenario.
 
 Each runner logs `BENCH_META`, one `BENCH_RESULT` per scenario (summaries: n, min, median, p90, max) and
 `BENCH_DONE` (or `BENCH_ERROR`), format in `lib/Results.mjs`. `run.mjs` launches each runner several
-times and reports the median of the launches' medians with the range of the launches.
+times and reports the median of the launches' medians with the range of the launches. A ratio is guarded against noise (n/a, or not flagged) by the rules documented in [RESULTS.md](RESULTS.md) (`compare` in `lib/Results.mjs`).
 
 ## Fonts and texts
 
