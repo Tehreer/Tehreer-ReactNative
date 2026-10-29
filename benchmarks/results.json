@@ -1,17 +1,13 @@
 {
   "environment": {
-    "date": "2026-10-29T13:30:07.080Z",
+    "date": "2026-10-29T12:40:23.262Z",
     "host": {
       "cpu": "Apple M1",
       "macOS": "26.6.2"
     },
     "coreVersion": "1.0.0",
     "coreCommit": "1d21938",
-    "wrapperCommit": "6845623",
-    "siblingCommits": {
-      "Tehreer-Android": "d6a21e12",
-      "Tehreer-Cocoa": "1aff8b7"
-    },
+    "wrapperCommit": "52d568c",
     "runs": 5,
     "ios": {
       "udid": "4C664706-07D0-4A66-8A83-DDC828A2814D",
@@ -24,20 +20,13 @@
       "release": "11",
       "api": "30",
       "abi": "arm64-v8a"
+    },
+    "siblingCommits": {
+      "Tehreer-Android": "d6a21e12",
+      "Tehreer-Cocoa": "1aff8b7"
     }
   },
   "metas": {
-    "react-native/android": {
-      "wrapper": "react-native",
-      "platform": "android",
-      "osVersion": "30",
-      "build": "Release",
-      "coreVersion": "1.0.0",
-      "engine": "hermes",
-      "renderScale": 1,
-      "residentKBStart": 154116,
-      "heapKBStart": 17548.203125
-    },
     "react-native/ios": {
       "wrapper": "react-native",
       "platform": "ios",
@@ -46,8 +35,29 @@
       "coreVersion": "1.0.0",
       "engine": "hermes",
       "renderScale": 1,
-      "residentKBStart": 135104,
-      "heapKBStart": 4129.15625
+      "residentKBStart": 137120,
+      "heapKBStart": 4125.625
+    },
+    "tehreer-cocoa/ios": {
+      "build": "Release",
+      "coreVersion": "Core (Libraries/TehreerCore of Tehreer-Cocoa)",
+      "heapKBStart": 102.125,
+      "osVersion": "iOS 18.2",
+      "platform": "ios",
+      "renderScale": 1,
+      "residentKBStart": 63520,
+      "wrapper": "tehreer-cocoa"
+    },
+    "react-native/android": {
+      "wrapper": "react-native",
+      "platform": "android",
+      "osVersion": "30",
+      "build": "Release",
+      "coreVersion": "1.0.0",
+      "engine": "hermes",
+      "renderScale": 1,
+      "residentKBStart": 155072,
+      "heapKBStart": 40142.796875
     },
     "tehreer-android/android": {
       "wrapper": "tehreer-android",
@@ -57,173 +67,11 @@
       "coreVersion": "Core (tehreer-core of Tehreer-Android)",
       "device": "sdk_gphone_arm64",
       "renderScale": 1,
-      "residentKBStart": 118064,
-      "heapKBStart": 5316.65625
-    },
-    "tehreer-cocoa/ios": {
-      "build": "Release",
-      "coreVersion": "Core (Libraries/TehreerCore of Tehreer-Cocoa)",
-      "heapKBStart": 96.484375,
-      "osVersion": "iOS 18.2",
-      "platform": "ios",
-      "renderScale": 1,
-      "residentKBStart": 63376,
-      "wrapper": "tehreer-cocoa"
+      "residentKBStart": 123956,
+      "heapKBStart": 5331.6875
     }
   },
   "aggregates": {
-    "react-native/android": [
-      {
-        "scenario": "latin-label",
-        "lines": 1,
-        "frameHeight": 18.75,
-        "metrics": {
-          "layoutMs": {
-            "value": 0.1156454998999834,
-            "min": 0.09731199871748686,
-            "max": 0.13210400007665157,
-            "runs": 5
-          },
-          "drawMs": {
-            "value": 0.0399585,
-            "min": 0.019166,
-            "max": 0.041125,
-            "runs": 5
-          },
-          "memLayoutKB": {
-            "value": 2.34375,
-            "min": 2.234375,
-            "max": 2.921875,
-            "runs": 5
-          }
-        }
-      },
-      {
-        "scenario": "latin-paragraph",
-        "lines": 16,
-        "frameHeight": 300,
-        "metrics": {
-          "layoutMs": {
-            "value": 0.5665624998509884,
-            "min": 0.5345625001937151,
-            "max": 0.6228749994188547,
-            "runs": 5
-          },
-          "drawMs": {
-            "value": 2.1839375,
-            "min": 1.982146,
-            "max": 2.254479,
-            "runs": 5
-          },
-          "memLayoutKB": {
-            "value": 37.6875,
-            "min": 35.5,
-            "max": 55.96875,
-            "runs": 5
-          }
-        }
-      },
-      {
-        "scenario": "urdu-paragraph",
-        "lines": 15,
-        "frameHeight": 825,
-        "metrics": {
-          "layoutMs": {
-            "value": 12.9256044998765,
-            "min": 12.42654149979353,
-            "max": 14.066145500168204,
-            "runs": 5
-          },
-          "drawMs": {
-            "value": 4.2067915,
-            "min": 3.9068335000000003,
-            "max": 4.503729,
-            "runs": 5
-          },
-          "memLayoutKB": {
-            "value": 40.890625,
-            "min": 40.796875,
-            "max": 41.203125,
-            "runs": 5
-          }
-        }
-      },
-      {
-        "scenario": "mixed-bidi",
-        "lines": 14,
-        "frameHeight": 630,
-        "metrics": {
-          "layoutMs": {
-            "value": 8.061625000089407,
-            "min": 7.200145999900997,
-            "max": 9.124436999671161,
-            "runs": 5
-          },
-          "drawMs": {
-            "value": 2.7818335000000003,
-            "min": 1.410812,
-            "max": 2.9503329999999997,
-            "runs": 5
-          },
-          "memLayoutKB": {
-            "value": 55.46875,
-            "min": 54.921875,
-            "max": 55.609375,
-            "runs": 5
-          }
-        }
-      },
-      {
-        "scenario": "long-latin",
-        "lines": 556,
-        "frameHeight": 10425,
-        "metrics": {
-          "layoutMs": {
-            "value": 24.74081250000745,
-            "min": 21.332895500585437,
-            "max": 34.05160449910909,
-            "runs": 5
-          },
-          "drawMs": {
-            "value": 89.05435449999999,
-            "min": 83.9064165,
-            "max": 94.2855835,
-            "runs": 5
-          },
-          "memLayoutKB": {
-            "value": 1162.53125,
-            "min": 1162.515625,
-            "max": 1162.765625,
-            "runs": 5
-          }
-        }
-      },
-      {
-        "scenario": "long-urdu",
-        "lines": 435,
-        "frameHeight": 19575,
-        "metrics": {
-          "layoutMs": {
-            "value": 427.0553334997967,
-            "min": 406.31825049966574,
-            "max": 449.20852150022984,
-            "runs": 5
-          },
-          "drawMs": {
-            "value": 184.307854,
-            "min": 172.2738335,
-            "max": 191.541167,
-            "runs": 5
-          },
-          "memLayoutKB": {
-            "value": 973.125,
-            "min": 972.875,
-            "max": 1037.03125,
-            "runs": 5
-          }
-        }
-      }
-    ],
     "react-native/ios": [
       {
         "scenario": "latin-label",
@@ -231,15 +79,15 @@
         "frameHeight": 18.75,
         "metrics": {
           "layoutMs": {
-            "value": 0.016916990280151367,
-            "min": 0.016666993498802185,
-            "max": 0.0172710120677948,
+            "value": 0.016937509179115295,
+            "min": 0.01645800471305847,
+            "max": 0.0173959881067276,
             "runs": 5
           },
           "drawMs": {
-            "value": 0.0462085,
-            "min": 0.0457085,
-            "max": 0.047208,
+            "value": 0.04775,
+            "min": 0.045709,
+            "max": 0.048292,
             "runs": 5
           },
           "memLayoutKB": {
@@ -256,15 +104,15 @@
         "frameHeight": 300,
         "metrics": {
           "layoutMs": {
-            "value": 0.08533351123332977,
-            "min": 0.08470849692821503,
-            "max": 0.08668749034404755,
+            "value": 0.07889600098133087,
+            "min": 0.0785205066204071,
+            "max": 0.08479100465774536,
             "runs": 5
           },
           "drawMs": {
-            "value": 2.1590835000000004,
-            "min": 2.1514585000000004,
-            "max": 2.1716455000000003,
+            "value": 2.1953750000000003,
+            "min": 2.1551665,
+            "max": 2.212208,
             "runs": 5
           },
           "memLayoutKB": {
@@ -281,15 +129,15 @@
         "frameHeight": 825,
         "metrics": {
           "layoutMs": {
-            "value": 2.5474165081977844,
-            "min": 2.5438119918107986,
-            "max": 2.5586040019989014,
+            "value": 1.576729491353035,
+            "min": 1.566979005932808,
+            "max": 1.5997704863548279,
             "runs": 5
           },
           "drawMs": {
-            "value": 3.548917,
-            "min": 3.5039585,
-            "max": 3.6331245,
+            "value": 3.6150835,
+            "min": 3.5829164999999996,
+            "max": 3.6993125,
             "runs": 5
           },
           "memLayoutKB": {
@@ -306,15 +154,15 @@
         "frameHeight": 630,
         "metrics": {
           "layoutMs": {
-            "value": 1.3909999877214432,
-            "min": 1.3859589993953705,
-            "max": 1.424563005566597,
+            "value": 0.8765414953231812,
+            "min": 0.871770977973938,
+            "max": 0.8931459933519363,
             "runs": 5
           },
           "drawMs": {
-            "value": 2.511812,
-            "min": 2.5068539999999997,
-            "max": 2.5412084999999998,
+            "value": 2.5277915,
+            "min": 2.513146,
+            "max": 2.5470835000000003,
             "runs": 5
           },
           "memLayoutKB": {
@@ -331,15 +179,15 @@
         "frameHeight": 10425,
         "metrics": {
           "layoutMs": {
-            "value": 3.7853749990463257,
-            "min": 3.7558750063180923,
-            "max": 3.809208497405052,
+            "value": 3.4987289905548096,
+            "min": 3.4571665078401566,
+            "max": 3.82277050614357,
             "runs": 5
           },
           "drawMs": {
-            "value": 75.948729,
-            "min": 75.2847085,
-            "max": 76.554375,
+            "value": 76.0819995,
+            "min": 75.4545625,
+            "max": 76.6179995,
             "runs": 5
           },
           "memLayoutKB": {
@@ -356,21 +204,325 @@
         "frameHeight": 19575,
         "metrics": {
           "layoutMs": {
-            "value": 89.6102705001831,
-            "min": 89.21266651153564,
-            "max": 92.28518749773502,
+            "value": 55.80979150533676,
+            "min": 55.62558351457119,
+            "max": 56.905938014388084,
             "runs": 5
           },
           "drawMs": {
-            "value": 112.65270799999999,
-            "min": 112.3355,
-            "max": 113.959104,
+            "value": 114.178479,
+            "min": 113.5213125,
+            "max": 114.8523755,
             "runs": 5
           },
           "memLayoutKB": {
             "value": 1238.234375,
             "min": 1233.359375,
             "max": 1240.609375,
+            "runs": 5
+          }
+        }
+      }
+    ],
+    "tehreer-cocoa/ios": [
+      {
+        "scenario": "latin-label",
+        "lines": 1,
+        "frameHeight": 18.75,
+        "metrics": {
+          "layoutMs": {
+            "value": 0.009292006492614746,
+            "min": 0.009000003337860107,
+            "max": 0.009375005960464478,
+            "runs": 5
+          },
+          "drawMs": {
+            "value": 0.047291502356529236,
+            "min": 0.046875,
+            "max": 0.04837499558925629,
+            "runs": 5
+          },
+          "memLayoutKB": {
+            "value": 4.375,
+            "min": 4.125,
+            "max": 4.375,
+            "runs": 5
+          }
+        }
+      },
+      {
+        "scenario": "latin-paragraph",
+        "lines": 16,
+        "frameHeight": 300,
+        "metrics": {
+          "layoutMs": {
+            "value": 0.1124579906463623,
+            "min": 0.11220800876617432,
+            "max": 0.11360448598861694,
+            "runs": 5
+          },
+          "drawMs": {
+            "value": 2.165874481201172,
+            "min": 2.1591250002384186,
+            "max": 2.2090419977903366,
+            "runs": 5
+          },
+          "memLayoutKB": {
+            "value": 16.609375,
+            "min": 16.609375,
+            "max": 16.609375,
+            "runs": 5
+          }
+        }
+      },
+      {
+        "scenario": "urdu-paragraph",
+        "lines": 15,
+        "frameHeight": 825,
+        "metrics": {
+          "layoutMs": {
+            "value": 1.6610000133514404,
+            "min": 1.6547915041446686,
+            "max": 1.664458006620407,
+            "runs": 5
+          },
+          "drawMs": {
+            "value": 3.5844374895095825,
+            "min": 3.5560625046491623,
+            "max": 3.648000493645668,
+            "runs": 5
+          },
+          "memLayoutKB": {
+            "value": 37.75,
+            "min": 37.75,
+            "max": 37.75,
+            "runs": 5
+          }
+        }
+      },
+      {
+        "scenario": "mixed-bidi",
+        "lines": 14,
+        "frameHeight": 630,
+        "metrics": {
+          "layoutMs": {
+            "value": 1.026854008436203,
+            "min": 1.0235835015773773,
+            "max": 1.032916009426117,
+            "runs": 5
+          },
+          "drawMs": {
+            "value": 2.550479009747505,
+            "min": 2.5393129885196686,
+            "max": 2.5910830050706863,
+            "runs": 5
+          },
+          "memLayoutKB": {
+            "value": 58.546875,
+            "min": 56.390625,
+            "max": 58.890625,
+            "runs": 5
+          }
+        }
+      },
+      {
+        "scenario": "long-latin",
+        "lines": 556,
+        "frameHeight": 10425,
+        "metrics": {
+          "layoutMs": {
+            "value": 3.9109375029802322,
+            "min": 3.8594994992017746,
+            "max": 4.062479004263878,
+            "runs": 5
+          },
+          "drawMs": {
+            "value": 76.85162501037121,
+            "min": 76.44677050411701,
+            "max": 77.24229149520397,
+            "runs": 5
+          },
+          "memLayoutKB": {
+            "value": 959,
+            "min": 959,
+            "max": 959,
+            "runs": 5
+          }
+        }
+      },
+      {
+        "scenario": "long-urdu",
+        "lines": 435,
+        "frameHeight": 19575,
+        "metrics": {
+          "layoutMs": {
+            "value": 57.69381248950958,
+            "min": 57.4356250166893,
+            "max": 60.39162500202656,
+            "runs": 5
+          },
+          "drawMs": {
+            "value": 114.4071455001831,
+            "min": 113.91339598596096,
+            "max": 115.50735400617123,
+            "runs": 5
+          },
+          "memLayoutKB": {
+            "value": 1203.875,
+            "min": 1203.875,
+            "max": 1203.875,
+            "runs": 5
+          }
+        }
+      }
+    ],
+    "react-native/android": [
+      {
+        "scenario": "latin-label",
+        "lines": 1,
+        "frameHeight": 18.75,
+        "metrics": {
+          "layoutMs": {
+            "value": 0.07387500023469329,
+            "min": 0.0728540001437068,
+            "max": 0.09039550041779876,
+            "runs": 5
+          },
+          "drawMs": {
+            "value": 0.013792,
+            "min": 0.0135,
+            "max": 0.028708,
+            "runs": 5
+          },
+          "memLayoutKB": {
+            "value": 2.34375,
+            "min": 2.234375,
+            "max": 2.921875,
+            "runs": 5
+          }
+        }
+      },
+      {
+        "scenario": "latin-paragraph",
+        "lines": 16,
+        "frameHeight": 300,
+        "metrics": {
+          "layoutMs": {
+            "value": 0.3158335001207888,
+            "min": 0.2674165000207722,
+            "max": 0.45547949988394976,
+            "runs": 5
+          },
+          "drawMs": {
+            "value": 0.716396,
+            "min": 0.6816249999999999,
+            "max": 1.36075,
+            "runs": 5
+          },
+          "memLayoutKB": {
+            "value": 37.6875,
+            "min": 35.5,
+            "max": 55.96875,
+            "runs": 5
+          }
+        }
+      },
+      {
+        "scenario": "urdu-paragraph",
+        "lines": 15,
+        "frameHeight": 825,
+        "metrics": {
+          "layoutMs": {
+            "value": 9.443791499827057,
+            "min": 6.126187500078231,
+            "max": 16.684417000040412,
+            "runs": 5
+          },
+          "drawMs": {
+            "value": 2.0368125,
+            "min": 1.2412295,
+            "max": 5.5958334999999995,
+            "runs": 5
+          },
+          "memLayoutKB": {
+            "value": 40.890625,
+            "min": 40.796875,
+            "max": 41.203125,
+            "runs": 5
+          }
+        }
+      },
+      {
+        "scenario": "mixed-bidi",
+        "lines": 14,
+        "frameHeight": 630,
+        "metrics": {
+          "layoutMs": {
+            "value": 4.252333000302315,
+            "min": 3.8684374997392297,
+            "max": 7.015604500193149,
+            "runs": 5
+          },
+          "drawMs": {
+            "value": 1.217687,
+            "min": 1.0712294999999998,
+            "max": 1.810708,
+            "runs": 5
+          },
+          "memLayoutKB": {
+            "value": 55.46875,
+            "min": 54.921875,
+            "max": 55.609375,
+            "runs": 5
+          }
+        }
+      },
+      {
+        "scenario": "long-latin",
+        "lines": 556,
+        "frameHeight": 10425,
+        "metrics": {
+          "layoutMs": {
+            "value": 18.67712500039488,
+            "min": 14.294395999517292,
+            "max": 22.352062500081956,
+            "runs": 5
+          },
+          "drawMs": {
+            "value": 42.1254165,
+            "min": 33.28675,
+            "max": 50.949938,
+            "runs": 5
+          },
+          "memLayoutKB": {
+            "value": 1162.53125,
+            "min": 1162.515625,
+            "max": 1162.765625,
+            "runs": 5
+          }
+        }
+      },
+      {
+        "scenario": "long-urdu",
+        "lines": 435,
+        "frameHeight": 19575,
+        "metrics": {
+          "layoutMs": {
+            "value": 260.27306250017136,
+            "min": 235.5045829997398,
+            "max": 296.42774999979883,
+            "runs": 5
+          },
+          "drawMs": {
+            "value": 77.4268335,
+            "min": 60.880125,
+            "max": 116.5099375,
+            "runs": 5
+          },
+          "memLayoutKB": {
+            "value": 973.125,
+            "min": 972.875,
+            "max": 1037.03125,
             "runs": 5
           }
         }
@@ -383,15 +535,15 @@
         "frameHeight": 18.75,
         "metrics": {
           "layoutMs": {
-            "value": 0.17402099999999998,
-            "min": 0.151646,
-            "max": 0.22189599999999998,
+            "value": 0.1260415,
+            "min": 0.0930005,
+            "max": 0.15137499999999998,
             "runs": 5
           },
           "drawMs": {
-            "value": 0.0438545,
-            "min": 0.0321455,
-            "max": 0.0443545,
+            "value": 0.021,
+            "min": 0.020375,
+            "max": 0.0305415,
             "runs": 5
           },
           "memLayoutKB": {
@@ -420,15 +572,15 @@
         "frameHeight": 300,
         "metrics": {
           "layoutMs": {
-            "value": 1.028167,
-            "min": 0.896604,
-            "max": 1.074542,
+            "value": 0.5950415,
+            "min": 0.414333,
+            "max": 0.7096045,
             "runs": 5
           },
           "drawMs": {
-            "value": 1.568979,
-            "min": 1.524,
-            "max": 1.6861455,
+            "value": 0.8122294999999999,
+            "min": 0.7290205000000001,
+            "max": 1.258521,
             "runs": 5
           },
           "memLayoutKB": {
@@ -457,15 +609,15 @@
         "frameHeight": 825,
         "metrics": {
           "layoutMs": {
-            "value": 13.408271,
-            "min": 12.708604,
-            "max": 14.461333,
+            "value": 8.099667,
+            "min": 6.009667,
+            "max": 10.342292,
             "runs": 5
           },
           "drawMs": {
-            "value": 3.1272919999999997,
-            "min": 2.7611045,
-            "max": 3.358521,
+            "value": 1.837542,
+            "min": 1.5056455,
+            "max": 2.3347505,
             "runs": 5
           },
           "memLayoutKB": {
@@ -494,15 +646,15 @@
         "frameHeight": 630,
         "metrics": {
           "layoutMs": {
-            "value": 8.749875,
-            "min": 8.4749375,
-            "max": 9.022583000000001,
+            "value": 4.9534375,
+            "min": 3.8454794999999997,
+            "max": 6.2344170000000005,
             "runs": 5
           },
           "drawMs": {
-            "value": 2.058896,
-            "min": 2.0165205000000004,
-            "max": 2.2488335,
+            "value": 1.4117085,
+            "min": 1.058021,
+            "max": 2.1698125,
             "runs": 5
           },
           "memLayoutKB": {
@@ -531,15 +683,15 @@
         "frameHeight": 10425,
         "metrics": {
           "layoutMs": {
-            "value": 57.796771,
-            "min": 57.327458,
-            "max": 74.9405625,
+            "value": 37.6286665,
+            "min": 31.704062,
+            "max": 42.179937499999994,
             "runs": 5
           },
           "drawMs": {
-            "value": 68.858375,
-            "min": 65.8936665,
-            "max": 72.76054149999999,
+            "value": 40.255104,
+            "min": 30.8223965,
+            "max": 51.507625000000004,
             "runs": 5
           },
           "memLayoutKB": {
@@ -568,15 +720,15 @@
         "frameHeight": 19575,
         "metrics": {
           "layoutMs": {
-            "value": 485.765896,
-            "min": 472.2605005,
-            "max": 504.114417,
+            "value": 294.555271,
+            "min": 267.0868755,
+            "max": 370.79585399999996,
             "runs": 5
           },
           "drawMs": {
-            "value": 137.31433349999998,
-            "min": 129.3618335,
-            "max": 138.7309375,
+            "value": 73.526354,
+            "min": 65.549958,
+            "max": 104.101,
             "runs": 5
           },
           "memLayoutKB": {
@@ -599,1088 +751,9 @@
           }
         }
       }
-    ],
-    "tehreer-cocoa/ios": [
-      {
-        "scenario": "latin-label",
-        "lines": 1,
-        "frameHeight": 18.75,
-        "metrics": {
-          "layoutMs": {
-            "value": 0.009124994277954102,
-            "min": 0.009083002805709839,
-            "max": 0.009292006492614746,
-            "runs": 5
-          },
-          "drawMs": {
-            "value": 0.047082990407943726,
-            "min": 0.046999990940093994,
-            "max": 0.0473330020904541,
-            "runs": 5
-          },
-          "memLayoutKB": {
-            "value": 4.375,
-            "min": 4.125,
-            "max": 4.375,
-            "runs": 5
-          }
-        }
-      },
-      {
-        "scenario": "latin-paragraph",
-        "lines": 16,
-        "frameHeight": 300,
-        "metrics": {
-          "layoutMs": {
-            "value": 0.11216700077056885,
-            "min": 0.11195799708366394,
-            "max": 0.11270900070667267,
-            "runs": 5
-          },
-          "drawMs": {
-            "value": 2.1548539996147156,
-            "min": 2.151770994067192,
-            "max": 2.169687509536743,
-            "runs": 5
-          },
-          "memLayoutKB": {
-            "value": 16.609375,
-            "min": 16.609375,
-            "max": 16.609375,
-            "runs": 5
-          }
-        }
-      },
-      {
-        "scenario": "urdu-paragraph",
-        "lines": 15,
-        "frameHeight": 825,
-        "metrics": {
-          "layoutMs": {
-            "value": 1.6476040035486221,
-            "min": 1.6452704966068268,
-            "max": 1.7417289912700653,
-            "runs": 5
-          },
-          "drawMs": {
-            "value": 3.555645987391472,
-            "min": 3.52750001847744,
-            "max": 3.6326040029525757,
-            "runs": 5
-          },
-          "memLayoutKB": {
-            "value": 37.75,
-            "min": 37.75,
-            "max": 37.75,
-            "runs": 5
-          }
-        }
-      },
-      {
-        "scenario": "mixed-bidi",
-        "lines": 14,
-        "frameHeight": 630,
-        "metrics": {
-          "layoutMs": {
-            "value": 1.0174789875745773,
-            "min": 1.010854497551918,
-            "max": 1.0347505062818527,
-            "runs": 5
-          },
-          "drawMs": {
-            "value": 2.540916994214058,
-            "min": 2.5355629920959473,
-            "max": 2.5581870079040527,
-            "runs": 5
-          },
-          "memLayoutKB": {
-            "value": 58.546875,
-            "min": 56.390625,
-            "max": 58.890625,
-            "runs": 5
-          }
-        }
-      },
-      {
-        "scenario": "long-latin",
-        "lines": 556,
-        "frameHeight": 10425,
-        "metrics": {
-          "layoutMs": {
-            "value": 3.861896499991417,
-            "min": 3.8093335032463074,
-            "max": 3.881812497973442,
-            "runs": 5
-          },
-          "drawMs": {
-            "value": 76.6813335120678,
-            "min": 76.19962500035763,
-            "max": 77.19422949850559,
-            "runs": 5
-          },
-          "memLayoutKB": {
-            "value": 959,
-            "min": 959,
-            "max": 959,
-            "runs": 5
-          }
-        }
-      },
-      {
-        "scenario": "long-urdu",
-        "lines": 435,
-        "frameHeight": 19575,
-        "metrics": {
-          "layoutMs": {
-            "value": 57.05800049006939,
-            "min": 56.96729150414467,
-            "max": 57.30033299326897,
-            "runs": 5
-          },
-          "drawMs": {
-            "value": 113.71656249463558,
-            "min": 113.1448539942503,
-            "max": 114.0287289917469,
-            "runs": 5
-          },
-          "memLayoutKB": {
-            "value": 1203.875,
-            "min": 1203.875,
-            "max": 1203.875,
-            "runs": 5
-          }
-        }
-      }
     ]
   },
   "raw": {
-    "react-native/android": [
-      {
-        "meta": {
-          "wrapper": "react-native",
-          "platform": "android",
-          "osVersion": "30",
-          "build": "Release",
-          "coreVersion": "1.0.0",
-          "engine": "hermes",
-          "renderScale": 1,
-          "residentKBStart": 154116,
-          "heapKBStart": 17548.203125
-        },
-        "results": [
-          {
-            "scenario": "latin-label",
-            "characters": 11,
-            "lines": 1,
-            "frameWidth": 200,
-            "frameHeight": 18.75,
-            "layoutMs": {
-              "n": 300,
-              "min": 0.06720799952745438,
-              "median": 0.12539600115269423,
-              "p90": 0.85933299921453,
-              "max": 55.05283300019801
-            },
-            "drawMs": {
-              "n": 300,
-              "min": 0.022667,
-              "median": 0.0399585,
-              "p90": 0.041208,
-              "max": 11.546417
-            },
-            "memLayoutKB": {
-              "n": 3,
-              "min": 0.265625,
-              "median": 2.34375,
-              "p90": 6.53125,
-              "max": 6.53125
-            }
-          },
-          {
-            "scenario": "latin-paragraph",
-            "characters": 576,
-            "lines": 16,
-            "frameWidth": 320,
-            "frameHeight": 300,
-            "layoutMs": {
-              "n": 100,
-              "min": 0.23554199934005737,
-              "median": 0.5345625001937151,
-              "p90": 2.019582999870181,
-              "max": 65.11733400076628
-            },
-            "drawMs": {
-              "n": 100,
-              "min": 1.147666,
-              "median": 2.254479,
-              "p90": 3.273666,
-              "max": 6.882042
-            },
-            "memLayoutKB": {
-              "n": 3,
-              "min": 31.453125,
-              "median": 37.6875,
-              "p90": 42.171875,
-              "max": 42.171875
-            }
-          },
-          {
-            "scenario": "urdu-paragraph",
-            "characters": 575,
-            "lines": 15,
-            "frameWidth": 320,
-            "frameHeight": 825,
-            "layoutMs": {
-              "n": 40,
-              "min": 5.598249999806285,
-              "median": 13.07914650067687,
-              "p90": 17.045792000368237,
-              "max": 22.55604200065136
-            },
-            "drawMs": {
-              "n": 40,
-              "min": 2.688292,
-              "median": 4.224667,
-              "p90": 7.072584,
-              "max": 7.732667
-            },
-            "memLayoutKB": {
-              "n": 3,
-              "min": 40.828125,
-              "median": 40.890625,
-              "p90": 204.796875,
-              "max": 204.796875
-            }
-          },
-          {
-            "scenario": "mixed-bidi",
-            "characters": 516,
-            "lines": 14,
-            "frameWidth": 320,
-            "frameHeight": 630,
-            "layoutMs": {
-              "n": 40,
-              "min": 4.599667001515627,
-              "median": 7.767562500201166,
-              "p90": 11.292207999154925,
-              "max": 13.122458999976516
-            },
-            "drawMs": {
-              "n": 40,
-              "min": 1.199708,
-              "median": 2.9503329999999997,
-              "p90": 6.143583,
-              "max": 8.128458
-            },
-            "memLayoutKB": {
-              "n": 3,
-              "min": 25.4375,
-              "median": 54.921875,
-              "p90": 93.015625,
-              "max": 93.015625
-            }
-          },
-          {
-            "scenario": "long-latin",
-            "characters": 20016,
-            "lines": 556,
-            "frameWidth": 320,
-            "frameHeight": 10425,
-            "layoutMs": {
-              "n": 10,
-              "min": 21.98395900055766,
-              "median": 34.05160449910909,
-              "p90": 41.823207998648286,
-              "max": 41.823207998648286
-            },
-            "drawMs": {
-              "n": 10,
-              "min": 62.617083,
-              "median": 94.2855835,
-              "p90": 104.220625,
-              "max": 104.220625
-            },
-            "memLayoutKB": {
-              "n": 3,
-              "min": 617.546875,
-              "median": 1162.53125,
-              "p90": 1163.078125,
-              "max": 1163.078125
-            }
-          },
-          {
-            "scenario": "long-urdu",
-            "characters": 20010,
-            "lines": 435,
-            "frameWidth": 320,
-            "frameHeight": 19575,
-            "layoutMs": {
-              "n": 10,
-              "min": 355.2345420010388,
-              "median": 427.0553334997967,
-              "p90": 452.4131669998169,
-              "max": 452.4131669998169
-            },
-            "drawMs": {
-              "n": 10,
-              "min": 128.935,
-              "median": 184.96325000000002,
-              "p90": 347.114416,
-              "max": 347.114416
-            },
-            "memLayoutKB": {
-              "n": 3,
-              "min": 902.796875,
-              "median": 972.875,
-              "p90": 1294.296875,
-              "max": 1294.296875
-            }
-          }
-        ],
-        "done": true,
-        "problems": []
-      },
-      {
-        "meta": {
-          "wrapper": "react-native",
-          "platform": "android",
-          "osVersion": "30",
-          "build": "Release",
-          "coreVersion": "1.0.0",
-          "engine": "hermes",
-          "renderScale": 1,
-          "residentKBStart": 154144,
-          "heapKBStart": 17552.84375
-        },
-        "results": [
-          {
-            "scenario": "latin-label",
-            "characters": 11,
-            "lines": 1,
-            "frameWidth": 200,
-            "frameHeight": 18.75,
-            "layoutMs": {
-              "n": 300,
-              "min": 0.0555419996380806,
-              "median": 0.09731199871748686,
-              "p90": 0.1617920007556677,
-              "max": 0.879959000274539
-            },
-            "drawMs": {
-              "n": 300,
-              "min": 0.018792,
-              "median": 0.019166,
-              "p90": 0.040625,
-              "max": 0.39575
-            },
-            "memLayoutKB": {
-              "n": 3,
-              "min": 1.609375,
-              "median": 2.234375,
-              "p90": 26.6875,
-              "max": 26.6875
-            }
-          },
-          {
-            "scenario": "latin-paragraph",
-            "characters": 576,
-            "lines": 16,
-            "frameWidth": 320,
-            "frameHeight": 300,
-            "layoutMs": {
-              "n": 100,
-              "min": 0.2898339983075857,
-              "median": 0.6011669998988509,
-              "p90": 7.08266600035131,
-              "max": 84.94116700068116
-            },
-            "drawMs": {
-              "n": 100,
-              "min": 0.926042,
-              "median": 2.186625,
-              "p90": 6.894917,
-              "max": 12.454959
-            },
-            "memLayoutKB": {
-              "n": 3,
-              "min": 36.703125,
-              "median": 55.96875,
-              "p90": 58.203125,
-              "max": 58.203125
-            }
-          },
-          {
-            "scenario": "urdu-paragraph",
-            "characters": 575,
-            "lines": 15,
-            "frameWidth": 320,
-            "frameHeight": 825,
-            "layoutMs": {
-              "n": 40,
-              "min": 5.535875000059605,
-              "median": 14.066145500168204,
-              "p90": 18.0339999999851,
-              "max": 21.51283299922943
-            },
-            "drawMs": {
-              "n": 40,
-              "min": 1.63525,
-              "median": 4.503729,
-              "p90": 8.661916,
-              "max": 13.258417
-            },
-            "memLayoutKB": {
-              "n": 3,
-              "min": 32.109375,
-              "median": 40.796875,
-              "p90": 214.28125,
-              "max": 214.28125
-            }
-          },
-          {
-            "scenario": "mixed-bidi",
-            "characters": 516,
-            "lines": 14,
-            "frameWidth": 320,
-            "frameHeight": 630,
-            "layoutMs": {
-              "n": 40,
-              "min": 4.294125000014901,
-              "median": 9.124436999671161,
-              "p90": 13.236833000555634,
-              "max": 14.107625000178814
-            },
-            "drawMs": {
-              "n": 40,
-              "min": 1.182041,
-              "median": 2.8419584999999996,
-              "p90": 5.630167,
-              "max": 8.729875
-            },
-            "memLayoutKB": {
-              "n": 3,
-              "min": 55.046875,
-              "median": 55.609375,
-              "p90": 61.015625,
-              "max": 61.015625
-            }
-          },
-          {
-            "scenario": "long-latin",
-            "characters": 20016,
-            "lines": 556,
-            "frameWidth": 320,
-            "frameHeight": 10425,
-            "layoutMs": {
-              "n": 10,
-              "min": 18.79924999922514,
-              "median": 30.572583499364555,
-              "p90": 36.49891700036824,
-              "max": 36.49891700036824
-            },
-            "drawMs": {
-              "n": 10,
-              "min": 60.381291,
-              "median": 83.9064165,
-              "p90": 96.189292,
-              "max": 96.189292
-            },
-            "memLayoutKB": {
-              "n": 3,
-              "min": 619.15625,
-              "median": 1162.703125,
-              "p90": 1162.890625,
-              "max": 1162.890625
-            }
-          },
-          {
-            "scenario": "long-urdu",
-            "characters": 20010,
-            "lines": 435,
-            "frameWidth": 320,
-            "frameHeight": 19575,
-            "layoutMs": {
-              "n": 10,
-              "min": 379.47445799969137,
-              "median": 429.05106300022453,
-              "p90": 447.9092089999467,
-              "max": 447.9092089999467
-            },
-            "drawMs": {
-              "n": 10,
-              "min": 158.879709,
-              "median": 191.541167,
-              "p90": 241.324208,
-              "max": 241.324208
-            },
-            "memLayoutKB": {
-              "n": 3,
-              "min": 779.390625,
-              "median": 1036.65625,
-              "p90": 1294.171875,
-              "max": 1294.171875
-            }
-          }
-        ],
-        "done": true,
-        "problems": []
-      },
-      {
-        "meta": {
-          "wrapper": "react-native",
-          "platform": "android",
-          "osVersion": "30",
-          "build": "Release",
-          "coreVersion": "1.0.0",
-          "engine": "hermes",
-          "renderScale": 1,
-          "residentKBStart": 154124,
-          "heapKBStart": 17721.53125
-        },
-        "results": [
-          {
-            "scenario": "latin-label",
-            "characters": 11,
-            "lines": 1,
-            "frameWidth": 200,
-            "frameHeight": 18.75,
-            "layoutMs": {
-              "n": 300,
-              "min": 0.055333999916911125,
-              "median": 0.13210400007665157,
-              "p90": 0.778583999723196,
-              "max": 45.92904100008309
-            },
-            "drawMs": {
-              "n": 300,
-              "min": 0.028583,
-              "median": 0.0298335,
-              "p90": 0.041417,
-              "max": 4.561375
-            },
-            "memLayoutKB": {
-              "n": 3,
-              "min": 2.234375,
-              "median": 2.234375,
-              "p90": 35.640625,
-              "max": 35.640625
-            }
-          },
-          {
-            "scenario": "latin-paragraph",
-            "characters": 576,
-            "lines": 16,
-            "frameWidth": 320,
-            "frameHeight": 300,
-            "layoutMs": {
-              "n": 100,
-              "min": 0.28374999947845936,
-              "median": 0.5665624998509884,
-              "p90": 6.475749999284744,
-              "max": 63.3227909989655
-            },
-            "drawMs": {
-              "n": 100,
-              "min": 0.921625,
-              "median": 1.982146,
-              "p90": 3.516667,
-              "max": 6.313
-            },
-            "memLayoutKB": {
-              "n": 3,
-              "min": 35.34375,
-              "median": 35.5,
-              "p90": 39.234375,
-              "max": 39.234375
-            }
-          },
-          {
-            "scenario": "urdu-paragraph",
-            "characters": 575,
-            "lines": 15,
-            "frameWidth": 320,
-            "frameHeight": 825,
-            "layoutMs": {
-              "n": 40,
-              "min": 6.646749999374151,
-              "median": 12.9256044998765,
-              "p90": 17.32799999974668,
-              "max": 31.880875000730157
-            },
-            "drawMs": {
-              "n": 40,
-              "min": 1.609208,
-              "median": 4.2067915,
-              "p90": 6.832042,
-              "max": 8.306709
-            },
-            "memLayoutKB": {
-              "n": 3,
-              "min": 32.296875,
-              "median": 40.890625,
-              "p90": 206.859375,
-              "max": 206.859375
-            }
-          },
-          {
-            "scenario": "mixed-bidi",
-            "characters": 516,
-            "lines": 14,
-            "frameWidth": 320,
-            "frameHeight": 630,
-            "layoutMs": {
-              "n": 40,
-              "min": 3.3707090001553297,
-              "median": 8.061625000089407,
-              "p90": 11.058540999889374,
-              "max": 13.798084000125527
-            },
-            "drawMs": {
-              "n": 40,
-              "min": 1.447042,
-              "median": 2.6971249999999998,
-              "p90": 4.590958,
-              "max": 6.456875
-            },
-            "memLayoutKB": {
-              "n": 3,
-              "min": 55.359375,
-              "median": 55.46875,
-              "p90": 61.90625,
-              "max": 61.90625
-            }
-          },
-          {
-            "scenario": "long-latin",
-            "characters": 20016,
-            "lines": 556,
-            "frameWidth": 320,
-            "frameHeight": 10425,
-            "layoutMs": {
-              "n": 10,
-              "min": 17.028999999165535,
-              "median": 23.47006249986589,
-              "p90": 34.23974999971688,
-              "max": 34.23974999971688
-            },
-            "drawMs": {
-              "n": 10,
-              "min": 81.97125,
-              "median": 89.05435449999999,
-              "p90": 109.920042,
-              "max": 109.920042
-            },
-            "memLayoutKB": {
-              "n": 3,
-              "min": 616.21875,
-              "median": 1162.515625,
-              "p90": 1163.140625,
-              "max": 1163.140625
-            }
-          },
-          {
-            "scenario": "long-urdu",
-            "characters": 20010,
-            "lines": 435,
-            "frameWidth": 320,
-            "frameHeight": 19575,
-            "layoutMs": {
-              "n": 10,
-              "min": 354.47016599960625,
-              "median": 406.31825049966574,
-              "p90": 443.0236670002341,
-              "max": 443.0236670002341
-            },
-            "drawMs": {
-              "n": 10,
-              "min": 151.619625,
-              "median": 174.689792,
-              "p90": 192.331667,
-              "max": 192.331667
-            },
-            "memLayoutKB": {
-              "n": 3,
-              "min": 774.09375,
-              "median": 1037.03125,
-              "p90": 1294.171875,
-              "max": 1294.171875
-            }
-          }
-        ],
-        "done": true,
-        "problems": []
-      },
-      {
-        "meta": {
-          "wrapper": "react-native",
-          "platform": "android",
-          "osVersion": "30",
-          "build": "Release",
-          "coreVersion": "1.0.0",
-          "engine": "hermes",
-          "renderScale": 1,
-          "residentKBStart": 156468,
-          "heapKBStart": 18050.296875
-        },
-        "results": [
-          {
-            "scenario": "latin-label",
-            "characters": 11,
-            "lines": 1,
-            "frameWidth": 200,
-            "frameHeight": 18.75,
-            "layoutMs": {
-              "n": 300,
-              "min": 0.056790998205542564,
-              "median": 0.1156454998999834,
-              "p90": 0.3143750000745058,
-              "max": 13.888749999925494
-            },
-            "drawMs": {
-              "n": 300,
-              "min": 0.040292,
-              "median": 0.041125,
-              "p90": 0.053292,
-              "max": 2.994667
-            },
-            "memLayoutKB": {
-              "n": 3,
-              "min": 2.78125,
-              "median": 2.921875,
-              "p90": 13.921875,
-              "max": 13.921875
-            }
-          },
-          {
-            "scenario": "latin-paragraph",
-            "characters": 576,
-            "lines": 16,
-            "frameWidth": 320,
-            "frameHeight": 300,
-            "layoutMs": {
-              "n": 100,
-              "min": 0.2868750002235174,
-              "median": 0.6228749994188547,
-              "p90": 7.937875000759959,
-              "max": 17.400999998673797
-            },
-            "drawMs": {
-              "n": 100,
-              "min": 0.939708,
-              "median": 2.024,
-              "p90": 4.183917,
-              "max": 6.993875
-            },
-            "memLayoutKB": {
-              "n": 3,
-              "min": 35.09375,
-              "median": 37.40625,
-              "p90": 40.40625,
-              "max": 40.40625
-            }
-          },
-          {
-            "scenario": "urdu-paragraph",
-            "characters": 575,
-            "lines": 15,
-            "frameWidth": 320,
-            "frameHeight": 825,
-            "layoutMs": {
-              "n": 40,
-              "min": 5.384416999295354,
-              "median": 12.42654149979353,
-              "p90": 15.220041999593377,
-              "max": 19.607374999672174
-            },
-            "drawMs": {
-              "n": 40,
-              "min": 2.513417,
-              "median": 4.107562,
-              "p90": 6.558209,
-              "max": 7.729083
-            },
-            "memLayoutKB": {
-              "n": 3,
-              "min": 40.765625,
-              "median": 41.203125,
-              "p90": 199.046875,
-              "max": 199.046875
-            }
-          },
-          {
-            "scenario": "mixed-bidi",
-            "characters": 516,
-            "lines": 14,
-            "frameWidth": 320,
-            "frameHeight": 630,
-            "layoutMs": {
-              "n": 40,
-              "min": 3.3399580009281635,
-              "median": 7.200145999900997,
-              "p90": 10.693500000983477,
-              "max": 13.212250001728535
-            },
-            "drawMs": {
-              "n": 40,
-              "min": 1.183917,
-              "median": 1.410812,
-              "p90": 3.416959,
-              "max": 4.586
-            },
-            "memLayoutKB": {
-              "n": 3,
-              "min": 55.46875,
-              "median": 55.609375,
-              "p90": 61.84375,
-              "max": 61.84375
-            }
-          },
-          {
-            "scenario": "long-latin",
-            "characters": 20016,
-            "lines": 556,
-            "frameWidth": 320,
-            "frameHeight": 10425,
-            "layoutMs": {
-              "n": 10,
-              "min": 16.326082998886704,
-              "median": 21.332895500585437,
-              "p90": 30.6480830013752,
-              "max": 30.6480830013752
-            },
-            "drawMs": {
-              "n": 10,
-              "min": 67.71025,
-              "median": 93.4005,
-              "p90": 104.268583,
-              "max": 104.268583
-            },
-            "memLayoutKB": {
-              "n": 3,
-              "min": 583.46875,
-              "median": 1162.765625,
-              "p90": 1163.328125,
-              "max": 1163.328125
-            }
-          },
-          {
-            "scenario": "long-urdu",
-            "characters": 20010,
-            "lines": 435,
-            "frameWidth": 320,
-            "frameHeight": 19575,
-            "layoutMs": {
-              "n": 10,
-              "min": 374.0748330000788,
-              "median": 449.20852150022984,
-              "p90": 599.5013750009239,
-              "max": 599.5013750009239
-            },
-            "drawMs": {
-              "n": 10,
-              "min": 136.308459,
-              "median": 184.307854,
-              "p90": 209.008375,
-              "max": 209.008375
-            },
-            "memLayoutKB": {
-              "n": 3,
-              "min": 907.734375,
-              "median": 973.125,
-              "p90": 1294.296875,
-              "max": 1294.296875
-            }
-          }
-        ],
-        "done": true,
-        "problems": []
-      },
-      {
-        "meta": {
-          "wrapper": "react-native",
-          "platform": "android",
-          "osVersion": "30",
-          "build": "Release",
-          "coreVersion": "1.0.0",
-          "engine": "hermes",
-          "renderScale": 1,
-          "residentKBStart": 155632,
-          "heapKBStart": 18027.5
-        },
-        "results": [
-          {
-            "scenario": "latin-label",
-            "characters": 11,
-            "lines": 1,
-            "frameWidth": 200,
-            "frameHeight": 18.75,
-            "layoutMs": {
-              "n": 300,
-              "min": 0.05525000020861626,
-              "median": 0.11016650032252073,
-              "p90": 0.4239590000361204,
-              "max": 102.17141599953175
-            },
-            "drawMs": {
-              "n": 300,
-              "min": 0.03925,
-              "median": 0.039959,
-              "p90": 0.042084,
-              "max": 2.513292
-            },
-            "memLayoutKB": {
-              "n": 3,
-              "min": 2.359375,
-              "median": 2.609375,
-              "p90": 25.203125,
-              "max": 25.203125
-            }
-          },
-          {
-            "scenario": "latin-paragraph",
-            "characters": 576,
-            "lines": 16,
-            "frameWidth": 320,
-            "frameHeight": 300,
-            "layoutMs": {
-              "n": 100,
-              "min": 0.2819999996572733,
-              "median": 0.5378745002672076,
-              "p90": 1.9782909993082285,
-              "max": 15.286374999210238
-            },
-            "drawMs": {
-              "n": 100,
-              "min": 1.127625,
-              "median": 2.1839375,
-              "p90": 4.481625,
-              "max": 7.637125
-            },
-            "memLayoutKB": {
-              "n": 3,
-              "min": 35.09375,
-              "median": 42.234375,
-              "p90": 63.046875,
-              "max": 63.046875
-            }
-          },
-          {
-            "scenario": "urdu-paragraph",
-            "characters": 575,
-            "lines": 15,
-            "frameWidth": 320,
-            "frameHeight": 825,
-            "layoutMs": {
-              "n": 40,
-              "min": 7.1122910007834435,
-              "median": 12.826916999183595,
-              "p90": 17.803541000932455,
-              "max": 23.99062499962747
-            },
-            "drawMs": {
-              "n": 40,
-              "min": 1.931167,
-              "median": 3.9068335000000003,
-              "p90": 6.462417,
-              "max": 8.840416
-            },
-            "memLayoutKB": {
-              "n": 3,
-              "min": 40.390625,
-              "median": 40.828125,
-              "p90": 204.546875,
-              "max": 204.546875
-            }
-          },
-          {
-            "scenario": "mixed-bidi",
-            "characters": 516,
-            "lines": 14,
-            "frameWidth": 320,
-            "frameHeight": 630,
-            "layoutMs": {
-              "n": 40,
-              "min": 4.43737499974668,
-              "median": 8.575812499038875,
-              "p90": 11.661624999716878,
-              "max": 14.15141599997878
-            },
-            "drawMs": {
-              "n": 40,
-              "min": 1.457084,
-              "median": 2.7818335000000003,
-              "p90": 5.1405,
-              "max": 6.483583
-            },
-            "memLayoutKB": {
-              "n": 3,
-              "min": 23.921875,
-              "median": 55.359375,
-              "p90": 93.515625,
-              "max": 93.515625
-            }
-          },
-          {
-            "scenario": "long-latin",
-            "characters": 20016,
-            "lines": 556,
-            "frameWidth": 320,
-            "frameHeight": 10425,
-            "layoutMs": {
-              "n": 10,
-              "min": 18.31716600060463,
-              "median": 24.74081250000745,
-              "p90": 34.87474999949336,
-              "max": 34.87474999949336
-            },
-            "drawMs": {
-              "n": 10,
-              "min": 72.872833,
-              "median": 84.732834,
-              "p90": 95.5975,
-              "max": 95.5975
-            },
-            "memLayoutKB": {
-              "n": 3,
-              "min": 612.234375,
-              "median": 1162.515625,
-              "p90": 1163.078125,
-              "max": 1163.078125
-            }
-          },
-          {
-            "scenario": "long-urdu",
-            "characters": 20010,
-            "lines": 435,
-            "frameWidth": 320,
-            "frameHeight": 19575,
-            "layoutMs": {
-              "n": 10,
-              "min": 380.1170830000192,
-              "median": 413.60537450015545,
-              "p90": 449.44170900061727,
-              "max": 449.44170900061727
-            },
-            "drawMs": {
-              "n": 10,
-              "min": 152.572333,
-              "median": 172.2738335,
-              "p90": 184.390917,
-              "max": 184.390917
-            },
-            "memLayoutKB": {
-              "n": 3,
-              "min": 903.09375,
-              "median": 973,
-              "p90": 1294.171875,
-              "max": 1294.171875
-            }
-          }
-        ],
-        "done": true,
-        "problems": []
-      }
-    ],
     "react-native/ios": [
       {
         "meta": {
@@ -1691,8 +764,8 @@
           "coreVersion": "1.0.0",
           "engine": "hermes",
           "renderScale": 1,
-          "residentKBStart": 135104,
-          "heapKBStart": 4129.15625
+          "residentKBStart": 137120,
+          "heapKBStart": 4125.625
         },
         "results": [
           {
@@ -1703,17 +776,17 @@
             "frameHeight": 18.75,
             "layoutMs": {
               "n": 300,
-              "min": 0.015749990940093994,
-              "median": 0.0169999897480011,
-              "p90": 0.018417000770568848,
-              "max": 0.07520899176597595
+              "min": 0.0160830020904541,
+              "median": 0.0173959881067276,
+              "p90": 0.02037501335144043,
+              "max": 0.12399998307228088
             },
             "drawMs": {
               "n": 300,
-              "min": 0.044792,
-              "median": 0.045917,
-              "p90": 0.047709,
-              "max": 0.09125
+              "min": 0.045833,
+              "median": 0.04775,
+              "p90": 0.049167,
+              "max": 0.179333
             },
             "memLayoutKB": {
               "n": 3,
@@ -1731,17 +804,17 @@
             "frameHeight": 300,
             "layoutMs": {
               "n": 100,
-              "min": 0.08370798826217651,
-              "median": 0.08533351123332977,
-              "p90": 0.0884999930858612,
-              "max": 0.12137499451637268
+              "min": 0.07766598463058472,
+              "median": 0.0790415108203888,
+              "p90": 0.08141699433326721,
+              "max": 0.09325000643730164
             },
             "drawMs": {
               "n": 100,
-              "min": 2.142708,
-              "median": 2.1590835000000004,
-              "p90": 2.187,
-              "max": 2.296875
+              "min": 2.1355,
+              "median": 2.1995,
+              "p90": 2.291917,
+              "max": 2.550708
             },
             "memLayoutKB": {
               "n": 3,
@@ -1759,17 +832,17 @@
             "frameHeight": 825,
             "layoutMs": {
               "n": 40,
-              "min": 2.5310420095920563,
-              "median": 2.5438119918107986,
-              "p90": 2.568250000476837,
-              "max": 2.5788339972496033
+              "min": 1.5509999990463257,
+              "median": 1.5997704863548279,
+              "p90": 1.7360419929027557,
+              "max": 1.9217079877853394
             },
             "drawMs": {
               "n": 40,
-              "min": 3.554333,
-              "median": 3.6331245,
-              "p90": 3.848959,
-              "max": 3.941666
+              "min": 3.528625,
+              "median": 3.6715834999999997,
+              "p90": 3.797875,
+              "max": 4.230333
             },
             "memLayoutKB": {
               "n": 3,
@@ -1787,17 +860,17 @@
             "frameHeight": 630,
             "layoutMs": {
               "n": 40,
-              "min": 1.3957500159740448,
-              "median": 1.424563005566597,
-              "p90": 1.4655830264091492,
-              "max": 1.614666998386383
+              "min": 0.8690829873085022,
+              "median": 0.8931459933519363,
+              "p90": 0.9557910263538361,
+              "max": 1.161791980266571
             },
             "drawMs": {
               "n": 40,
-              "min": 2.525875,
-              "median": 2.5412084999999998,
-              "p90": 2.564583,
-              "max": 2.638416
+              "min": 2.519,
+              "median": 2.5470835000000003,
+              "p90": 2.676375,
+              "max": 2.716667
             },
             "memLayoutKB": {
               "n": 3,
@@ -1815,17 +888,17 @@
             "frameHeight": 10425,
             "layoutMs": {
               "n": 10,
-              "min": 3.7500419914722443,
-              "median": 3.7853749990463257,
-              "p90": 3.8463750183582306,
-              "max": 3.8463750183582306
+              "min": 3.6289169788360596,
+              "median": 3.82277050614357,
+              "p90": 4.033499985933304,
+              "max": 4.033499985933304
             },
             "drawMs": {
               "n": 10,
-              "min": 74.960042,
-              "median": 76.554375,
-              "p90": 77.140584,
-              "max": 77.140584
+              "min": 75.722166,
+              "median": 76.13202050000001,
+              "p90": 77.104,
+              "max": 77.104
             },
             "memLayoutKB": {
               "n": 3,
@@ -1843,17 +916,17 @@
             "frameHeight": 19575,
             "layoutMs": {
               "n": 10,
-              "min": 89.02179199457169,
-              "median": 89.21266651153564,
-              "p90": 91.21958300471306,
-              "max": 91.21958300471306
+              "min": 55.16899999976158,
+              "median": 55.62558351457119,
+              "p90": 55.889832973480225,
+              "max": 55.889832973480225
             },
             "drawMs": {
               "n": 10,
-              "min": 112.214125,
-              "median": 112.623458,
-              "p90": 114.933041,
-              "max": 114.933041
+              "min": 114.013708,
+              "median": 114.2625,
+              "p90": 117.210125,
+              "max": 117.210125
             },
             "memLayoutKB": {
               "n": 3,
@@ -1876,8 +949,8 @@
           "coreVersion": "1.0.0",
           "engine": "hermes",
           "renderScale": 1,
-          "residentKBStart": 137312,
-          "heapKBStart": 4126.53125
+          "residentKBStart": 137200,
+          "heapKBStart": 4104.015625
         },
         "results": [
           {
@@ -1888,17 +961,17 @@
             "frameHeight": 18.75,
             "layoutMs": {
               "n": 300,
-              "min": 0.015583008527755737,
-              "median": 0.01668749749660492,
-              "p90": 0.01816597580909729,
-              "max": 0.06212499737739563
+              "min": 0.015083014965057373,
+              "median": 0.016541987657546997,
+              "p90": 0.018374979496002197,
+              "max": 0.09112498164176941
             },
             "drawMs": {
               "n": 300,
               "min": 0.044833,
-              "median": 0.0457085,
+              "median": 0.045709,
               "p90": 0.0475,
-              "max": 0.061708
+              "max": 0.13125
             },
             "memLayoutKB": {
               "n": 3,
@@ -1916,17 +989,17 @@
             "frameHeight": 300,
             "layoutMs": {
               "n": 100,
-              "min": 0.08358299732208252,
-              "median": 0.08470849692821503,
-              "p90": 0.09041699767112732,
-              "max": 0.13045799732208252
+              "min": 0.07662498950958252,
+              "median": 0.07889600098133087,
+              "p90": 0.08295801281929016,
+              "max": 0.14024999737739563
             },
             "drawMs": {
               "n": 100,
-              "min": 2.132458,
-              "median": 2.1514585000000004,
-              "p90": 2.182791,
-              "max": 2.246417
+              "min": 2.132708,
+              "median": 2.1953750000000003,
+              "p90": 2.293333,
+              "max": 2.489333
             },
             "memLayoutKB": {
               "n": 3,
@@ -1944,17 +1017,17 @@
             "frameHeight": 825,
             "layoutMs": {
               "n": 40,
-              "min": 2.5382919907569885,
-              "median": 2.546999990940094,
-              "p90": 2.577083021402359,
-              "max": 2.6240420043468475
+              "min": 1.5452919900417328,
+              "median": 1.566979005932808,
+              "p90": 1.63858300447464,
+              "max": 1.7085829973220825
             },
             "drawMs": {
               "n": 40,
-              "min": 3.491792,
-              "median": 3.5039585,
-              "p90": 3.6755,
-              "max": 3.801792
+              "min": 3.517792,
+              "median": 3.5829164999999996,
+              "p90": 3.733375,
+              "max": 3.923625
             },
             "memLayoutKB": {
               "n": 3,
@@ -1972,17 +1045,17 @@
             "frameHeight": 630,
             "layoutMs": {
               "n": 40,
-              "min": 1.3840830028057098,
-              "median": 1.3883749842643738,
-              "p90": 1.3940420150756836,
-              "max": 1.395916998386383
+              "min": 0.8717080056667328,
+              "median": 0.8765414953231812,
+              "p90": 0.8915840089321136,
+              "max": 0.9004999995231628
             },
             "drawMs": {
               "n": 40,
-              "min": 2.502541,
-              "median": 2.5068539999999997,
-              "p90": 2.518917,
-              "max": 2.546958
+              "min": 2.496917,
+              "median": 2.5177294999999997,
+              "p90": 2.581625,
+              "max": 2.599792
             },
             "memLayoutKB": {
               "n": 3,
@@ -2000,17 +1073,17 @@
             "frameHeight": 10425,
             "layoutMs": {
               "n": 10,
-              "min": 3.790917009115219,
-              "median": 3.809208497405052,
-              "p90": 4.0314159989356995,
-              "max": 4.0314159989356995
+              "min": 3.469999998807907,
+              "median": 3.491666004061699,
+              "p90": 3.6112910211086273,
+              "max": 3.6112910211086273
             },
             "drawMs": {
               "n": 10,
-              "min": 74.590459,
-              "median": 75.2847085,
-              "p90": 76.507167,
-              "max": 76.507167
+              "min": 74.883042,
+              "median": 75.8607285,
+              "p90": 76.319917,
+              "max": 76.319917
             },
             "memLayoutKB": {
               "n": 3,
@@ -2028,17 +1101,17 @@
             "frameHeight": 19575,
             "layoutMs": {
               "n": 10,
-              "min": 89.12479102611542,
-              "median": 89.2566045075655,
-              "p90": 89.38045799732208,
-              "max": 89.38045799732208
+              "min": 55.54066699743271,
+              "median": 55.80979150533676,
+              "p90": 58.29449999332428,
+              "max": 58.29449999332428
             },
             "drawMs": {
               "n": 10,
-              "min": 111.21675,
-              "median": 112.3355,
-              "p90": 113.00675,
-              "max": 113.00675
+              "min": 113.504958,
+              "median": 113.90587500000001,
+              "p90": 116.217833,
+              "max": 116.217833
             },
             "memLayoutKB": {
               "n": 3,
@@ -2061,8 +1134,8 @@
           "coreVersion": "1.0.0",
           "engine": "hermes",
           "renderScale": 1,
-          "residentKBStart": 137168,
-          "heapKBStart": 4105.984375
+          "residentKBStart": 137072,
+          "heapKBStart": 4123.21875
         },
         "results": [
           {
@@ -2073,17 +1146,17 @@
             "frameHeight": 18.75,
             "layoutMs": {
               "n": 300,
-              "min": 0.015625,
-              "median": 0.016916990280151367,
-              "p90": 0.01845899224281311,
-              "max": 0.027500003576278687
+              "min": 0.01604101061820984,
+              "median": 0.017292022705078125,
+              "p90": 0.019291013479232788,
+              "max": 0.26008301973342896
             },
             "drawMs": {
               "n": 300,
-              "min": 0.044958,
-              "median": 0.0462085,
-              "p90": 0.048042,
-              "max": 0.091208
+              "min": 0.047334,
+              "median": 0.048292,
+              "p90": 0.0495,
+              "max": 0.308375
             },
             "memLayoutKB": {
               "n": 3,
@@ -2101,17 +1174,17 @@
             "frameHeight": 300,
             "layoutMs": {
               "n": 100,
-              "min": 0.08316698670387268,
-              "median": 0.0850834995508194,
-              "p90": 0.08924999833106995,
-              "max": 0.1588750183582306
+              "min": 0.08162498474121094,
+              "median": 0.08479100465774536,
+              "p90": 0.09158399701118469,
+              "max": 0.15141600370407104
             },
             "drawMs": {
               "n": 100,
-              "min": 2.149625,
-              "median": 2.1716455000000003,
-              "p90": 2.203208,
-              "max": 2.338041
+              "min": 2.152291,
+              "median": 2.212208,
+              "p90": 2.461084,
+              "max": 6.826791
             },
             "memLayoutKB": {
               "n": 3,
@@ -2129,17 +1202,17 @@
             "frameHeight": 825,
             "layoutMs": {
               "n": 40,
-              "min": 2.5270000100135803,
-              "median": 2.5474165081977844,
-              "p90": 2.581083983182907,
-              "max": 2.6633749902248383
+              "min": 1.5504170060157776,
+              "median": 1.5986870229244232,
+              "p90": 1.706708014011383,
+              "max": 1.7187919914722443
             },
             "drawMs": {
               "n": 40,
-              "min": 3.531208,
-              "median": 3.548917,
-              "p90": 3.677166,
-              "max": 3.786834
+              "min": 3.511666,
+              "median": 3.6150835,
+              "p90": 3.942,
+              "max": 4.348208
             },
             "memLayoutKB": {
               "n": 3,
@@ -2157,17 +1230,17 @@
             "frameHeight": 630,
             "layoutMs": {
               "n": 40,
-              "min": 1.3816670179367065,
-              "median": 1.3859589993953705,
-              "p90": 1.4041669964790344,
-              "max": 1.469999998807907
+              "min": 0.867792010307312,
+              "median": 0.871770977973938,
+              "p90": 0.8975000083446503,
+              "max": 1.0578749775886536
             },
             "drawMs": {
               "n": 40,
-              "min": 2.503583,
-              "median": 2.5124165,
-              "p90": 2.55225,
-              "max": 2.574583
+              "min": 2.501166,
+              "median": 2.513146,
+              "p90": 2.550667,
+              "max": 2.565167
             },
             "memLayoutKB": {
               "n": 3,
@@ -2185,17 +1258,17 @@
             "frameHeight": 10425,
             "layoutMs": {
               "n": 10,
-              "min": 3.7352080047130585,
-              "median": 3.770416498184204,
-              "p90": 3.817582994699478,
-              "max": 3.817582994699478
+              "min": 3.4466670155525208,
+              "median": 3.5126875042915344,
+              "p90": 3.7715000212192535,
+              "max": 3.7715000212192535
             },
             "drawMs": {
               "n": 10,
-              "min": 74.594292,
-              "median": 75.33850000000001,
-              "p90": 76.410792,
-              "max": 76.410792
+              "min": 76.30325,
+              "median": 76.6179995,
+              "p90": 77.637458,
+              "max": 77.637458
             },
             "memLayoutKB": {
               "n": 3,
@@ -2213,17 +1286,17 @@
             "frameHeight": 19575,
             "layoutMs": {
               "n": 10,
-              "min": 88.93116697669029,
-              "median": 92.28518749773502,
-              "p90": 95.50533300638199,
-              "max": 95.50533300638199
+              "min": 55.841749995946884,
+              "median": 56.905938014388084,
+              "p90": 59.063208013772964,
+              "max": 59.063208013772964
             },
             "drawMs": {
               "n": 10,
-              "min": 112.769209,
-              "median": 113.959104,
-              "p90": 116.05725,
-              "max": 116.05725
+              "min": 112.943625,
+              "median": 114.178479,
+              "p90": 118.688791,
+              "max": 118.688791
             },
             "memLayoutKB": {
               "n": 3,
@@ -2246,8 +1319,8 @@
           "coreVersion": "1.0.0",
           "engine": "hermes",
           "renderScale": 1,
-          "residentKBStart": 137296,
-          "heapKBStart": 4115.25
+          "residentKBStart": 137424,
+          "heapKBStart": 4131.125
         },
         "results": [
           {
@@ -2258,17 +1331,17 @@
             "frameHeight": 18.75,
             "layoutMs": {
               "n": 300,
-              "min": 0.015499979257583618,
-              "median": 0.016666993498802185,
-              "p90": 0.018290996551513672,
-              "max": 0.05275002121925354
+              "min": 0.015415996313095093,
+              "median": 0.016937509179115295,
+              "p90": 0.018709003925323486,
+              "max": 0.06675001978874207
             },
             "drawMs": {
               "n": 300,
-              "min": 0.045042,
-              "median": 0.046271,
-              "p90": 0.048041,
-              "max": 0.093541
+              "min": 0.044791,
+              "median": 0.048083,
+              "p90": 0.049042,
+              "max": 0.152416
             },
             "memLayoutKB": {
               "n": 3,
@@ -2286,17 +1359,17 @@
             "frameHeight": 300,
             "layoutMs": {
               "n": 100,
-              "min": 0.08329200744628906,
-              "median": 0.08668749034404755,
-              "p90": 0.09099999070167542,
-              "max": 0.1318340003490448
+              "min": 0.07708299160003662,
+              "median": 0.0785205066204071,
+              "p90": 0.08141699433326721,
+              "max": 0.12091699242591858
             },
             "drawMs": {
               "n": 100,
-              "min": 2.137208,
-              "median": 2.1563745,
-              "p90": 2.187416,
-              "max": 2.342042
+              "min": 2.128584,
+              "median": 2.1551665,
+              "p90": 2.215375,
+              "max": 2.24725
             },
             "memLayoutKB": {
               "n": 3,
@@ -2314,17 +1387,17 @@
             "frameHeight": 825,
             "layoutMs": {
               "n": 40,
-              "min": 2.5388329923152924,
-              "median": 2.5517085194587708,
-              "p90": 2.5819590091705322,
-              "max": 2.6231250166893005
+              "min": 1.5481250286102295,
+              "median": 1.5715419948101044,
+              "p90": 1.6522909998893738,
+              "max": 1.6704999804496765
             },
             "drawMs": {
               "n": 40,
-              "min": 3.526,
-              "median": 3.5404995,
-              "p90": 3.640625,
-              "max": 3.841833
+              "min": 3.574042,
+              "median": 3.6993125,
+              "p90": 3.892584,
+              "max": 4.064834
             },
             "memLayoutKB": {
               "n": 3,
@@ -2342,17 +1415,17 @@
             "frameHeight": 630,
             "layoutMs": {
               "n": 40,
-              "min": 1.386707991361618,
-              "median": 1.3909999877214432,
-              "p90": 1.394582986831665,
-              "max": 1.3973329961299896
+              "min": 0.8690420091152191,
+              "median": 0.8747500032186508,
+              "p90": 0.9071249961853027,
+              "max": 1.1035000085830688
             },
             "drawMs": {
               "n": 40,
-              "min": 2.507875,
-              "median": 2.511812,
-              "p90": 2.523167,
-              "max": 2.549667
+              "min": 2.501625,
+              "median": 2.534,
+              "p90": 2.674042,
+              "max": 2.791834
             },
             "memLayoutKB": {
               "n": 3,
@@ -2370,17 +1443,17 @@
             "frameHeight": 10425,
             "layoutMs": {
               "n": 10,
-              "min": 3.7887080013751984,
-              "median": 3.8088749945163727,
-              "p90": 3.842749983072281,
-              "max": 3.842749983072281
+              "min": 3.4745410084724426,
+              "median": 3.4987289905548096,
+              "p90": 3.656000018119812,
+              "max": 3.656000018119812
             },
             "drawMs": {
               "n": 10,
-              "min": 75.053875,
-              "median": 75.948729,
-              "p90": 77.241292,
-              "max": 77.241292
+              "min": 75.312833,
+              "median": 75.4545625,
+              "p90": 75.912666,
+              "max": 75.912666
             },
             "memLayoutKB": {
               "n": 3,
@@ -2398,17 +1471,17 @@
             "frameHeight": 19575,
             "layoutMs": {
               "n": 10,
-              "min": 89.1407499909401,
-              "median": 89.6102705001831,
-              "p90": 92.01137501001358,
-              "max": 92.01137501001358
+              "min": 55.35549998283386,
+              "median": 55.69047948718071,
+              "p90": 57.64104199409485,
+              "max": 57.64104199409485
             },
             "drawMs": {
               "n": 10,
-              "min": 113.035,
-              "median": 113.824813,
-              "p90": 117.437333,
-              "max": 117.437333
+              "min": 112.557334,
+              "median": 113.5213125,
+              "p90": 117.129792,
+              "max": 117.129792
             },
             "memLayoutKB": {
               "n": 3,
@@ -2431,8 +1504,8 @@
           "coreVersion": "1.0.0",
           "engine": "hermes",
           "renderScale": 1,
-          "residentKBStart": 137232,
-          "heapKBStart": 4108.25
+          "residentKBStart": 137312,
+          "heapKBStart": 4115.109375
         },
         "results": [
           {
@@ -2443,17 +1516,17 @@
             "frameHeight": 18.75,
             "layoutMs": {
               "n": 300,
-              "min": 0.01570799946784973,
-              "median": 0.0172710120677948,
-              "p90": 0.019084006547927856,
-              "max": 0.08008301258087158
+              "min": 0.015208005905151367,
+              "median": 0.01645800471305847,
+              "p90": 0.018541991710662842,
+              "max": 0.06833299994468689
             },
             "drawMs": {
               "n": 300,
-              "min": 0.044917,
-              "median": 0.047208,
-              "p90": 0.04825,
-              "max": 0.15775
+              "min": 0.044625,
+              "median": 0.0464375,
+              "p90": 0.048792,
+              "max": 0.092625
             },
             "memLayoutKB": {
               "n": 3,
@@ -2471,17 +1544,17 @@
             "frameHeight": 300,
             "layoutMs": {
               "n": 100,
-              "min": 0.08437499403953552,
-              "median": 0.08650000393390656,
-              "p90": 0.08987501263618469,
-              "max": 0.1660420000553131
+              "min": 0.0768750011920929,
+              "median": 0.07870800793170929,
+              "p90": 0.08229202032089233,
+              "max": 0.08825001120567322
             },
             "drawMs": {
               "n": 100,
-              "min": 2.143042,
-              "median": 2.167604,
-              "p90": 2.228209,
-              "max": 2.350667
+              "min": 2.141417,
+              "median": 2.185771,
+              "p90": 2.2505,
+              "max": 2.299208
             },
             "memLayoutKB": {
               "n": 3,
@@ -2499,17 +1572,17 @@
             "frameHeight": 825,
             "layoutMs": {
               "n": 40,
-              "min": 2.536666989326477,
-              "median": 2.5586040019989014,
-              "p90": 2.5967910289764404,
-              "max": 2.653082996606827
+              "min": 1.5492500066757202,
+              "median": 1.576729491353035,
+              "p90": 1.6517089903354645,
+              "max": 1.7174170017242432
             },
             "drawMs": {
               "n": 40,
-              "min": 3.503042,
-              "median": 3.562959,
-              "p90": 3.712709,
-              "max": 3.901667
+              "min": 3.52325,
+              "median": 3.6080415,
+              "p90": 3.765084,
+              "max": 3.934125
             },
             "memLayoutKB": {
               "n": 3,
@@ -2527,17 +1600,17 @@
             "frameHeight": 630,
             "layoutMs": {
               "n": 40,
-              "min": 1.3863750100135803,
-              "median": 1.3911250084638596,
-              "p90": 1.4037079811096191,
-              "max": 1.4077500104904175
+              "min": 0.8662090003490448,
+              "median": 0.8806875050067902,
+              "p90": 0.9122090041637421,
+              "max": 1.0929999947547913
             },
             "drawMs": {
               "n": 40,
-              "min": 2.50475,
-              "median": 2.5091875,
-              "p90": 2.553167,
-              "max": 2.6705
+              "min": 2.504208,
+              "median": 2.5277915,
+              "p90": 2.598583,
+              "max": 2.616208
             },
             "memLayoutKB": {
               "n": 3,
@@ -2555,17 +1628,17 @@
             "frameHeight": 10425,
             "layoutMs": {
               "n": 10,
-              "min": 3.7490409910678864,
-              "median": 3.7558750063180923,
-              "p90": 3.778166025876999,
-              "max": 3.778166025876999
+              "min": 3.4337500035762787,
+              "median": 3.4571665078401566,
+              "p90": 3.576458990573883,
+              "max": 3.576458990573883
             },
             "drawMs": {
               "n": 10,
-              "min": 75.178,
-              "median": 76.04543749999999,
-              "p90": 78.106709,
-              "max": 78.106709
+              "min": 75.8445,
+              "median": 76.0819995,
+              "p90": 76.802917,
+              "max": 76.802917
             },
             "memLayoutKB": {
               "n": 3,
@@ -2583,17 +1656,17 @@
             "frameHeight": 19575,
             "layoutMs": {
               "n": 10,
-              "min": 89.32649999856949,
-              "median": 91.59672899544239,
-              "p90": 94.33541697263718,
-              "max": 94.33541697263718
+              "min": 55.58849999308586,
+              "median": 56.300145506858826,
+              "p90": 60.39991697669029,
+              "max": 60.39991697669029
             },
             "drawMs": {
               "n": 10,
-              "min": 112.477708,
-              "median": 112.65270799999999,
-              "p90": 113.172958,
-              "max": 113.172958
+              "min": 113.840708,
+              "median": 114.8523755,
+              "p90": 118.819583,
+              "max": 118.819583
             },
             "memLayoutKB": {
               "n": 3,
@@ -2601,6 +1674,1855 @@
               "median": 1233.359375,
               "p90": 1237.203125,
               "max": 1237.203125
+            }
+          }
+        ],
+        "done": true,
+        "problems": []
+      }
+    ],
+    "tehreer-cocoa/ios": [
+      {
+        "meta": {
+          "build": "Release",
+          "coreVersion": "Core (Libraries/TehreerCore of Tehreer-Cocoa)",
+          "heapKBStart": 102.125,
+          "osVersion": "iOS 18.2",
+          "platform": "ios",
+          "renderScale": 1,
+          "residentKBStart": 63520,
+          "wrapper": "tehreer-cocoa"
+        },
+        "results": [
+          {
+            "characters": 11,
+            "drawMs": {
+              "max": 0.12904199957847595,
+              "median": 0.047291502356529236,
+              "min": 0.046624988317489624,
+              "n": 300,
+              "p90": 0.04804199934005737
+            },
+            "frameHeight": 18.75,
+            "frameWidth": 200,
+            "layoutMs": {
+              "max": 0.009999990463256836,
+              "median": 0.009375005960464478,
+              "min": 0.009167015552520752,
+              "n": 300,
+              "p90": 0.009709000587463379
+            },
+            "lines": 1,
+            "memLayoutKB": {
+              "max": 5.984375,
+              "median": 4.375,
+              "min": 1.3125,
+              "n": 3,
+              "p90": 5.984375
+            },
+            "scenario": "latin-label"
+          },
+          {
+            "characters": 576,
+            "drawMs": {
+              "max": 2.2771669924259186,
+              "median": 2.165874481201172,
+              "min": 2.1454169750213623,
+              "n": 100,
+              "p90": 2.237375020980835
+            },
+            "frameHeight": 300,
+            "frameWidth": 320,
+            "layoutMs": {
+              "max": 0.16474997997283936,
+              "median": 0.1124579906463623,
+              "min": 0.11179202795028687,
+              "n": 100,
+              "p90": 0.11587497591972351
+            },
+            "lines": 16,
+            "memLayoutKB": {
+              "max": 28.609375,
+              "median": 16.609375,
+              "min": 16.609375,
+              "n": 3,
+              "p90": 28.609375
+            },
+            "scenario": "latin-paragraph"
+          },
+          {
+            "characters": 575,
+            "drawMs": {
+              "max": 3.7785830199718475,
+              "median": 3.603332996368408,
+              "min": 3.5357910096645355,
+              "n": 40,
+              "p90": 3.7651250064373016
+            },
+            "frameHeight": 825,
+            "frameWidth": 320,
+            "layoutMs": {
+              "max": 1.7700410187244415,
+              "median": 1.6610000133514404,
+              "min": 1.6452080011367798,
+              "n": 40,
+              "p90": 1.7268750071525574
+            },
+            "lines": 15,
+            "memLayoutKB": {
+              "max": 164.296875,
+              "median": 37.75,
+              "min": 37.75,
+              "n": 3,
+              "p90": 164.296875
+            },
+            "scenario": "urdu-paragraph"
+          },
+          {
+            "characters": 516,
+            "drawMs": {
+              "max": 2.6954160034656525,
+              "median": 2.550479009747505,
+              "min": 2.52012500166893,
+              "n": 40,
+              "p90": 2.6594579815864563
+            },
+            "frameHeight": 630,
+            "frameWidth": 320,
+            "layoutMs": {
+              "max": 1.2726659774780273,
+              "median": 1.026854008436203,
+              "min": 1.00662499666214,
+              "n": 40,
+              "p90": 1.075292021036148
+            },
+            "lines": 14,
+            "memLayoutKB": {
+              "max": 61.046875,
+              "median": 58.890625,
+              "min": 56.390625,
+              "n": 3,
+              "p90": 61.046875
+            },
+            "scenario": "mixed-bidi"
+          },
+          {
+            "characters": 20016,
+            "drawMs": {
+              "max": 79.1154580116272,
+              "median": 76.67847900092602,
+              "min": 75.85412499308586,
+              "n": 10,
+              "p90": 79.1154580116272
+            },
+            "frameHeight": 10425,
+            "frameWidth": 320,
+            "layoutMs": {
+              "max": 4.05162501335144,
+              "median": 3.9109375029802322,
+              "min": 3.8267910182476044,
+              "n": 10,
+              "p90": 4.05162501335144
+            },
+            "lines": 556,
+            "memLayoutKB": {
+              "max": 962,
+              "median": 959,
+              "min": 959,
+              "n": 3,
+              "p90": 962
+            },
+            "scenario": "long-latin"
+          },
+          {
+            "characters": 20010,
+            "drawMs": {
+              "max": 116.16708299517632,
+              "median": 114.4071455001831,
+              "min": 113.97829201817513,
+              "n": 10,
+              "p90": 116.16708299517632
+            },
+            "frameHeight": 19575,
+            "frameWidth": 320,
+            "layoutMs": {
+              "max": 58.147624999284744,
+              "median": 57.69381248950958,
+              "min": 57.609165996313095,
+              "n": 10,
+              "p90": 58.147624999284744
+            },
+            "lines": 435,
+            "memLayoutKB": {
+              "max": 1203.875,
+              "median": 1203.875,
+              "min": 1202.875,
+              "n": 3,
+              "p90": 1203.875
+            },
+            "scenario": "long-urdu"
+          }
+        ],
+        "done": true,
+        "problems": []
+      },
+      {
+        "meta": {
+          "build": "Release",
+          "coreVersion": "Core (Libraries/TehreerCore of Tehreer-Cocoa)",
+          "heapKBStart": 102.125,
+          "osVersion": "iOS 18.2",
+          "platform": "ios",
+          "renderScale": 1,
+          "residentKBStart": 63344,
+          "wrapper": "tehreer-cocoa"
+        },
+        "results": [
+          {
+            "characters": 11,
+            "drawMs": {
+              "max": 0.0509590208530426,
+              "median": 0.046875,
+              "min": 0.04649999737739563,
+              "n": 300,
+              "p90": 0.047457993030548096
+            },
+            "frameHeight": 18.75,
+            "frameWidth": 200,
+            "layoutMs": {
+              "max": 0.010291993618011475,
+              "median": 0.009292006492614746,
+              "min": 0.008957982063293457,
+              "n": 300,
+              "p90": 0.009750008583068848
+            },
+            "lines": 1,
+            "memLayoutKB": {
+              "max": 5.984375,
+              "median": 4.125,
+              "min": 3.8125,
+              "n": 3,
+              "p90": 5.984375
+            },
+            "scenario": "latin-label"
+          },
+          {
+            "characters": 576,
+            "drawMs": {
+              "max": 2.332749992609024,
+              "median": 2.161708503961563,
+              "min": 2.1449170112609863,
+              "n": 100,
+              "p90": 2.2290419936180115
+            },
+            "frameHeight": 300,
+            "frameWidth": 320,
+            "layoutMs": {
+              "max": 0.13466697931289673,
+              "median": 0.11250001192092896,
+              "min": 0.11179199814796448,
+              "n": 100,
+              "p90": 0.11662501096725464
+            },
+            "lines": 16,
+            "memLayoutKB": {
+              "max": 28.859375,
+              "median": 16.609375,
+              "min": 14.109375,
+              "n": 3,
+              "p90": 28.859375
+            },
+            "scenario": "latin-paragraph"
+          },
+          {
+            "characters": 575,
+            "drawMs": {
+              "max": 3.7217079997062683,
+              "median": 3.559707999229431,
+              "min": 3.5022920072078705,
+              "n": 40,
+              "p90": 3.687958002090454
+            },
+            "frameHeight": 825,
+            "frameWidth": 320,
+            "layoutMs": {
+              "max": 1.7802079916000366,
+              "median": 1.661541998386383,
+              "min": 1.6459999978542328,
+              "n": 40,
+              "p90": 1.7528340220451355
+            },
+            "lines": 15,
+            "memLayoutKB": {
+              "max": 165.796875,
+              "median": 37.75,
+              "min": 37.75,
+              "n": 3,
+              "p90": 165.796875
+            },
+            "scenario": "urdu-paragraph"
+          },
+          {
+            "characters": 516,
+            "drawMs": {
+              "max": 4.194582998752594,
+              "median": 2.5910830050706863,
+              "min": 2.544541984796524,
+              "n": 40,
+              "p90": 2.7430839836597443
+            },
+            "frameHeight": 630,
+            "frameWidth": 320,
+            "layoutMs": {
+              "max": 1.2488330006599426,
+              "median": 1.0235835015773773,
+              "min": 1.0091669857501984,
+              "n": 40,
+              "p90": 1.0769580006599426
+            },
+            "lines": 14,
+            "memLayoutKB": {
+              "max": 61.046875,
+              "median": 58.890625,
+              "min": 56.390625,
+              "n": 3,
+              "p90": 61.046875
+            },
+            "scenario": "mixed-bidi"
+          },
+          {
+            "characters": 20016,
+            "drawMs": {
+              "max": 82.99470800161362,
+              "median": 76.85162501037121,
+              "min": 76.58508297801018,
+              "n": 10,
+              "p90": 82.99470800161362
+            },
+            "frameHeight": 10425,
+            "frameWidth": 320,
+            "layoutMs": {
+              "max": 4.0365830063819885,
+              "median": 3.8594994992017746,
+              "min": 3.8331669867038727,
+              "n": 10,
+              "p90": 4.0365830063819885
+            },
+            "lines": 556,
+            "memLayoutKB": {
+              "max": 962,
+              "median": 959,
+              "min": 959,
+              "n": 3,
+              "p90": 962
+            },
+            "scenario": "long-latin"
+          },
+          {
+            "characters": 20010,
+            "drawMs": {
+              "max": 124.74470800161362,
+              "median": 113.91339598596096,
+              "min": 113.04362499713898,
+              "n": 10,
+              "p90": 124.74470800161362
+            },
+            "frameHeight": 19575,
+            "frameWidth": 320,
+            "layoutMs": {
+              "max": 58.42962500452995,
+              "median": 57.746645495295525,
+              "min": 57.477207988500595,
+              "n": 10,
+              "p90": 58.42962500452995
+            },
+            "lines": 435,
+            "memLayoutKB": {
+              "max": 1207.875,
+              "median": 1203.875,
+              "min": 1203.875,
+              "n": 3,
+              "p90": 1207.875
+            },
+            "scenario": "long-urdu"
+          }
+        ],
+        "done": true,
+        "problems": []
+      },
+      {
+        "meta": {
+          "build": "Release",
+          "coreVersion": "Core (Libraries/TehreerCore of Tehreer-Cocoa)",
+          "heapKBStart": 102.125,
+          "osVersion": "iOS 18.2",
+          "platform": "ios",
+          "renderScale": 1,
+          "residentKBStart": 63504,
+          "wrapper": "tehreer-cocoa"
+        },
+        "results": [
+          {
+            "characters": 11,
+            "drawMs": {
+              "max": 0.09787499904632568,
+              "median": 0.04737502336502075,
+              "min": 0.04683297872543335,
+              "n": 300,
+              "p90": 0.049250006675720215
+            },
+            "frameHeight": 18.75,
+            "frameWidth": 200,
+            "layoutMs": {
+              "max": 0.009709000587463379,
+              "median": 0.009000003337860107,
+              "min": 0.008832991123199463,
+              "n": 300,
+              "p90": 0.009207993745803833
+            },
+            "lines": 1,
+            "memLayoutKB": {
+              "max": 5.984375,
+              "median": 4.375,
+              "min": 3.8125,
+              "n": 3,
+              "p90": 5.984375
+            },
+            "scenario": "latin-label"
+          },
+          {
+            "characters": 576,
+            "drawMs": {
+              "max": 2.315292000770569,
+              "median": 2.168250009417534,
+              "min": 2.1482499837875366,
+              "n": 100,
+              "p90": 2.2275420129299164
+            },
+            "frameHeight": 300,
+            "frameWidth": 320,
+            "layoutMs": {
+              "max": 0.1592079997062683,
+              "median": 0.11235399544239044,
+              "min": 0.11162498593330383,
+              "n": 100,
+              "p90": 0.11720800399780273
+            },
+            "lines": 16,
+            "memLayoutKB": {
+              "max": 28.609375,
+              "median": 16.609375,
+              "min": 16.609375,
+              "n": 3,
+              "p90": 28.609375
+            },
+            "scenario": "latin-paragraph"
+          },
+          {
+            "characters": 575,
+            "drawMs": {
+              "max": 3.7173340022563934,
+              "median": 3.5560625046491623,
+              "min": 3.517333000898361,
+              "n": 40,
+              "p90": 3.6702080070972443
+            },
+            "frameHeight": 825,
+            "frameWidth": 320,
+            "layoutMs": {
+              "max": 1.7757499814033508,
+              "median": 1.6578125059604645,
+              "min": 1.6415829956531525,
+              "n": 40,
+              "p90": 1.710875004529953
+            },
+            "lines": 15,
+            "memLayoutKB": {
+              "max": 164.296875,
+              "median": 37.75,
+              "min": 37.75,
+              "n": 3,
+              "p90": 164.296875
+            },
+            "scenario": "urdu-paragraph"
+          },
+          {
+            "characters": 516,
+            "drawMs": {
+              "max": 4.288332998752594,
+              "median": 2.563645988702774,
+              "min": 2.5206249952316284,
+              "n": 40,
+              "p90": 2.768334001302719
+            },
+            "frameHeight": 630,
+            "frameWidth": 320,
+            "layoutMs": {
+              "max": 1.2078329920768738,
+              "median": 1.0269375145435333,
+              "min": 1.0072909891605377,
+              "n": 40,
+              "p90": 1.0441249907016754
+            },
+            "lines": 14,
+            "memLayoutKB": {
+              "max": 58.546875,
+              "median": 56.390625,
+              "min": 56.390625,
+              "n": 3,
+              "p90": 58.546875
+            },
+            "scenario": "mixed-bidi"
+          },
+          {
+            "characters": 20016,
+            "drawMs": {
+              "max": 112.74712499976158,
+              "median": 76.93870849907398,
+              "min": 76.12816601991653,
+              "n": 10,
+              "p90": 112.74712499976158
+            },
+            "frameHeight": 10425,
+            "frameWidth": 320,
+            "layoutMs": {
+              "max": 5.198999971151352,
+              "median": 4.062479004263878,
+              "min": 4.009207993745804,
+              "n": 10,
+              "p90": 5.198999971151352
+            },
+            "lines": 556,
+            "memLayoutKB": {
+              "max": 962,
+              "median": 959,
+              "min": 959,
+              "n": 3,
+              "p90": 962
+            },
+            "scenario": "long-latin"
+          },
+          {
+            "characters": 20010,
+            "drawMs": {
+              "max": 141.3213329911232,
+              "median": 115.50735400617123,
+              "min": 114.50787499547005,
+              "n": 10,
+              "p90": 141.3213329911232
+            },
+            "frameHeight": 19575,
+            "frameWidth": 320,
+            "layoutMs": {
+              "max": 57.671499997377396,
+              "median": 57.4356250166893,
+              "min": 57.32583299279213,
+              "n": 10,
+              "p90": 57.671499997377396
+            },
+            "lines": 435,
+            "memLayoutKB": {
+              "max": 1203.875,
+              "median": 1203.875,
+              "min": 1202.875,
+              "n": 3,
+              "p90": 1203.875
+            },
+            "scenario": "long-urdu"
+          }
+        ],
+        "done": true,
+        "problems": []
+      },
+      {
+        "meta": {
+          "build": "Release",
+          "coreVersion": "Core (Libraries/TehreerCore of Tehreer-Cocoa)",
+          "heapKBStart": 102.125,
+          "osVersion": "iOS 18.2",
+          "platform": "ios",
+          "renderScale": 1,
+          "residentKBStart": 63344,
+          "wrapper": "tehreer-cocoa"
+        },
+        "results": [
+          {
+            "characters": 11,
+            "drawMs": {
+              "max": 0.05133301019668579,
+              "median": 0.04720902442932129,
+              "min": 0.04679200053215027,
+              "n": 300,
+              "p90": 0.04800000786781311
+            },
+            "frameHeight": 18.75,
+            "frameWidth": 200,
+            "layoutMs": {
+              "max": 0.012499988079071045,
+              "median": 0.009290993213653564,
+              "min": 0.009083002805709839,
+              "n": 300,
+              "p90": 0.00979200005531311
+            },
+            "lines": 1,
+            "memLayoutKB": {
+              "max": 5.984375,
+              "median": 4.375,
+              "min": 3.8125,
+              "n": 3,
+              "p90": 5.984375
+            },
+            "scenario": "latin-label"
+          },
+          {
+            "characters": 576,
+            "drawMs": {
+              "max": 2.286041021347046,
+              "median": 2.1591250002384186,
+              "min": 2.141874998807907,
+              "n": 100,
+              "p90": 2.194833993911743
+            },
+            "frameHeight": 300,
+            "frameWidth": 320,
+            "layoutMs": {
+              "max": 0.117249995470047,
+              "median": 0.11220800876617432,
+              "min": 0.1117909848690033,
+              "n": 100,
+              "p90": 0.11320799589157104
+            },
+            "lines": 16,
+            "memLayoutKB": {
+              "max": 28.609375,
+              "median": 16.609375,
+              "min": 14.109375,
+              "n": 3,
+              "p90": 28.609375
+            },
+            "scenario": "latin-paragraph"
+          },
+          {
+            "characters": 575,
+            "drawMs": {
+              "max": 3.7314170002937317,
+              "median": 3.5844374895095825,
+              "min": 3.543166995048523,
+              "n": 40,
+              "p90": 3.7172499895095825
+            },
+            "frameHeight": 825,
+            "frameWidth": 320,
+            "layoutMs": {
+              "max": 1.792792022228241,
+              "median": 1.664458006620407,
+              "min": 1.6430419981479645,
+              "n": 40,
+              "p90": 1.7587499916553497
+            },
+            "lines": 15,
+            "memLayoutKB": {
+              "max": 165.796875,
+              "median": 37.75,
+              "min": 35.25,
+              "n": 3,
+              "p90": 165.796875
+            },
+            "scenario": "urdu-paragraph"
+          },
+          {
+            "characters": 516,
+            "drawMs": {
+              "max": 2.6866250038146973,
+              "median": 2.5393129885196686,
+              "min": 2.5238340198993683,
+              "n": 40,
+              "p90": 2.643207997083664
+            },
+            "frameHeight": 630,
+            "frameWidth": 320,
+            "layoutMs": {
+              "max": 1.249332994222641,
+              "median": 1.026103988289833,
+              "min": 1.004291981458664,
+              "n": 40,
+              "p90": 1.0764169991016388
+            },
+            "lines": 14,
+            "memLayoutKB": {
+              "max": 58.890625,
+              "median": 58.546875,
+              "min": 56.390625,
+              "n": 3,
+              "p90": 58.890625
+            },
+            "scenario": "mixed-bidi"
+          },
+          {
+            "characters": 20016,
+            "drawMs": {
+              "max": 78.13062500953674,
+              "median": 77.24229149520397,
+              "min": 76.42749997973442,
+              "n": 10,
+              "p90": 78.13062500953674
+            },
+            "frameHeight": 10425,
+            "frameWidth": 320,
+            "layoutMs": {
+              "max": 4.038207978010178,
+              "median": 3.925249993801117,
+              "min": 3.880374997854233,
+              "n": 10,
+              "p90": 4.038207978010178
+            },
+            "lines": 556,
+            "memLayoutKB": {
+              "max": 962,
+              "median": 959,
+              "min": 959,
+              "n": 3,
+              "p90": 962
+            },
+            "scenario": "long-latin"
+          },
+          {
+            "characters": 20010,
+            "drawMs": {
+              "max": 124.3282499909401,
+              "median": 114.44306248426437,
+              "min": 113.28129199147224,
+              "n": 10,
+              "p90": 124.3282499909401
+            },
+            "frameHeight": 19575,
+            "frameWidth": 320,
+            "layoutMs": {
+              "max": 58.61383298039436,
+              "median": 57.63435398042202,
+              "min": 57.4461669921875,
+              "n": 10,
+              "p90": 58.61383298039436
+            },
+            "lines": 435,
+            "memLayoutKB": {
+              "max": 1203.875,
+              "median": 1203.875,
+              "min": 1202.875,
+              "n": 3,
+              "p90": 1203.875
+            },
+            "scenario": "long-urdu"
+          }
+        ],
+        "done": true,
+        "problems": []
+      },
+      {
+        "meta": {
+          "build": "Release",
+          "coreVersion": "Core (Libraries/TehreerCore of Tehreer-Cocoa)",
+          "heapKBStart": 103.625,
+          "osVersion": "iOS 18.2",
+          "platform": "ios",
+          "renderScale": 1,
+          "residentKBStart": 63824,
+          "wrapper": "tehreer-cocoa"
+        },
+        "results": [
+          {
+            "characters": 11,
+            "drawMs": {
+              "max": 0.07383301854133606,
+              "median": 0.04837499558925629,
+              "min": 0.04725000262260437,
+              "n": 300,
+              "p90": 0.04983299970626831
+            },
+            "frameHeight": 18.75,
+            "frameWidth": 200,
+            "layoutMs": {
+              "max": 0.010250002145767212,
+              "median": 0.009312495589256287,
+              "min": 0.009000003337860107,
+              "n": 300,
+              "p90": 0.009832978248596191
+            },
+            "lines": 1,
+            "memLayoutKB": {
+              "max": 5.984375,
+              "median": 4.375,
+              "min": 3.8125,
+              "n": 3,
+              "p90": 5.984375
+            },
+            "scenario": "latin-label"
+          },
+          {
+            "characters": 576,
+            "drawMs": {
+              "max": 2.3988749980926514,
+              "median": 2.2090419977903366,
+              "min": 2.1491250097751617,
+              "n": 100,
+              "p90": 2.3289999961853027
+            },
+            "frameHeight": 300,
+            "frameWidth": 320,
+            "layoutMs": {
+              "max": 0.15049999952316284,
+              "median": 0.11360448598861694,
+              "min": 0.11187499761581421,
+              "n": 100,
+              "p90": 0.11616697907447815
+            },
+            "lines": 16,
+            "memLayoutKB": {
+              "max": 28.609375,
+              "median": 16.609375,
+              "min": 16.609375,
+              "n": 3,
+              "p90": 28.609375
+            },
+            "scenario": "latin-paragraph"
+          },
+          {
+            "characters": 575,
+            "drawMs": {
+              "max": 5.566292017698288,
+              "median": 3.648000493645668,
+              "min": 3.5400829911231995,
+              "n": 40,
+              "p90": 4.100624978542328
+            },
+            "frameHeight": 825,
+            "frameWidth": 320,
+            "layoutMs": {
+              "max": 1.8125,
+              "median": 1.6547915041446686,
+              "min": 1.6401249766349792,
+              "n": 40,
+              "p90": 1.7592909932136536
+            },
+            "lines": 15,
+            "memLayoutKB": {
+              "max": 163.296875,
+              "median": 37.75,
+              "min": 37.75,
+              "n": 3,
+              "p90": 163.296875
+            },
+            "scenario": "urdu-paragraph"
+          },
+          {
+            "characters": 516,
+            "drawMs": {
+              "max": 2.67637500166893,
+              "median": 2.549229010939598,
+              "min": 2.529582977294922,
+              "n": 40,
+              "p90": 2.6262910068035126
+            },
+            "frameHeight": 630,
+            "frameWidth": 320,
+            "layoutMs": {
+              "max": 1.279209017753601,
+              "median": 1.032916009426117,
+              "min": 1.0128750205039978,
+              "n": 40,
+              "p90": 1.0855830013751984
+            },
+            "lines": 14,
+            "memLayoutKB": {
+              "max": 58.546875,
+              "median": 56.390625,
+              "min": 53.890625,
+              "n": 3,
+              "p90": 58.546875
+            },
+            "scenario": "mixed-bidi"
+          },
+          {
+            "characters": 20016,
+            "drawMs": {
+              "max": 78.34970799088478,
+              "median": 76.44677050411701,
+              "min": 75.65779200196266,
+              "n": 10,
+              "p90": 78.34970799088478
+            },
+            "frameHeight": 10425,
+            "frameWidth": 320,
+            "layoutMs": {
+              "max": 4.649917006492615,
+              "median": 3.895916998386383,
+              "min": 3.850125014781952,
+              "n": 10,
+              "p90": 4.649917006492615
+            },
+            "lines": 556,
+            "memLayoutKB": {
+              "max": 962,
+              "median": 959,
+              "min": 959,
+              "n": 3,
+              "p90": 962
+            },
+            "scenario": "long-latin"
+          },
+          {
+            "characters": 20010,
+            "drawMs": {
+              "max": 129.76104101538658,
+              "median": 114.38556198775768,
+              "min": 113.8534579873085,
+              "n": 10,
+              "p90": 129.76104101538658
+            },
+            "frameHeight": 19575,
+            "frameWidth": 320,
+            "layoutMs": {
+              "max": 61.44862499833107,
+              "median": 60.39162500202656,
+              "min": 58.18591699004173,
+              "n": 10,
+              "p90": 61.44862499833107
+            },
+            "lines": 435,
+            "memLayoutKB": {
+              "max": 1203.875,
+              "median": 1203.875,
+              "min": 1202.875,
+              "n": 3,
+              "p90": 1203.875
+            },
+            "scenario": "long-urdu"
+          }
+        ],
+        "done": true,
+        "problems": []
+      }
+    ],
+    "react-native/android": [
+      {
+        "meta": {
+          "wrapper": "react-native",
+          "platform": "android",
+          "osVersion": "30",
+          "build": "Release",
+          "coreVersion": "1.0.0",
+          "engine": "hermes",
+          "renderScale": 1,
+          "residentKBStart": 155072,
+          "heapKBStart": 40142.796875
+        },
+        "results": [
+          {
+            "scenario": "latin-label",
+            "characters": 11,
+            "lines": 1,
+            "frameWidth": 200,
+            "frameHeight": 18.75,
+            "layoutMs": {
+              "n": 300,
+              "min": 0.055416000075638294,
+              "median": 0.07387500023469329,
+              "p90": 0.29833299946039915,
+              "max": 52.502000000327826
+            },
+            "drawMs": {
+              "n": 300,
+              "min": 0.013458,
+              "median": 0.013792,
+              "p90": 0.016,
+              "max": 38.766625
+            },
+            "memLayoutKB": {
+              "n": 3,
+              "min": 0.265625,
+              "median": 2.34375,
+              "p90": 6.53125,
+              "max": 6.53125
+            }
+          },
+          {
+            "scenario": "latin-paragraph",
+            "characters": 576,
+            "lines": 16,
+            "frameWidth": 320,
+            "frameHeight": 300,
+            "layoutMs": {
+              "n": 100,
+              "min": 0.23533299937844276,
+              "median": 0.40337499929592013,
+              "p90": 3.3061669999733567,
+              "max": 65.4462919998914
+            },
+            "drawMs": {
+              "n": 100,
+              "min": 0.644583,
+              "median": 1.1741044999999999,
+              "p90": 1.906042,
+              "max": 2.959375
+            },
+            "memLayoutKB": {
+              "n": 3,
+              "min": 31.453125,
+              "median": 37.6875,
+              "p90": 42.171875,
+              "max": 42.171875
+            }
+          },
+          {
+            "scenario": "urdu-paragraph",
+            "characters": 575,
+            "lines": 15,
+            "frameWidth": 320,
+            "frameHeight": 825,
+            "layoutMs": {
+              "n": 40,
+              "min": 5.500874999910593,
+              "median": 9.443791499827057,
+              "p90": 12.951666000299156,
+              "max": 15.791875000111759
+            },
+            "drawMs": {
+              "n": 40,
+              "min": 1.373125,
+              "median": 2.1143335,
+              "p90": 3.598042,
+              "max": 4.571
+            },
+            "memLayoutKB": {
+              "n": 3,
+              "min": 40.828125,
+              "median": 40.890625,
+              "p90": 204.796875,
+              "max": 204.796875
+            }
+          },
+          {
+            "scenario": "mixed-bidi",
+            "characters": 516,
+            "lines": 14,
+            "frameWidth": 320,
+            "frameHeight": 630,
+            "layoutMs": {
+              "n": 40,
+              "min": 3.4914170000702143,
+              "median": 7.015604500193149,
+              "p90": 9.055832999758422,
+              "max": 9.146499999798834
+            },
+            "drawMs": {
+              "n": 40,
+              "min": 1.264458,
+              "median": 1.810708,
+              "p90": 2.846333,
+              "max": 3.49775
+            },
+            "memLayoutKB": {
+              "n": 3,
+              "min": 25.4375,
+              "median": 54.921875,
+              "p90": 93.015625,
+              "max": 93.015625
+            }
+          },
+          {
+            "scenario": "long-latin",
+            "characters": 20016,
+            "lines": 556,
+            "frameWidth": 320,
+            "frameHeight": 10425,
+            "layoutMs": {
+              "n": 10,
+              "min": 13.976874999701977,
+              "median": 18.67712500039488,
+              "p90": 23.375707999803126,
+              "max": 23.375707999803126
+            },
+            "drawMs": {
+              "n": 10,
+              "min": 41.455625,
+              "median": 50.949938,
+              "p90": 59.206417,
+              "max": 59.206417
+            },
+            "memLayoutKB": {
+              "n": 3,
+              "min": 617.546875,
+              "median": 1162.53125,
+              "p90": 1163.078125,
+              "max": 1163.078125
+            }
+          },
+          {
+            "scenario": "long-urdu",
+            "characters": 20010,
+            "lines": 435,
+            "frameWidth": 320,
+            "frameHeight": 19575,
+            "layoutMs": {
+              "n": 10,
+              "min": 198.52304200083017,
+              "median": 279.54481299966574,
+              "p90": 358.80674999952316,
+              "max": 358.80674999952316
+            },
+            "drawMs": {
+              "n": 10,
+              "min": 69.622209,
+              "median": 93.740521,
+              "p90": 115.0815,
+              "max": 115.0815
+            },
+            "memLayoutKB": {
+              "n": 3,
+              "min": 902.796875,
+              "median": 972.875,
+              "p90": 1294.296875,
+              "max": 1294.296875
+            }
+          }
+        ],
+        "done": true,
+        "problems": []
+      },
+      {
+        "meta": {
+          "wrapper": "react-native",
+          "platform": "android",
+          "osVersion": "30",
+          "build": "Release",
+          "coreVersion": "1.0.0",
+          "engine": "hermes",
+          "renderScale": 1,
+          "residentKBStart": 155444,
+          "heapKBStart": 39871.875
+        },
+        "results": [
+          {
+            "scenario": "latin-label",
+            "characters": 11,
+            "lines": 1,
+            "frameWidth": 200,
+            "frameHeight": 18.75,
+            "layoutMs": {
+              "n": 300,
+              "min": 0.05591600015759468,
+              "median": 0.07308350037783384,
+              "p90": 0.22704199980944395,
+              "max": 42.05033300071955
+            },
+            "drawMs": {
+              "n": 300,
+              "min": 0.013333,
+              "median": 0.013625,
+              "p90": 0.020375,
+              "max": 1.709291
+            },
+            "memLayoutKB": {
+              "n": 3,
+              "min": 1.609375,
+              "median": 2.234375,
+              "p90": 26.6875,
+              "max": 26.6875
+            }
+          },
+          {
+            "scenario": "latin-paragraph",
+            "characters": 576,
+            "lines": 16,
+            "frameWidth": 320,
+            "frameHeight": 300,
+            "layoutMs": {
+              "n": 100,
+              "min": 0.2358339997008443,
+              "median": 0.29089599940925837,
+              "p90": 1.8554999995976686,
+              "max": 38.304125000722706
+            },
+            "drawMs": {
+              "n": 100,
+              "min": 0.639875,
+              "median": 0.7138745,
+              "p90": 0.862417,
+              "max": 1.233875
+            },
+            "memLayoutKB": {
+              "n": 3,
+              "min": 36.703125,
+              "median": 55.96875,
+              "p90": 58.203125,
+              "max": 58.203125
+            }
+          },
+          {
+            "scenario": "urdu-paragraph",
+            "characters": 575,
+            "lines": 15,
+            "frameWidth": 320,
+            "frameHeight": 825,
+            "layoutMs": {
+              "n": 40,
+              "min": 5.37604200001806,
+              "median": 6.126187500078231,
+              "p90": 7.6852500000968575,
+              "max": 9.100458000786602
+            },
+            "drawMs": {
+              "n": 40,
+              "min": 1.2725,
+              "median": 1.5692080000000002,
+              "p90": 2.435375,
+              "max": 2.776583
+            },
+            "memLayoutKB": {
+              "n": 3,
+              "min": 32.109375,
+              "median": 40.796875,
+              "p90": 214.28125,
+              "max": 214.28125
+            }
+          },
+          {
+            "scenario": "mixed-bidi",
+            "characters": 516,
+            "lines": 14,
+            "frameWidth": 320,
+            "frameHeight": 630,
+            "layoutMs": {
+              "n": 40,
+              "min": 3.2505000000819564,
+              "median": 3.8684374997392297,
+              "p90": 4.411041000857949,
+              "max": 5.104000000283122
+            },
+            "drawMs": {
+              "n": 40,
+              "min": 0.830167,
+              "median": 1.0876875,
+              "p90": 1.882666,
+              "max": 3.767084
+            },
+            "memLayoutKB": {
+              "n": 3,
+              "min": 55.046875,
+              "median": 55.609375,
+              "p90": 61.015625,
+              "max": 61.015625
+            }
+          },
+          {
+            "scenario": "long-latin",
+            "characters": 20016,
+            "lines": 556,
+            "frameWidth": 320,
+            "frameHeight": 10425,
+            "layoutMs": {
+              "n": 10,
+              "min": 13.012791999615729,
+              "median": 15.538125000428408,
+              "p90": 22.65337499976158,
+              "max": 22.65337499976158
+            },
+            "drawMs": {
+              "n": 10,
+              "min": 27.039708,
+              "median": 42.1254165,
+              "p90": 49.055833,
+              "max": 49.055833
+            },
+            "memLayoutKB": {
+              "n": 3,
+              "min": 619.15625,
+              "median": 1162.703125,
+              "p90": 1162.890625,
+              "max": 1162.890625
+            }
+          },
+          {
+            "scenario": "long-urdu",
+            "characters": 20010,
+            "lines": 435,
+            "frameWidth": 320,
+            "frameHeight": 19575,
+            "layoutMs": {
+              "n": 10,
+              "min": 196.89520800020546,
+              "median": 235.5045829997398,
+              "p90": 282.2060000002384,
+              "max": 282.2060000002384
+            },
+            "drawMs": {
+              "n": 10,
+              "min": 58.302291,
+              "median": 60.880125,
+              "p90": 67.929584,
+              "max": 67.929584
+            },
+            "memLayoutKB": {
+              "n": 3,
+              "min": 779.390625,
+              "median": 1036.65625,
+              "p90": 1294.171875,
+              "max": 1294.171875
+            }
+          }
+        ],
+        "done": true,
+        "problems": []
+      },
+      {
+        "meta": {
+          "wrapper": "react-native",
+          "platform": "android",
+          "osVersion": "30",
+          "build": "Release",
+          "coreVersion": "1.0.0",
+          "engine": "hermes",
+          "renderScale": 1,
+          "residentKBStart": 156400,
+          "heapKBStart": 39985.25
+        },
+        "results": [
+          {
+            "scenario": "latin-label",
+            "characters": 11,
+            "lines": 1,
+            "frameWidth": 200,
+            "frameHeight": 18.75,
+            "layoutMs": {
+              "n": 300,
+              "min": 0.05541700031608343,
+              "median": 0.0728540001437068,
+              "p90": 0.276999999769032,
+              "max": 100.7072080001235
+            },
+            "drawMs": {
+              "n": 300,
+              "min": 0.013166,
+              "median": 0.0135,
+              "p90": 0.022792,
+              "max": 72.368708
+            },
+            "memLayoutKB": {
+              "n": 3,
+              "min": 2.234375,
+              "median": 2.234375,
+              "p90": 35.640625,
+              "max": 35.640625
+            }
+          },
+          {
+            "scenario": "latin-paragraph",
+            "characters": 576,
+            "lines": 16,
+            "frameWidth": 320,
+            "frameHeight": 300,
+            "layoutMs": {
+              "n": 100,
+              "min": 0.23429100029170513,
+              "median": 0.2674165000207722,
+              "p90": 0.5368750002235174,
+              "max": 19.608291000127792
+            },
+            "drawMs": {
+              "n": 100,
+              "min": 0.630792,
+              "median": 0.6816249999999999,
+              "p90": 1.215875,
+              "max": 1.825375
+            },
+            "memLayoutKB": {
+              "n": 3,
+              "min": 35.34375,
+              "median": 35.5,
+              "p90": 39.234375,
+              "max": 39.234375
+            }
+          },
+          {
+            "scenario": "urdu-paragraph",
+            "characters": 575,
+            "lines": 15,
+            "frameWidth": 320,
+            "frameHeight": 825,
+            "layoutMs": {
+              "n": 40,
+              "min": 5.365167000330985,
+              "median": 7.952958500012755,
+              "p90": 10.294250000268221,
+              "max": 12.502708999440074
+            },
+            "drawMs": {
+              "n": 40,
+              "min": 1.129792,
+              "median": 1.2412295,
+              "p90": 1.954333,
+              "max": 3.248541
+            },
+            "memLayoutKB": {
+              "n": 3,
+              "min": 32.296875,
+              "median": 40.890625,
+              "p90": 206.859375,
+              "max": 206.859375
+            }
+          },
+          {
+            "scenario": "mixed-bidi",
+            "characters": 516,
+            "lines": 14,
+            "frameWidth": 320,
+            "frameHeight": 630,
+            "layoutMs": {
+              "n": 40,
+              "min": 3.0660000005736947,
+              "median": 4.180750000290573,
+              "p90": 6.805250000208616,
+              "max": 12.692874999716878
+            },
+            "drawMs": {
+              "n": 40,
+              "min": 0.818958,
+              "median": 1.217687,
+              "p90": 2.224666,
+              "max": 2.79125
+            },
+            "memLayoutKB": {
+              "n": 3,
+              "min": 55.359375,
+              "median": 55.46875,
+              "p90": 61.90625,
+              "max": 61.90625
+            }
+          },
+          {
+            "scenario": "long-latin",
+            "characters": 20016,
+            "lines": 556,
+            "frameWidth": 320,
+            "frameHeight": 10425,
+            "layoutMs": {
+              "n": 10,
+              "min": 12.58712499961257,
+              "median": 19.197312499862164,
+              "p90": 21.297499999403954,
+              "max": 21.297499999403954
+            },
+            "drawMs": {
+              "n": 10,
+              "min": 30.929542,
+              "median": 38.635229499999994,
+              "p90": 43.113792,
+              "max": 43.113792
+            },
+            "memLayoutKB": {
+              "n": 3,
+              "min": 616.21875,
+              "median": 1162.515625,
+              "p90": 1163.140625,
+              "max": 1163.140625
+            }
+          },
+          {
+            "scenario": "long-urdu",
+            "characters": 20010,
+            "lines": 435,
+            "frameWidth": 320,
+            "frameHeight": 19575,
+            "layoutMs": {
+              "n": 10,
+              "min": 204.45799999963492,
+              "median": 260.27306250017136,
+              "p90": 341.7103340001777,
+              "max": 341.7103340001777
+            },
+            "drawMs": {
+              "n": 10,
+              "min": 62.945834,
+              "median": 77.4268335,
+              "p90": 99.057041,
+              "max": 99.057041
+            },
+            "memLayoutKB": {
+              "n": 3,
+              "min": 774.09375,
+              "median": 1037.03125,
+              "p90": 1294.171875,
+              "max": 1294.171875
+            }
+          }
+        ],
+        "done": true,
+        "problems": []
+      },
+      {
+        "meta": {
+          "wrapper": "react-native",
+          "platform": "android",
+          "osVersion": "30",
+          "build": "Release",
+          "coreVersion": "1.0.0",
+          "engine": "hermes",
+          "renderScale": 1,
+          "residentKBStart": 156004,
+          "heapKBStart": 39889.046875
+        },
+        "results": [
+          {
+            "scenario": "latin-label",
+            "characters": 11,
+            "lines": 1,
+            "frameWidth": 200,
+            "frameHeight": 18.75,
+            "layoutMs": {
+              "n": 300,
+              "min": 0.054500000551342964,
+              "median": 0.08924999972805381,
+              "p90": 0.34245899971574545,
+              "max": 26.019709000363946
+            },
+            "drawMs": {
+              "n": 300,
+              "min": 0.0135,
+              "median": 0.028708,
+              "p90": 0.030666,
+              "max": 22.860292
+            },
+            "memLayoutKB": {
+              "n": 3,
+              "min": 2.78125,
+              "median": 2.921875,
+              "p90": 13.921875,
+              "max": 13.921875
+            }
+          },
+          {
+            "scenario": "latin-paragraph",
+            "characters": 576,
+            "lines": 16,
+            "frameWidth": 320,
+            "frameHeight": 300,
+            "layoutMs": {
+              "n": 100,
+              "min": 0.28904200065881014,
+              "median": 0.45547949988394976,
+              "p90": 4.3854580000042915,
+              "max": 20.737166000530124
+            },
+            "drawMs": {
+              "n": 100,
+              "min": 0.635584,
+              "median": 1.36075,
+              "p90": 3.9175,
+              "max": 39.683416
+            },
+            "memLayoutKB": {
+              "n": 3,
+              "min": 35.09375,
+              "median": 37.40625,
+              "p90": 40.40625,
+              "max": 40.40625
+            }
+          },
+          {
+            "scenario": "urdu-paragraph",
+            "characters": 575,
+            "lines": 15,
+            "frameWidth": 320,
+            "frameHeight": 825,
+            "layoutMs": {
+              "n": 40,
+              "min": 5.851083000190556,
+              "median": 9.784562499728054,
+              "p90": 12.058709000237286,
+              "max": 14.671000000089407
+            },
+            "drawMs": {
+              "n": 40,
+              "min": 1.210083,
+              "median": 2.0368125,
+              "p90": 8.54425,
+              "max": 46.23425
+            },
+            "memLayoutKB": {
+              "n": 3,
+              "min": 40.765625,
+              "median": 41.203125,
+              "p90": 199.046875,
+              "max": 199.046875
+            }
+          },
+          {
+            "scenario": "mixed-bidi",
+            "characters": 516,
+            "lines": 14,
+            "frameWidth": 320,
+            "frameHeight": 630,
+            "layoutMs": {
+              "n": 40,
+              "min": 3.2187090003862977,
+              "median": 5.435104500036687,
+              "p90": 8.09395799972117,
+              "max": 10.606666999869049
+            },
+            "drawMs": {
+              "n": 40,
+              "min": 0.829625,
+              "median": 1.7451254999999999,
+              "p90": 2.316542,
+              "max": 2.540458
+            },
+            "memLayoutKB": {
+              "n": 3,
+              "min": 55.46875,
+              "median": 55.609375,
+              "p90": 61.84375,
+              "max": 61.84375
+            }
+          },
+          {
+            "scenario": "long-latin",
+            "characters": 20016,
+            "lines": 556,
+            "frameWidth": 320,
+            "frameHeight": 10425,
+            "layoutMs": {
+              "n": 10,
+              "min": 15.361207999289036,
+              "median": 22.352062500081956,
+              "p90": 26.41229100059718,
+              "max": 26.41229100059718
+            },
+            "drawMs": {
+              "n": 10,
+              "min": 34.558042,
+              "median": 45.497187,
+              "p90": 52.011416,
+              "max": 52.011416
+            },
+            "memLayoutKB": {
+              "n": 3,
+              "min": 583.46875,
+              "median": 1162.765625,
+              "p90": 1163.328125,
+              "max": 1163.328125
+            }
+          },
+          {
+            "scenario": "long-urdu",
+            "characters": 20010,
+            "lines": 435,
+            "frameWidth": 320,
+            "frameHeight": 19575,
+            "layoutMs": {
+              "n": 10,
+              "min": 253.4849579995498,
+              "median": 296.42774999979883,
+              "p90": 341.717083000578,
+              "max": 341.717083000578
+            },
+            "drawMs": {
+              "n": 10,
+              "min": 69.446083,
+              "median": 116.5099375,
+              "p90": 167.47825,
+              "max": 167.47825
+            },
+            "memLayoutKB": {
+              "n": 3,
+              "min": 907.734375,
+              "median": 973.125,
+              "p90": 1294.296875,
+              "max": 1294.296875
+            }
+          }
+        ],
+        "done": true,
+        "problems": []
+      },
+      {
+        "meta": {
+          "wrapper": "react-native",
+          "platform": "android",
+          "osVersion": "30",
+          "build": "Release",
+          "coreVersion": "1.0.0",
+          "engine": "hermes",
+          "renderScale": 1,
+          "residentKBStart": 158596,
+          "heapKBStart": 41175.015625
+        },
+        "results": [
+          {
+            "scenario": "latin-label",
+            "characters": 11,
+            "lines": 1,
+            "frameWidth": 200,
+            "frameHeight": 18.75,
+            "layoutMs": {
+              "n": 300,
+              "min": 0.054999999701976776,
+              "median": 0.09039550041779876,
+              "p90": 0.2940839994698763,
+              "max": 114.24237500037998
+            },
+            "drawMs": {
+              "n": 300,
+              "min": 0.013333,
+              "median": 0.028188,
+              "p90": 0.029167,
+              "max": 25.377792
+            },
+            "memLayoutKB": {
+              "n": 3,
+              "min": 2.359375,
+              "median": 2.609375,
+              "p90": 25.203125,
+              "max": 25.203125
+            }
+          },
+          {
+            "scenario": "latin-paragraph",
+            "characters": 576,
+            "lines": 16,
+            "frameWidth": 320,
+            "frameHeight": 300,
+            "layoutMs": {
+              "n": 100,
+              "min": 0.23612499982118607,
+              "median": 0.3158335001207888,
+              "p90": 1.8932919995859265,
+              "max": 285.28183399979025
+            },
+            "drawMs": {
+              "n": 100,
+              "min": 0.633834,
+              "median": 0.716396,
+              "p90": 1.1435,
+              "max": 5.986
+            },
+            "memLayoutKB": {
+              "n": 3,
+              "min": 35.09375,
+              "median": 42.234375,
+              "p90": 63.046875,
+              "max": 63.046875
+            }
+          },
+          {
+            "scenario": "urdu-paragraph",
+            "characters": 575,
+            "lines": 15,
+            "frameWidth": 320,
+            "frameHeight": 825,
+            "layoutMs": {
+              "n": 40,
+              "min": 6.464791999198496,
+              "median": 16.684417000040412,
+              "p90": 43.76045800000429,
+              "max": 76.21233300026506
+            },
+            "drawMs": {
+              "n": 40,
+              "min": 1.958209,
+              "median": 5.5958334999999995,
+              "p90": 11.3785,
+              "max": 23.699125
+            },
+            "memLayoutKB": {
+              "n": 3,
+              "min": 40.390625,
+              "median": 40.828125,
+              "p90": 204.546875,
+              "max": 204.546875
+            }
+          },
+          {
+            "scenario": "mixed-bidi",
+            "characters": 516,
+            "lines": 14,
+            "frameWidth": 320,
+            "frameHeight": 630,
+            "layoutMs": {
+              "n": 40,
+              "min": 3.3005839996039867,
+              "median": 4.252333000302315,
+              "p90": 7.294250000268221,
+              "max": 26.613083000294864
+            },
+            "drawMs": {
+              "n": 40,
+              "min": 0.829791,
+              "median": 1.0712294999999998,
+              "p90": 2.536291,
+              "max": 4.487666
+            },
+            "memLayoutKB": {
+              "n": 3,
+              "min": 23.921875,
+              "median": 55.359375,
+              "p90": 93.515625,
+              "max": 93.515625
+            }
+          },
+          {
+            "scenario": "long-latin",
+            "characters": 20016,
+            "lines": 556,
+            "frameWidth": 320,
+            "frameHeight": 10425,
+            "layoutMs": {
+              "n": 10,
+              "min": 13.700125000439584,
+              "median": 14.294395999517292,
+              "p90": 34.80633299984038,
+              "max": 34.80633299984038
+            },
+            "drawMs": {
+              "n": 10,
+              "min": 28.90325,
+              "median": 33.28675,
+              "p90": 51.06975,
+              "max": 51.06975
+            },
+            "memLayoutKB": {
+              "n": 3,
+              "min": 612.234375,
+              "median": 1162.515625,
+              "p90": 1163.078125,
+              "max": 1163.078125
+            }
+          },
+          {
+            "scenario": "long-urdu",
+            "characters": 20010,
+            "lines": 435,
+            "frameWidth": 320,
+            "frameHeight": 19575,
+            "layoutMs": {
+              "n": 10,
+              "min": 210.91908300016075,
+              "median": 239.37079149996862,
+              "p90": 25384.028095000423,
+              "max": 25384.028095000423
+            },
+            "drawMs": {
+              "n": 10,
+              "min": 64.370292,
+              "median": 69.1875625,
+              "p90": 4708.59546,
+              "max": 4708.59546
+            },
+            "memLayoutKB": {
+              "n": 3,
+              "min": 903.09375,
+              "median": 973,
+              "p90": 1294.171875,
+              "max": 1294.171875
             }
           }
         ],
@@ -2618,8 +3540,8 @@
           "coreVersion": "Core (tehreer-core of Tehreer-Android)",
           "device": "sdk_gphone_arm64",
           "renderScale": 1,
-          "residentKBStart": 118064,
-          "heapKBStart": 5316.65625
+          "residentKBStart": 123956,
+          "heapKBStart": 5331.6875
         },
         "results": [
           {
@@ -2630,17 +3552,17 @@
             "frameHeight": 18.75,
             "layoutMs": {
               "n": 300,
-              "min": 0.0565,
-              "median": 0.151646,
-              "p90": 1.079,
-              "max": 73.6065
+              "min": 0.066084,
+              "median": 0.141208,
+              "p90": 0.36375,
+              "max": 130.094875
             },
             "drawMs": {
               "n": 300,
-              "min": 0.042125,
-              "median": 0.0443125,
-              "p90": 0.076042,
-              "max": 127.674709
+              "min": 0.020375,
+              "median": 0.0305415,
+              "p90": 0.087333,
+              "max": 54.52075
             },
             "memLayoutKB": {
               "n": 3,
@@ -2672,17 +3594,17 @@
             "frameHeight": 300,
             "layoutMs": {
               "n": 100,
-              "min": 0.339834,
-              "median": 0.896604,
-              "p90": 1.512042,
-              "max": 4.17725
+              "min": 0.343792,
+              "median": 0.5950415,
+              "p90": 1.047417,
+              "max": 1.462083
             },
             "drawMs": {
               "n": 100,
-              "min": 0.69325,
-              "median": 1.524,
-              "p90": 2.251292,
-              "max": 3.97975
+              "min": 0.69775,
+              "median": 1.135,
+              "p90": 2.273917,
+              "max": 5.052458
             },
             "memLayoutKB": {
               "n": 3,
@@ -2714,17 +3636,17 @@
             "frameHeight": 825,
             "layoutMs": {
               "n": 40,
-              "min": 5.746584,
-              "median": 13.2111455,
-              "p90": 15.1625,
-              "max": 15.76875
+              "min": 5.578917,
+              "median": 8.5132915,
+              "p90": 15.179458,
+              "max": 30.676667
             },
             "drawMs": {
               "n": 40,
-              "min": 1.475583,
-              "median": 2.7611045,
-              "p90": 5.39125,
-              "max": 8.242084
+              "min": 1.245,
+              "median": 1.837542,
+              "p90": 3.927709,
+              "max": 7.46
             },
             "memLayoutKB": {
               "n": 3,
@@ -2756,17 +3678,17 @@
             "frameHeight": 630,
             "layoutMs": {
               "n": 40,
-              "min": 3.930375,
-              "median": 8.4749375,
-              "p90": 11.550083,
-              "max": 15.342792
+              "min": 3.768417,
+              "median": 6.2344170000000005,
+              "p90": 9.393458,
+              "max": 11.25025
             },
             "drawMs": {
               "n": 40,
-              "min": 1.409625,
-              "median": 2.237167,
-              "p90": 3.8185,
-              "max": 5.074208
+              "min": 0.919458,
+              "median": 2.1698125,
+              "p90": 3.216584,
+              "max": 4.15475
             },
             "memLayoutKB": {
               "n": 3,
@@ -2798,17 +3720,17 @@
             "frameHeight": 10425,
             "layoutMs": {
               "n": 10,
-              "min": 49.901917,
-              "median": 74.9405625,
-              "p90": 100.494375,
-              "max": 100.494375
+              "min": 31.893708,
+              "median": 42.179937499999994,
+              "p90": 57.893958,
+              "max": 57.893958
             },
             "drawMs": {
               "n": 10,
-              "min": 63.413875,
-              "median": 72.322334,
-              "p90": 85.0365,
-              "max": 85.0365
+              "min": 36.207458,
+              "median": 42.714188,
+              "p90": 60.133292,
+              "max": 60.133292
             },
             "memLayoutKB": {
               "n": 3,
@@ -2840,17 +3762,17 @@
             "frameHeight": 19575,
             "layoutMs": {
               "n": 10,
-              "min": 432.332708,
-              "median": 493.351021,
-              "p90": 794.279417,
-              "max": 794.279417
+              "min": 260.356334,
+              "median": 289.511667,
+              "p90": 449.325833,
+              "max": 449.325833
             },
             "drawMs": {
               "n": 10,
-              "min": 118.081916,
-              "median": 137.710667,
-              "p90": 151.272208,
-              "max": 151.272208
+              "min": 64.926208,
+              "median": 73.526354,
+              "p90": 101.941083,
+              "max": 101.941083
             },
             "memLayoutKB": {
               "n": 3,
@@ -2887,8 +3809,8 @@
           "coreVersion": "Core (tehreer-core of Tehreer-Android)",
           "device": "sdk_gphone_arm64",
           "renderScale": 1,
-          "residentKBStart": 118540,
-          "heapKBStart": 5331.21875
+          "residentKBStart": 124976,
+          "heapKBStart": 5795.0625
         },
         "results": [
           {
@@ -2899,17 +3821,17 @@
             "frameHeight": 18.75,
             "layoutMs": {
               "n": 300,
-              "min": 0.0605,
-              "median": 0.2085415,
-              "p90": 2.969666,
-              "max": 267.946292
+              "min": 0.062083,
+              "median": 0.15137499999999998,
+              "p90": 2.0295,
+              "max": 19963.331718
             },
             "drawMs": {
               "n": 300,
-              "min": 0.020708,
-              "median": 0.0384795,
-              "p90": 0.062791,
-              "max": 70.700584
+              "min": 0.020333,
+              "median": 0.021,
+              "p90": 0.043917,
+              "max": 13.195292
             },
             "memLayoutKB": {
               "n": 3,
@@ -2941,17 +3863,17 @@
             "frameHeight": 300,
             "layoutMs": {
               "n": 100,
-              "min": 0.629,
-              "median": 1.028167,
-              "p90": 2.41925,
-              "max": 8.718916
+              "min": 0.357084,
+              "median": 0.7096045,
+              "p90": 1.376584,
+              "max": 2.816375
             },
             "drawMs": {
               "n": 100,
-              "min": 0.704458,
-              "median": 1.6244795,
-              "p90": 2.406292,
-              "max": 5.27725
+              "min": 0.686958,
+              "median": 0.7290205000000001,
+              "p90": 1.01875,
+              "max": 2.821125
             },
             "memLayoutKB": {
               "n": 3,
@@ -2983,17 +3905,17 @@
             "frameHeight": 825,
             "layoutMs": {
               "n": 40,
-              "min": 5.901959,
-              "median": 12.708604,
-              "p90": 15.548792,
-              "max": 21.865917
+              "min": 5.602083,
+              "median": 6.009667,
+              "p90": 7.960375,
+              "max": 11.633417
             },
             "drawMs": {
               "n": 40,
-              "min": 1.274,
-              "median": 2.9822295,
-              "p90": 4.731833,
-              "max": 6.548417
+              "min": 1.245583,
+              "median": 1.5056455,
+              "p90": 1.826167,
+              "max": 2.41825
             },
             "memLayoutKB": {
               "n": 3,
@@ -3025,17 +3947,17 @@
             "frameHeight": 630,
             "layoutMs": {
               "n": 40,
-              "min": 4.04375,
-              "median": 9.022583000000001,
-              "p90": 11.348833,
-              "max": 14.346334
+              "min": 3.442125,
+              "median": 3.8454794999999997,
+              "p90": 4.282833,
+              "max": 7.127333
             },
             "drawMs": {
               "n": 40,
-              "min": 1.438,
-              "median": 2.2488335,
-              "p90": 3.059167,
-              "max": 3.457875
+              "min": 0.901,
+              "median": 1.4117085,
+              "p90": 4.86625,
+              "max": 13.60925
             },
             "memLayoutKB": {
               "n": 3,
@@ -3067,17 +3989,17 @@
             "frameHeight": 10425,
             "layoutMs": {
               "n": 10,
-              "min": 30.880583,
-              "median": 57.796771,
-              "p90": 63.971083,
-              "max": 63.971083
+              "min": 25.701041,
+              "median": 31.704062,
+              "p90": 51.211958,
+              "max": 51.211958
             },
             "drawMs": {
               "n": 10,
-              "min": 54.283916,
-              "median": 67.939458,
-              "p90": 80.116667,
-              "max": 80.116667
+              "min": 28.611375,
+              "median": 30.8223965,
+              "p90": 37.799625,
+              "max": 37.799625
             },
             "memLayoutKB": {
               "n": 3,
@@ -3109,17 +4031,17 @@
             "frameHeight": 19575,
             "layoutMs": {
               "n": 10,
-              "min": 471.226792,
-              "median": 504.114417,
-              "p90": 542.30725,
-              "max": 542.30725
+              "min": 321.106292,
+              "median": 370.79585399999996,
+              "p90": 428.252875,
+              "max": 428.252875
             },
             "drawMs": {
               "n": 10,
-              "min": 124.703,
-              "median": 138.7309375,
-              "p90": 146.980125,
-              "max": 146.980125
+              "min": 82.873583,
+              "median": 94.146334,
+              "p90": 108.698292,
+              "max": 108.698292
             },
             "memLayoutKB": {
               "n": 3,
@@ -3156,8 +4078,8 @@
           "coreVersion": "Core (tehreer-core of Tehreer-Android)",
           "device": "sdk_gphone_arm64",
           "renderScale": 1,
-          "residentKBStart": 115896,
-          "heapKBStart": 4933.34375
+          "residentKBStart": 121344,
+          "heapKBStart": 4879.046875
         },
         "results": [
           {
@@ -3168,17 +4090,17 @@
             "frameHeight": 18.75,
             "layoutMs": {
               "n": 300,
-              "min": 0.070667,
-              "median": 0.22189599999999998,
-              "p90": 3.21,
-              "max": 219.692959
+              "min": 0.058791,
+              "median": 0.1260415,
+              "p90": 0.873,
+              "max": 70.096208
             },
             "drawMs": {
               "n": 300,
-              "min": 0.042417,
-              "median": 0.0443545,
-              "p90": 0.076666,
-              "max": 18.365
+              "min": 0.020708,
+              "median": 0.025354500000000002,
+              "p90": 0.048375,
+              "max": 53.009417
             },
             "memLayoutKB": {
               "n": 3,
@@ -3210,17 +4132,17 @@
             "frameHeight": 300,
             "layoutMs": {
               "n": 100,
-              "min": 0.357375,
-              "median": 1.074542,
-              "p90": 2.056708,
-              "max": 4.8085
+              "min": 0.351583,
+              "median": 0.596625,
+              "p90": 1.104,
+              "max": 1.645083
             },
             "drawMs": {
               "n": 100,
-              "min": 0.910166,
-              "median": 1.6861455,
-              "p90": 2.85875,
-              "max": 5.176208
+              "min": 0.715875,
+              "median": 1.258521,
+              "p90": 1.973375,
+              "max": 2.909667
             },
             "memLayoutKB": {
               "n": 3,
@@ -3252,17 +4174,17 @@
             "frameHeight": 825,
             "layoutMs": {
               "n": 40,
-              "min": 6.67925,
-              "median": 13.408271,
-              "p90": 15.515542,
-              "max": 20.160375
+              "min": 5.981833,
+              "median": 8.099667,
+              "p90": 10.824667,
+              "max": 13.88275
             },
             "drawMs": {
               "n": 40,
-              "min": 1.263709,
-              "median": 3.1272919999999997,
-              "p90": 4.709334,
-              "max": 8.460333
+              "min": 1.540292,
+              "median": 2.3347505,
+              "p90": 3.217208,
+              "max": 3.816333
             },
             "memLayoutKB": {
               "n": 3,
@@ -3294,17 +4216,17 @@
             "frameHeight": 630,
             "layoutMs": {
               "n": 40,
-              "min": 3.639292,
-              "median": 8.749875,
-              "p90": 11.076583,
-              "max": 12.066125
+              "min": 3.960333,
+              "median": 4.9534375,
+              "p90": 6.213792,
+              "max": 8.524792
             },
             "drawMs": {
               "n": 40,
-              "min": 0.902417,
-              "median": 2.058896,
-              "p90": 3.374167,
-              "max": 4.814875
+              "min": 0.8945,
+              "median": 1.1140835,
+              "p90": 2.309208,
+              "max": 2.652792
             },
             "memLayoutKB": {
               "n": 3,
@@ -3336,17 +4258,17 @@
             "frameHeight": 10425,
             "layoutMs": {
               "n": 10,
-              "min": 44.131166,
-              "median": 60.183271000000005,
-              "p90": 90.522458,
-              "max": 90.522458
+              "min": 26.163334,
+              "median": 31.829292000000002,
+              "p90": 165.258583,
+              "max": 165.258583
             },
             "drawMs": {
               "n": 10,
-              "min": 50.675084,
-              "median": 72.76054149999999,
-              "p90": 161.286333,
-              "max": 161.286333
+              "min": 31.857917,
+              "median": 40.255104,
+              "p90": 49.937416,
+              "max": 49.937416
             },
             "memLayoutKB": {
               "n": 3,
@@ -3378,17 +4300,17 @@
             "frameHeight": 19575,
             "layoutMs": {
               "n": 10,
-              "min": 445.465792,
-              "median": 485.765896,
-              "p90": 622.839709,
-              "max": 622.839709
+              "min": 245.66875,
+              "median": 267.0868755,
+              "p90": 24429.299095,
+              "max": 24429.299095
             },
             "drawMs": {
               "n": 10,
-              "min": 112.732834,
-              "median": 137.31433349999998,
-              "p90": 181.203084,
-              "max": 181.203084
+              "min": 59.98125,
+              "median": 68.20429200000001,
+              "p90": 106.564167,
+              "max": 106.564167
             },
             "memLayoutKB": {
               "n": 3,
@@ -3425,8 +4347,8 @@
           "coreVersion": "Core (tehreer-core of Tehreer-Android)",
           "device": "sdk_gphone_arm64",
           "renderScale": 1,
-          "residentKBStart": 117928,
-          "heapKBStart": 5787.203125
+          "residentKBStart": 124756,
+          "heapKBStart": 5355.40625
         },
         "results": [
           {
@@ -3437,17 +4359,17 @@
             "frameHeight": 18.75,
             "layoutMs": {
               "n": 300,
-              "min": 0.058875,
-              "median": 0.17402099999999998,
-              "p90": 0.919125,
-              "max": 222.880083
+              "min": 0.072916,
+              "median": 0.0930005,
+              "p90": 0.248625,
+              "max": 26.495541
             },
             "drawMs": {
               "n": 300,
-              "min": 0.020541,
-              "median": 0.0438545,
-              "p90": 0.081958,
-              "max": 68.330583
+              "min": 0.02,
+              "median": 0.020458,
+              "p90": 0.025334,
+              "max": 17.619583
             },
             "memLayoutKB": {
               "n": 3,
@@ -3479,17 +4401,17 @@
             "frameHeight": 300,
             "layoutMs": {
               "n": 100,
-              "min": 0.4465,
-              "median": 1.0041039999999999,
-              "p90": 1.685667,
-              "max": 3.717916
+              "min": 0.316333,
+              "median": 0.414333,
+              "p90": 0.791792,
+              "max": 1.295541
             },
             "drawMs": {
               "n": 100,
-              "min": 0.707542,
-              "median": 1.555521,
-              "p90": 2.288666,
-              "max": 5.993791
+              "min": 0.694458,
+              "median": 0.8122294999999999,
+              "p90": 1.672917,
+              "max": 29.671416
             },
             "memLayoutKB": {
               "n": 3,
@@ -3521,17 +4443,17 @@
             "frameHeight": 825,
             "layoutMs": {
               "n": 40,
-              "min": 8.545416,
-              "median": 13.657104,
-              "p90": 15.186917,
-              "max": 15.955417
+              "min": 5.850125,
+              "median": 10.342292,
+              "p90": 12.789292,
+              "max": 16.353666
             },
             "drawMs": {
               "n": 40,
-              "min": 1.934458,
-              "median": 3.358521,
-              "p90": 4.429667,
-              "max": 4.909792
+              "min": 1.266333,
+              "median": 1.9457084999999998,
+              "p90": 3.045542,
+              "max": 3.345917
             },
             "memLayoutKB": {
               "n": 3,
@@ -3563,17 +4485,17 @@
             "frameHeight": 630,
             "layoutMs": {
               "n": 40,
-              "min": 5.701333,
-              "median": 8.8332085,
-              "p90": 10.89275,
-              "max": 11.611958
+              "min": 3.5155,
+              "median": 5.935916499999999,
+              "p90": 10.199125,
+              "max": 14.293834
             },
             "drawMs": {
               "n": 40,
-              "min": 0.908792,
-              "median": 2.0165205000000004,
-              "p90": 3.245875,
-              "max": 3.848167
+              "min": 0.95625,
+              "median": 1.412146,
+              "p90": 2.034708,
+              "max": 4.570583
             },
             "memLayoutKB": {
               "n": 3,
@@ -3605,17 +4527,17 @@
             "frameHeight": 10425,
             "layoutMs": {
               "n": 10,
-              "min": 38.414208,
-              "median": 57.655083,
-              "p90": 207.541375,
-              "max": 207.541375
+              "min": 34.589792,
+              "median": 37.6286665,
+              "p90": 47.378417,
+              "max": 47.378417
             },
             "drawMs": {
               "n": 10,
-              "min": 47.002251,
-              "median": 65.8936665,
-              "p90": 68.938333,
-              "max": 68.938333
+              "min": 33.949667,
+              "median": 51.507625000000004,
+              "p90": 59.910042,
+              "max": 59.910042
             },
             "memLayoutKB": {
               "n": 3,
@@ -3647,17 +4569,17 @@
             "frameHeight": 19575,
             "layoutMs": {
               "n": 10,
-              "min": 399.509125,
-              "median": 481.5901665,
-              "p90": 692.448125,
-              "max": 692.448125
+              "min": 247.158375,
+              "median": 346.6319795,
+              "p90": 411.934875,
+              "max": 411.934875
             },
             "drawMs": {
               "n": 10,
-              "min": 115.564501,
-              "median": 129.8389585,
-              "p90": 148.700792,
-              "max": 148.700792
+              "min": 61.369084,
+              "median": 65.549958,
+              "p90": 68.7015,
+              "max": 68.7015
             },
             "memLayoutKB": {
               "n": 3,
@@ -3694,8 +4616,8 @@
           "coreVersion": "Core (tehreer-core of Tehreer-Android)",
           "device": "sdk_gphone_arm64",
           "renderScale": 1,
-          "residentKBStart": 118188,
-          "heapKBStart": 5780.90625
+          "residentKBStart": 121152,
+          "heapKBStart": 5791.203125
         },
         "results": [
           {
@@ -3706,17 +4628,17 @@
             "frameHeight": 18.75,
             "layoutMs": {
               "n": 300,
-              "min": 0.074833,
-              "median": 0.1658335,
-              "p90": 0.364084,
-              "max": 82.384125
+              "min": 0.068084,
+              "median": 0.099188,
+              "p90": 0.463291,
+              "max": 735.517958
             },
             "drawMs": {
               "n": 300,
-              "min": 0.020084,
-              "median": 0.0321455,
-              "p90": 0.060417,
-              "max": 29.578167
+              "min": 0.018708,
+              "median": 0.020375,
+              "p90": 0.034833,
+              "max": 67.210042
             },
             "memLayoutKB": {
               "n": 3,
@@ -3748,17 +4670,17 @@
             "frameHeight": 300,
             "layoutMs": {
               "n": 100,
-              "min": 0.406667,
-              "median": 1.055,
-              "p90": 3.435833,
-              "max": 10.733667
+              "min": 0.358792,
+              "median": 0.47972950000000003,
+              "p90": 0.900209,
+              "max": 2.241292
             },
             "drawMs": {
               "n": 100,
-              "min": 0.697542,
-              "median": 1.568979,
-              "p90": 2.133041,
-              "max": 3.431584
+              "min": 0.709,
+              "median": 0.808646,
+              "p90": 1.161625,
+              "max": 2.03675
             },
             "memLayoutKB": {
               "n": 3,
@@ -3790,17 +4712,17 @@
             "frameHeight": 825,
             "layoutMs": {
               "n": 40,
-              "min": 5.95825,
-              "median": 14.461333,
-              "p90": 16.01175,
-              "max": 16.667333
+              "min": 5.534084,
+              "median": 6.4928539999999995,
+              "p90": 16.158959,
+              "max": 34.526542
             },
             "drawMs": {
               "n": 40,
-              "min": 2.052292,
-              "median": 3.2273335000000003,
-              "p90": 4.953667,
-              "max": 5.210791
+              "min": 1.356375,
+              "median": 1.7782499999999999,
+              "p90": 4.620583,
+              "max": 15.996875
             },
             "memLayoutKB": {
               "n": 3,
@@ -3832,17 +4754,17 @@
             "frameHeight": 630,
             "layoutMs": {
               "n": 40,
-              "min": 4.814042,
-              "median": 8.654979,
-              "p90": 11.139459,
-              "max": 15.096375
+              "min": 3.593416,
+              "median": 4.021208,
+              "p90": 4.916417,
+              "max": 6.923
             },
             "drawMs": {
               "n": 40,
-              "min": 1.144375,
-              "median": 2.0291255,
-              "p90": 2.937125,
-              "max": 3.582625
+              "min": 0.914208,
+              "median": 1.058021,
+              "p90": 2.155791,
+              "max": 2.481625
             },
             "memLayoutKB": {
               "n": 3,
@@ -3874,17 +4796,17 @@
             "frameHeight": 10425,
             "layoutMs": {
               "n": 10,
-              "min": 55.837916,
-              "median": 57.327458,
-              "p90": 73.74075,
-              "max": 73.74075
+              "min": 24.829833,
+              "median": 40.8054165,
+              "p90": 51.425458,
+              "max": 51.425458
             },
             "drawMs": {
               "n": 10,
-              "min": 58.81875,
-              "median": 68.858375,
-              "p90": 77.913167,
-              "max": 77.913167
+              "min": 30.539625,
+              "median": 33.209875,
+              "p90": 35.569625,
+              "max": 35.569625
             },
             "memLayoutKB": {
               "n": 3,
@@ -3916,17 +4838,17 @@
             "frameHeight": 19575,
             "layoutMs": {
               "n": 10,
-              "min": 454.133042,
-              "median": 472.2605005,
-              "p90": 545.493751,
-              "max": 545.493751
+              "min": 260.7575,
+              "median": 294.555271,
+              "p90": 21068.80901,
+              "max": 21068.80901
             },
             "drawMs": {
               "n": 10,
-              "min": 90.877542,
-              "median": 129.3618335,
-              "p90": 144.133208,
-              "max": 144.133208
+              "min": 85.20575,
+              "median": 104.101,
+              "p90": 122.46525,
+              "max": 122.46525
             },
             "memLayoutKB": {
               "n": 3,
@@ -3949,928 +4871,6 @@
               "p90": 180.0078125,
               "max": 180.0078125
             }
-          }
-        ],
-        "done": true,
-        "problems": []
-      }
-    ],
-    "tehreer-cocoa/ios": [
-      {
-        "meta": {
-          "build": "Release",
-          "coreVersion": "Core (Libraries/TehreerCore of Tehreer-Cocoa)",
-          "heapKBStart": 96.484375,
-          "osVersion": "iOS 18.2",
-          "platform": "ios",
-          "renderScale": 1,
-          "residentKBStart": 63376,
-          "wrapper": "tehreer-cocoa"
-        },
-        "results": [
-          {
-            "characters": 11,
-            "drawMs": {
-              "max": 0.050291985273361206,
-              "median": 0.04720798134803772,
-              "min": 0.046791017055511475,
-              "n": 300,
-              "p90": 0.04754200577735901
-            },
-            "frameHeight": 18.75,
-            "frameWidth": 200,
-            "layoutMs": {
-              "max": 0.00974997878074646,
-              "median": 0.009124994277954102,
-              "min": 0.008916020393371582,
-              "n": 300,
-              "p90": 0.009249985218048096
-            },
-            "lines": 1,
-            "memLayoutKB": {
-              "max": 5.984375,
-              "median": 4.375,
-              "min": 1.3125,
-              "n": 3,
-              "p90": 5.984375
-            },
-            "scenario": "latin-label"
-          },
-          {
-            "characters": 576,
-            "drawMs": {
-              "max": 2.296416997909546,
-              "median": 2.1534164994955063,
-              "min": 2.1467500030994415,
-              "n": 100,
-              "p90": 2.160666972398758
-            },
-            "frameHeight": 300,
-            "frameWidth": 320,
-            "layoutMs": {
-              "max": 0.1423330008983612,
-              "median": 0.11195799708366394,
-              "min": 0.11158302426338196,
-              "n": 100,
-              "p90": 0.11354199051856995
-            },
-            "lines": 16,
-            "memLayoutKB": {
-              "max": 28.609375,
-              "median": 16.609375,
-              "min": 16.609375,
-              "n": 3,
-              "p90": 28.609375
-            },
-            "scenario": "latin-paragraph"
-          },
-          {
-            "characters": 575,
-            "drawMs": {
-              "max": 3.6203330159187317,
-              "median": 3.52750001847744,
-              "min": 3.5197499990463257,
-              "n": 40,
-              "p90": 3.5370419919490814
-            },
-            "frameHeight": 825,
-            "frameWidth": 320,
-            "layoutMs": {
-              "max": 1.6553329825401306,
-              "median": 1.6476040035486221,
-              "min": 1.6435419917106628,
-              "n": 40,
-              "p90": 1.6525420248508453
-            },
-            "lines": 15,
-            "memLayoutKB": {
-              "max": 164.296875,
-              "median": 37.75,
-              "min": 37.75,
-              "n": 3,
-              "p90": 164.296875
-            },
-            "scenario": "urdu-paragraph"
-          },
-          {
-            "characters": 516,
-            "drawMs": {
-              "max": 2.548000007867813,
-              "median": 2.537583500146866,
-              "min": 2.5313339829444885,
-              "n": 40,
-              "p90": 2.541500002145767
-            },
-            "frameHeight": 630,
-            "frameWidth": 320,
-            "layoutMs": {
-              "max": 2.5985829830169678,
-              "median": 1.010854497551918,
-              "min": 1.007625013589859,
-              "n": 40,
-              "p90": 1.0425409972667694
-            },
-            "lines": 14,
-            "memLayoutKB": {
-              "max": 61.046875,
-              "median": 58.890625,
-              "min": 56.390625,
-              "n": 3,
-              "p90": 61.046875
-            },
-            "scenario": "mixed-bidi"
-          },
-          {
-            "characters": 20016,
-            "drawMs": {
-              "max": 85.8961670100689,
-              "median": 77.19422949850559,
-              "min": 75.84120801091194,
-              "n": 10,
-              "p90": 85.8961670100689
-            },
-            "frameHeight": 10425,
-            "frameWidth": 320,
-            "layoutMs": {
-              "max": 4.009999990463257,
-              "median": 3.8791249990463257,
-              "min": 3.865541011095047,
-              "n": 10,
-              "p90": 4.009999990463257
-            },
-            "lines": 556,
-            "memLayoutKB": {
-              "max": 962,
-              "median": 959,
-              "min": 959,
-              "n": 3,
-              "p90": 962
-            },
-            "scenario": "long-latin"
-          },
-          {
-            "characters": 20010,
-            "drawMs": {
-              "max": 120.23195800185204,
-              "median": 113.99795849621296,
-              "min": 113.32400000095367,
-              "n": 10,
-              "p90": 120.23195800185204
-            },
-            "frameHeight": 19575,
-            "frameWidth": 320,
-            "layoutMs": {
-              "max": 61.821208000183105,
-              "median": 57.30033299326897,
-              "min": 57.09058302640915,
-              "n": 10,
-              "p90": 61.821208000183105
-            },
-            "lines": 435,
-            "memLayoutKB": {
-              "max": 1203.875,
-              "median": 1203.875,
-              "min": 1202.875,
-              "n": 3,
-              "p90": 1203.875
-            },
-            "scenario": "long-urdu"
-          }
-        ],
-        "done": true,
-        "problems": []
-      },
-      {
-        "meta": {
-          "build": "Release",
-          "coreVersion": "Core (Libraries/TehreerCore of Tehreer-Cocoa)",
-          "heapKBStart": 96.484375,
-          "osVersion": "iOS 18.2",
-          "platform": "ios",
-          "renderScale": 1,
-          "residentKBStart": 63376,
-          "wrapper": "tehreer-cocoa"
-        },
-        "results": [
-          {
-            "characters": 11,
-            "drawMs": {
-              "max": 0.04941701889038086,
-              "median": 0.047082990407943726,
-              "min": 0.046624988317489624,
-              "n": 300,
-              "p90": 0.047457993030548096
-            },
-            "frameHeight": 18.75,
-            "frameWidth": 200,
-            "layoutMs": {
-              "max": 0.01266700029373169,
-              "median": 0.009083002805709839,
-              "min": 0.008917003870010376,
-              "n": 300,
-              "p90": 0.009207993745803833
-            },
-            "lines": 1,
-            "memLayoutKB": {
-              "max": 5.984375,
-              "median": 4.125,
-              "min": 3.8125,
-              "n": 3,
-              "p90": 5.984375
-            },
-            "scenario": "latin-label"
-          },
-          {
-            "characters": 576,
-            "drawMs": {
-              "max": 2.5072500109672546,
-              "median": 2.151770994067192,
-              "min": 2.1412499845027924,
-              "n": 100,
-              "p90": 2.2485829889774323
-            },
-            "frameHeight": 300,
-            "frameWidth": 320,
-            "layoutMs": {
-              "max": 0.11479198932647705,
-              "median": 0.11216700077056885,
-              "min": 0.11166602373123169,
-              "n": 100,
-              "p90": 0.11258301138877869
-            },
-            "lines": 16,
-            "memLayoutKB": {
-              "max": 28.859375,
-              "median": 16.609375,
-              "min": 14.109375,
-              "n": 3,
-              "p90": 28.859375
-            },
-            "scenario": "latin-paragraph"
-          },
-          {
-            "characters": 575,
-            "drawMs": {
-              "max": 3.721791982650757,
-              "median": 3.6326040029525757,
-              "min": 3.601083993911743,
-              "n": 40,
-              "p90": 3.700166016817093
-            },
-            "frameHeight": 825,
-            "frameWidth": 320,
-            "layoutMs": {
-              "max": 1.756415992975235,
-              "median": 1.7417289912700653,
-              "min": 1.6558330059051514,
-              "n": 40,
-              "p90": 1.7489579916000366
-            },
-            "lines": 15,
-            "memLayoutKB": {
-              "max": 165.796875,
-              "median": 37.75,
-              "min": 37.75,
-              "n": 3,
-              "p90": 165.796875
-            },
-            "scenario": "urdu-paragraph"
-          },
-          {
-            "characters": 516,
-            "drawMs": {
-              "max": 9.744792014360428,
-              "median": 2.5581870079040527,
-              "min": 2.5339580178260803,
-              "n": 40,
-              "p90": 2.776416003704071
-            },
-            "frameHeight": 630,
-            "frameWidth": 320,
-            "layoutMs": {
-              "max": 1.0687499940395355,
-              "median": 1.0347505062818527,
-              "min": 1.0280419886112213,
-              "n": 40,
-              "p90": 1.0664590001106262
-            },
-            "lines": 14,
-            "memLayoutKB": {
-              "max": 61.046875,
-              "median": 58.890625,
-              "min": 56.390625,
-              "n": 3,
-              "p90": 61.046875
-            },
-            "scenario": "mixed-bidi"
-          },
-          {
-            "characters": 20016,
-            "drawMs": {
-              "max": 78.66891700029373,
-              "median": 76.6813335120678,
-              "min": 75.75050002336502,
-              "n": 10,
-              "p90": 78.66891700029373
-            },
-            "frameHeight": 10425,
-            "frameWidth": 320,
-            "layoutMs": {
-              "max": 3.910708010196686,
-              "median": 3.861896499991417,
-              "min": 3.8423340022563934,
-              "n": 10,
-              "p90": 3.910708010196686
-            },
-            "lines": 556,
-            "memLayoutKB": {
-              "max": 962,
-              "median": 959,
-              "min": 959,
-              "n": 3,
-              "p90": 962
-            },
-            "scenario": "long-latin"
-          },
-          {
-            "characters": 20010,
-            "drawMs": {
-              "max": 115.33833301067352,
-              "median": 113.71656249463558,
-              "min": 112.7367499768734,
-              "n": 10,
-              "p90": 115.33833301067352
-            },
-            "frameHeight": 19575,
-            "frameWidth": 320,
-            "layoutMs": {
-              "max": 58.151625007390976,
-              "median": 57.11506250500679,
-              "min": 57.05033400654793,
-              "n": 10,
-              "p90": 58.151625007390976
-            },
-            "lines": 435,
-            "memLayoutKB": {
-              "max": 1207.875,
-              "median": 1203.875,
-              "min": 1203.875,
-              "n": 3,
-              "p90": 1207.875
-            },
-            "scenario": "long-urdu"
-          }
-        ],
-        "done": true,
-        "problems": []
-      },
-      {
-        "meta": {
-          "build": "Release",
-          "coreVersion": "Core (Libraries/TehreerCore of Tehreer-Cocoa)",
-          "heapKBStart": 102.484375,
-          "osVersion": "iOS 18.2",
-          "platform": "ios",
-          "renderScale": 1,
-          "residentKBStart": 63584,
-          "wrapper": "tehreer-cocoa"
-        },
-        "results": [
-          {
-            "characters": 11,
-            "drawMs": {
-              "max": 0.054791003465652466,
-              "median": 0.04700002074241638,
-              "min": 0.046624988317489624,
-              "n": 300,
-              "p90": 0.047333985567092896
-            },
-            "frameHeight": 18.75,
-            "frameWidth": 200,
-            "layoutMs": {
-              "max": 0.009499996900558472,
-              "median": 0.009124994277954102,
-              "min": 0.008915990591049194,
-              "n": 300,
-              "p90": 0.009208977222442627
-            },
-            "lines": 1,
-            "memLayoutKB": {
-              "max": 5.984375,
-              "median": 4.375,
-              "min": 3.8125,
-              "n": 3,
-              "p90": 5.984375
-            },
-            "scenario": "latin-label"
-          },
-          {
-            "characters": 576,
-            "drawMs": {
-              "max": 2.218958020210266,
-              "median": 2.1603125035762787,
-              "min": 2.1488340198993683,
-              "n": 100,
-              "p90": 2.1641669869422913
-            },
-            "frameHeight": 300,
-            "frameWidth": 320,
-            "layoutMs": {
-              "max": 0.11508399248123169,
-              "median": 0.11210449039936066,
-              "min": 0.11183300614356995,
-              "n": 100,
-              "p90": 0.11237502098083496
-            },
-            "lines": 16,
-            "memLayoutKB": {
-              "max": 28.609375,
-              "median": 16.609375,
-              "min": 16.609375,
-              "n": 3,
-              "p90": 28.609375
-            },
-            "scenario": "latin-paragraph"
-          },
-          {
-            "characters": 575,
-            "drawMs": {
-              "max": 3.58024999499321,
-              "median": 3.555645987391472,
-              "min": 3.5464580059051514,
-              "n": 40,
-              "p90": 3.5657080113887787
-            },
-            "frameHeight": 825,
-            "frameWidth": 320,
-            "layoutMs": {
-              "max": 1.6492910087108612,
-              "median": 1.6452704966068268,
-              "min": 1.6441659927368164,
-              "n": 40,
-              "p90": 1.647917002439499
-            },
-            "lines": 15,
-            "memLayoutKB": {
-              "max": 164.296875,
-              "median": 37.75,
-              "min": 37.75,
-              "n": 3,
-              "p90": 164.296875
-            },
-            "scenario": "urdu-paragraph"
-          },
-          {
-            "characters": 516,
-            "drawMs": {
-              "max": 2.562041997909546,
-              "median": 2.55052050948143,
-              "min": 2.5460419952869415,
-              "n": 40,
-              "p90": 2.5588330030441284
-            },
-            "frameHeight": 630,
-            "frameWidth": 320,
-            "layoutMs": {
-              "max": 1.0715419948101044,
-              "median": 1.0174789875745773,
-              "min": 1.00900000333786,
-              "n": 40,
-              "p90": 1.0201669931411743
-            },
-            "lines": 14,
-            "memLayoutKB": {
-              "max": 58.546875,
-              "median": 56.390625,
-              "min": 56.390625,
-              "n": 3,
-              "p90": 58.546875
-            },
-            "scenario": "mixed-bidi"
-          },
-          {
-            "characters": 20016,
-            "drawMs": {
-              "max": 77.12258300185204,
-              "median": 76.34668749570847,
-              "min": 76.09125000238419,
-              "n": 10,
-              "p90": 77.12258300185204
-            },
-            "frameHeight": 10425,
-            "frameWidth": 320,
-            "layoutMs": {
-              "max": 3.841957986354828,
-              "median": 3.824187010526657,
-              "min": 3.8151659965515137,
-              "n": 10,
-              "p90": 3.841957986354828
-            },
-            "lines": 556,
-            "memLayoutKB": {
-              "max": 962,
-              "median": 959,
-              "min": 959,
-              "n": 3,
-              "p90": 962
-            },
-            "scenario": "long-latin"
-          },
-          {
-            "characters": 20010,
-            "drawMs": {
-              "max": 115.25075000524521,
-              "median": 113.1448539942503,
-              "min": 113.02687501907349,
-              "n": 10,
-              "p90": 115.25075000524521
-            },
-            "frameHeight": 19575,
-            "frameWidth": 320,
-            "layoutMs": {
-              "max": 57.154875010252,
-              "median": 57.05800049006939,
-              "min": 56.875541001558304,
-              "n": 10,
-              "p90": 57.154875010252
-            },
-            "lines": 435,
-            "memLayoutKB": {
-              "max": 1203.875,
-              "median": 1203.875,
-              "min": 1202.875,
-              "n": 3,
-              "p90": 1203.875
-            },
-            "scenario": "long-urdu"
-          }
-        ],
-        "done": true,
-        "problems": []
-      },
-      {
-        "meta": {
-          "build": "Release",
-          "coreVersion": "Core (Libraries/TehreerCore of Tehreer-Cocoa)",
-          "heapKBStart": 96.484375,
-          "osVersion": "iOS 18.2",
-          "platform": "ios",
-          "renderScale": 1,
-          "residentKBStart": 63328,
-          "wrapper": "tehreer-cocoa"
-        },
-        "results": [
-          {
-            "characters": 11,
-            "drawMs": {
-              "max": 0.05425000190734863,
-              "median": 0.046999990940093994,
-              "min": 0.04658299684524536,
-              "n": 300,
-              "p90": 0.04800000786781311
-            },
-            "frameHeight": 18.75,
-            "frameWidth": 200,
-            "layoutMs": {
-              "max": 0.009750008583068848,
-              "median": 0.009290993213653564,
-              "min": 0.009083002805709839,
-              "n": 300,
-              "p90": 0.009375005960464478
-            },
-            "lines": 1,
-            "memLayoutKB": {
-              "max": 5.984375,
-              "median": 4.375,
-              "min": 3.8125,
-              "n": 3,
-              "p90": 5.984375
-            },
-            "scenario": "latin-label"
-          },
-          {
-            "characters": 576,
-            "drawMs": {
-              "max": 2.2363330125808716,
-              "median": 2.1548539996147156,
-              "min": 2.147917002439499,
-              "n": 100,
-              "p90": 2.164124995470047
-            },
-            "frameHeight": 300,
-            "frameWidth": 320,
-            "layoutMs": {
-              "max": 0.11837500333786011,
-              "median": 0.11220850050449371,
-              "min": 0.11170798540115356,
-              "n": 100,
-              "p90": 0.11412501335144043
-            },
-            "lines": 16,
-            "memLayoutKB": {
-              "max": 28.609375,
-              "median": 16.609375,
-              "min": 14.109375,
-              "n": 3,
-              "p90": 28.609375
-            },
-            "scenario": "latin-paragraph"
-          },
-          {
-            "characters": 575,
-            "drawMs": {
-              "max": 3.5845830142498016,
-              "median": 3.5462294965982437,
-              "min": 3.539000004529953,
-              "n": 40,
-              "p90": 3.5535410046577454
-            },
-            "frameHeight": 825,
-            "frameWidth": 320,
-            "layoutMs": {
-              "max": 1.6655829846858978,
-              "median": 1.6489164978265762,
-              "min": 1.6448749899864197,
-              "n": 40,
-              "p90": 1.6573749780654907
-            },
-            "lines": 15,
-            "memLayoutKB": {
-              "max": 165.796875,
-              "median": 37.75,
-              "min": 35.25,
-              "n": 3,
-              "p90": 165.796875
-            },
-            "scenario": "urdu-paragraph"
-          },
-          {
-            "characters": 516,
-            "drawMs": {
-              "max": 2.545082986354828,
-              "median": 2.5355629920959473,
-              "min": 2.5265839993953705,
-              "n": 40,
-              "p90": 2.5410840213298798
-            },
-            "frameHeight": 630,
-            "frameWidth": 320,
-            "layoutMs": {
-              "max": 1.0201669931411743,
-              "median": 1.0147294998168945,
-              "min": 1.0100840032100677,
-              "n": 40,
-              "p90": 1.0182499885559082
-            },
-            "lines": 14,
-            "memLayoutKB": {
-              "max": 58.890625,
-              "median": 58.546875,
-              "min": 56.390625,
-              "n": 3,
-              "p90": 58.890625
-            },
-            "scenario": "mixed-bidi"
-          },
-          {
-            "characters": 20016,
-            "drawMs": {
-              "max": 77.3272500038147,
-              "median": 76.19962500035763,
-              "min": 75.8134999871254,
-              "n": 10,
-              "p90": 77.3272500038147
-            },
-            "frameHeight": 10425,
-            "frameWidth": 320,
-            "layoutMs": {
-              "max": 3.8225409984588623,
-              "median": 3.8093335032463074,
-              "min": 3.806874990463257,
-              "n": 10,
-              "p90": 3.8225409984588623
-            },
-            "lines": 556,
-            "memLayoutKB": {
-              "max": 962,
-              "median": 959,
-              "min": 959,
-              "n": 3,
-              "p90": 962
-            },
-            "scenario": "long-latin"
-          },
-          {
-            "characters": 20010,
-            "drawMs": {
-              "max": 113.55729100108147,
-              "median": 113.45445849001408,
-              "min": 113.3829579949379,
-              "n": 10,
-              "p90": 113.55729100108147
-            },
-            "frameHeight": 19575,
-            "frameWidth": 320,
-            "layoutMs": {
-              "max": 57.19095799326897,
-              "median": 57.05425049364567,
-              "min": 56.947125017642975,
-              "n": 10,
-              "p90": 57.19095799326897
-            },
-            "lines": 435,
-            "memLayoutKB": {
-              "max": 1203.875,
-              "median": 1203.875,
-              "min": 1202.875,
-              "n": 3,
-              "p90": 1203.875
-            },
-            "scenario": "long-urdu"
-          }
-        ],
-        "done": true,
-        "problems": []
-      },
-      {
-        "meta": {
-          "build": "Release",
-          "coreVersion": "Core (Libraries/TehreerCore of Tehreer-Cocoa)",
-          "heapKBStart": 96.484375,
-          "osVersion": "iOS 18.2",
-          "platform": "ios",
-          "renderScale": 1,
-          "residentKBStart": 63296,
-          "wrapper": "tehreer-cocoa"
-        },
-        "results": [
-          {
-            "characters": 11,
-            "drawMs": {
-              "max": 0.09233298897743225,
-              "median": 0.0473330020904541,
-              "min": 0.04666599631309509,
-              "n": 300,
-              "p90": 0.047708988189697266
-            },
-            "frameHeight": 18.75,
-            "frameWidth": 200,
-            "layoutMs": {
-              "max": 0.009874999523162842,
-              "median": 0.009292006492614746,
-              "min": 0.00916600227355957,
-              "n": 300,
-              "p90": 0.009457975625991821
-            },
-            "lines": 1,
-            "memLayoutKB": {
-              "max": 5.984375,
-              "median": 4.375,
-              "min": 3.8125,
-              "n": 3,
-              "p90": 5.984375
-            },
-            "scenario": "latin-label"
-          },
-          {
-            "characters": 576,
-            "drawMs": {
-              "max": 2.407166004180908,
-              "median": 2.169687509536743,
-              "min": 2.165792018175125,
-              "n": 100,
-              "p90": 2.2585000097751617
-            },
-            "frameHeight": 300,
-            "frameWidth": 320,
-            "layoutMs": {
-              "max": 0.11795902252197266,
-              "median": 0.11270900070667267,
-              "min": 0.11220797896385193,
-              "n": 100,
-              "p90": 0.11349999904632568
-            },
-            "lines": 16,
-            "memLayoutKB": {
-              "max": 28.609375,
-              "median": 16.609375,
-              "min": 16.609375,
-              "n": 3,
-              "p90": 28.609375
-            },
-            "scenario": "latin-paragraph"
-          },
-          {
-            "characters": 575,
-            "drawMs": {
-              "max": 3.690540999174118,
-              "median": 3.567604511976242,
-              "min": 3.552707999944687,
-              "n": 40,
-              "p90": 3.5742500126361847
-            },
-            "frameHeight": 825,
-            "frameWidth": 320,
-            "layoutMs": {
-              "max": 1.6505410075187683,
-              "median": 1.6460205018520355,
-              "min": 1.6438340246677399,
-              "n": 40,
-              "p90": 1.6476669907569885
-            },
-            "lines": 15,
-            "memLayoutKB": {
-              "max": 163.296875,
-              "median": 37.75,
-              "min": 37.75,
-              "n": 3,
-              "p90": 163.296875
-            },
-            "scenario": "urdu-paragraph"
-          },
-          {
-            "characters": 516,
-            "drawMs": {
-              "max": 2.5507500171661377,
-              "median": 2.540916994214058,
-              "min": 2.536332994699478,
-              "n": 40,
-              "p90": 2.5480839908123016
-            },
-            "frameHeight": 630,
-            "frameWidth": 320,
-            "layoutMs": {
-              "max": 1.0290829837322235,
-              "median": 1.019833505153656,
-              "min": 1.0117499828338623,
-              "n": 40,
-              "p90": 1.0234589874744415
-            },
-            "lines": 14,
-            "memLayoutKB": {
-              "max": 58.546875,
-              "median": 56.390625,
-              "min": 53.890625,
-              "n": 3,
-              "p90": 58.546875
-            },
-            "scenario": "mixed-bidi"
-          },
-          {
-            "characters": 20016,
-            "drawMs": {
-              "max": 77.8772499859333,
-              "median": 76.72202099859715,
-              "min": 75.21599999070168,
-              "n": 10,
-              "p90": 77.8772499859333
-            },
-            "frameHeight": 10425,
-            "frameWidth": 320,
-            "layoutMs": {
-              "max": 3.9032079875469208,
-              "median": 3.881812497973442,
-              "min": 3.869000017642975,
-              "n": 10,
-              "p90": 3.9032079875469208
-            },
-            "lines": 556,
-            "memLayoutKB": {
-              "max": 962,
-              "median": 959,
-              "min": 959,
-              "n": 3,
-              "p90": 962
-            },
-            "scenario": "long-latin"
-          },
-          {
-            "characters": 20010,
-            "drawMs": {
-              "max": 131.5337909758091,
-              "median": 114.0287289917469,
-              "min": 113.54833301901817,
-              "n": 10,
-              "p90": 131.5337909758091
-            },
-            "frameHeight": 19575,
-            "frameWidth": 320,
-            "layoutMs": {
-              "max": 57.1655829846859,
-              "median": 56.96729150414467,
-              "min": 56.87016698718071,
-              "n": 10,
-              "p90": 57.1655829846859
-            },
-            "lines": 435,
-            "memLayoutKB": {
-              "max": 1203.875,
-              "median": 1203.875,
-              "min": 1202.875,
-              "n": 3,
-              "p90": 1203.875
-            },
-            "scenario": "long-urdu"
           }
         ],
         "done": true,
