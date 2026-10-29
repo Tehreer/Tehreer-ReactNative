@@ -57,6 +57,22 @@ The wrapper sources are compiled with `-Wall -Wextra` and must stay free of warn
 
 `npm run test:android` builds the example app for the connected emulator, starts Metro, launches the app and runs every suite registered in `example/tests/index.ts` (output format in [AGENTS.md](AGENTS.md#device-test-output)). It exits non-zero on a failing test, a timeout or a missing result line. `npm run test:android -- --release` does the same with the release build (`assembleRelease`, signed with the debug key of the example app, and no Metro: the bundle is inside the app), which is the build where `FontFile.fromAsset` reads a copy of a `res/raw` resource.
 
+### Native memory of `TLabel` and `TTextView` on Android
+
+This is one measurement series on one emulator (API 30, arm64, debug build), not a benchmark. The reading is `dumpsys meminfo` Native Heap "Heap Alloc" before and after 800 mounts and unmounts (40 cycles of 20 views at a time, one line of text), and again after a Hermes collection (`testCollectGarbage`). Repeats of the same variant differed a lot: `Text` gave 3.6 KB and 1.9 KB a mount in two runs (the issue's 4.5 KB is the same order), `TTextView` gave about 0 and 14 KB, so read the table as orders of magnitude with a margin of at least a factor of 1.5, not as figures.
+
+| What is mounted (800 times) | Before a collection | Still allocated after it |
+|---|---|---|
+| `Text` | 2 to 4 KB each | none |
+| `View` with `collapsable={false}` and a background (a real native view, unlike a flattened one) | about 17 KB each | none |
+| `TLabel` | 16 to 22 KB each | 6 to 9 KB each |
+| `TTextView` | 0 to 14 KB each | not measured separately |
+| an empty `TLinePaint` (no frame, no typesetter) | about 8 KB each | about 4.5 KB each |
+| `Typesetter` + `FrameResolver` + frame + registration, without a view (JavaScript only) | none | none |
+| a Core `Renderer` made and disposed from JavaScript | none | none |
+
+So a label does not grow more than a native view while it is mounted (the `View` row is the same order); the difference that matters is what stays after a collection. That is linear in the number of mounts (three repeats of the empty `TLinePaint` each kept about 3.5 MB), so it is not a cache that levels off. Core objects, the id tables and the registrations do not contribute (rows without a view), and the empty `TLinePaint` already keeps about half of the label's. The allocation site inside the native view or Fabric was not found, and this is documented, not fixed: `heapprofd` cannot be used on this emulator (the client disconnects during start-up when the ring buffer fills, and attaching to a running app crashed it), and malloc debug cannot be switched on for a debuggable app on a user build. Another API level, a device or a release build may differ. To find the site, use a build with symbols and `heapprofd` on a device that allows it.
+
 ## iOS
 
 Supported architectures: `arm64` for devices and `arm64` and `x86_64` for the simulator. The deployment target is the one React Native 0.88 supports (iOS 15.1). Core and its dependencies are compiled from source into the pod by `tehreer-react-native.podspec`, together with the wrapper sources in `cpp/` (all subfolders) and `ios/`: the C files are compiled as C (Core as C89, FreeType, SheenBidi and libunibreak as gnu99), `harfbuzz.cc` and the wrapper as C++20. New files in `cpp/` and `ios/` are picked up by the next `pod install`.

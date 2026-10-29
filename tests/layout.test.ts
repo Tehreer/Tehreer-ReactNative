@@ -44,6 +44,7 @@ interface RunLike extends Wrapper {
 interface LineLike extends Wrapper {
   readonly runs: { length: number; get(index: number): RunLike };
   getCodeUnitDistance(index: number): number;
+  getClusterStartAtDistance(distance: number): number;
   getVisualEdges(from: number, to: number): unknown[];
   computeInkBox(renderer: unknown): unknown;
 }
@@ -51,6 +52,7 @@ interface LineLike extends Wrapper {
 interface FrameLike extends Wrapper {
   readonly lines: { length: number; get(index: number): LineLike; toArray(): LineLike[] };
   getLineIndexForCodeUnit(index: number): number;
+  getClusterStartAtPosition(x: number, y: number): number;
   getSelectionRects(from: number, to: number): unknown[];
 }
 
@@ -275,6 +277,12 @@ function fake(): Record<string, unknown> {
       live(handle);
       return index > TEXT_LENGTH ? -1 : 0;
     },
+    TRComposedFrameGetClusterStartAtPosition(handle: FakeHandle, position: { x: number; y: number }) {
+      live(handle);
+      calls.push(`clusterAt ${position.x} ${position.y}`);
+      // As Core: -1 (TRInvalidIndex) for a point outside the text, the first code unit of a cluster of two otherwise.
+      return position.x < 0 || position.y < 0 || !Number.isFinite(position.x) || !Number.isFinite(position.y) ? -1 : Math.floor(position.x / 2) * 2;
+    },
     TRComposedFrameEnumerateSelection(handle: FakeHandle, index: number, length: number) {
       live(handle);
       calls.push(`selection ${index} ${length}`);
@@ -289,6 +297,11 @@ function fake(): Record<string, unknown> {
     TRComposedLineGetCodeUnitDistance(handle: FakeHandle, index: number) {
       live(handle);
       return index > 3 ? undefined : index * 2;
+    },
+    TRComposedLineGetClusterStartAtDistance(handle: FakeHandle, distance: number) {
+      live(handle);
+      calls.push(`clusterAtDistance ${distance}`);
+      return distance < 0 || !Number.isFinite(distance) ? -1 : Math.floor(distance / 2) * 2;
     },
     TRComposedLineEnumerateVisualEdges(handle: FakeHandle, index: number, length: number) {
       live(handle);
@@ -706,6 +719,24 @@ test("a frame maps its indices, and selection rectangles are Rects", () => {
   assert.ok(calls.includes("selection 2 3"));
   assert.throws(() => frame.getSelectionRects(2, 99), RangeError);
   assert.throws(() => frame.getSelectionRects(5, 2), RangeError);
+});
+
+test("a cluster start is an index, -1 for a point that hits nothing", () => {
+  const frame = resolver().createFrame(0, 10);
+  assert.equal(frame.getClusterStartAtPosition(5, 1), 4);
+  assert.ok(calls.includes("clusterAt 5 1"), "the position reaches Core as one point");
+  assert.equal(frame.getClusterStartAtPosition(-1, 1), -1, "-1 for no character");
+  assert.equal(frame.getClusterStartAtPosition(Infinity, 1), -1, "an infinite coordinate hits nothing");
+  assert.equal(frame.getClusterStartAtPosition(1, -Infinity), -1);
+
+  const line = typesetter().createSimpleLine(0, 3);
+  assert.equal(line.getClusterStartAtDistance(3), 2);
+  assert.equal(line.getClusterStartAtDistance(-0.5), -1);
+  assert.equal(line.getClusterStartAtDistance(Infinity), -1);
+  frame.dispose();
+  assert.throws(() => frame.getClusterStartAtPosition(1, 1), /disposed/);
+  line.dispose();
+  assert.throws(() => line.getClusterStartAtDistance(1), /disposed/);
 });
 
 test("a run reads its glyph data lazily, and a list fails once the run is disposed", () => {

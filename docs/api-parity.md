@@ -14,7 +14,7 @@ Status words:
 | manual | Not generated; bound by hand in `cpp/runtime` because the signature has C function pointers, a union or retained callbacks. |
 | excluded | Not bound, with the reason. |
 
-Counts: 318 public functions in 21 headers (`TRSheenBidi.h` has one, `TRTextGetSheenBidiText`). 18 `TR*Release` functions and 2 more are excluded (20); 8 are bound by hand; the other 290 are bound by the generator (the `TR*Retain` functions are internal). Every function has a row. Where several TypeScript members are named, the function serves each of them (a count function serves the list it sizes).
+Counts: 320 public functions in 21 headers (`TRSheenBidi.h` has one, `TRTextGetSheenBidiText`). 18 `TR*Release` functions and 2 more are excluded (20); 8 are bound by hand; the other 292 are bound by the generator (the `TR*Retain` functions are internal). Every function has a row. Where several TypeScript members are named, the function serves each of them (a count function serves the list it sizes).
 
 ## Findings in short
 
@@ -44,6 +44,7 @@ Counts: 318 public functions in 21 headers (`TRSheenBidi.h` has one, `TRTextGetS
 | `TRComposedFrameGetLineCount` | bound | `ComposedFrame.lines` |  |
 | `TRComposedFrameGetLine` | bound | `ComposedFrame.lines` |  |
 | `TRComposedFrameGetLineIndexForCodeUnit` | bound | `ComposedFrame.getLineIndexForCodeUnit()` |  |
+| `TRComposedFrameGetClusterStartAtPosition` | bound | `ComposedFrame.getClusterStartAtPosition()` | Not in Web, Android or Cocoa (searched `ClusterStartAt` in Tehreer-Web `src`, tehreerAndroid and tehreerCocoa: no match); `-1` for no character. |
 | `TRComposedFrameGetLineIndexAtPosition` | bound | `ComposedFrame.getLineIndexAtPosition()` |  |
 | `TRComposedFrameEnumerateSelection` | renamed | `ComposedFrame.getSelectionRects()` | Core enumerates through a callback; JavaScript gets the array. |
 | `TRComposedFrameDraw` | bound | `ComposedFrame.draw()` |  |
@@ -70,6 +71,7 @@ Counts: 318 public functions in 21 headers (`TRSheenBidi.h` has one, `TRTextGetS
 | `TRComposedLineGetGlyphRun` | bound | `ComposedLine.runs` |  |
 | `TRComposedLineGetCodeUnitDistance` | bound | `ComposedLine.getCodeUnitDistance()` |  |
 | `TRComposedLineEnumerateVisualEdges` | bound | `ComposedLine.getVisualEdges()` | Core enumerates through a callback; JavaScript gets an array. |
+| `TRComposedLineGetClusterStartAtDistance` | bound | `ComposedLine.getClusterStartAtDistance()` | Not in Web, Android or Cocoa (searched `ClusterStartAt` in Tehreer-Web `src`, tehreerAndroid and tehreerCocoa: no match); `-1` for no character. |
 | `TRComposedLineGetCodeUnitIndexAtDistance` | bound | `ComposedLine.getCodeUnitIndexAtDistance()` |  |
 | `TRComposedLineGetPenOffset` | bound | `ComposedLine.getPenOffset()` |  |
 | `TRComposedLineComputeInkBox` | bound | `ComposedLine.computeInkBox()` |  |

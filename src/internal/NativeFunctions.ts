@@ -120,6 +120,8 @@ export interface NativeFunctions {
   TRComposedFrameGetLineIndexForCodeUnit(frame: Handle<"TRComposedFrame">, codeUnitIndex: number): number;
   /** `TRUInteger TRComposedFrameGetLineIndexAtPosition(TRComposedFrameRef frame, TRPoint position)` */
   TRComposedFrameGetLineIndexAtPosition(frame: Handle<"TRComposedFrame">, position: TRPoint): number;
+  /** `TRUInteger TRComposedFrameGetClusterStartAtPosition(TRComposedFrameRef frame, TRPoint position)` */
+  TRComposedFrameGetClusterStartAtPosition(frame: Handle<"TRComposedFrame">, position: TRPoint): number;
   /** `TRBoolean TRComposedFrameEnumerateSelection(TRComposedFrameRef frame, TRUInteger index, TRUInteger length, TRSelectionFunc func, void *userData)` (`undefined` when it returns `TRFalse`) */
   TRComposedFrameEnumerateSelection(frame: Handle<"TRComposedFrame">, index: number, length: number): TRRect[] | undefined;
   /** `void TRComposedFrameDraw(TRComposedFrameRef frame, TRRendererRef renderer, TRPoint origin)` */
@@ -160,6 +162,8 @@ export interface NativeFunctions {
   TRComposedLineEnumerateVisualEdges(line: Handle<"TRComposedLine">, index: number, length: number): { left: number; right: number }[] | undefined;
   /** `TRUInteger TRComposedLineGetCodeUnitIndexAtDistance(TRComposedLineRef line, TRFloat distance)` */
   TRComposedLineGetCodeUnitIndexAtDistance(line: Handle<"TRComposedLine">, distance: number): number;
+  /** `TRUInteger TRComposedLineGetClusterStartAtDistance(TRComposedLineRef line, TRFloat distance)` */
+  TRComposedLineGetClusterStartAtDistance(line: Handle<"TRComposedLine">, distance: number): number;
   /** `TRFloat TRComposedLineGetPenOffset(TRComposedLineRef line, TRFloat flushFactor, TRFloat flushExtent)` */
   TRComposedLineGetPenOffset(line: Handle<"TRComposedLine">, flushFactor: number, flushExtent: number): number;
   /** `TRRect TRComposedLineComputeInkBox(TRComposedLineRef line, TRRendererRef renderer)` */

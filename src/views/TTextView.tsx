@@ -133,8 +133,9 @@ export interface TTextViewHandle {
   /** The index of the first code unit that is visible, or `undefined` when there is no text. */
   readonly firstVisibleCodeUnitIndex: number | undefined;
   /**
-   * Finds the code unit under a position of the text, in layout units from its top left, where the
-   * top of the text is the top of its first line, whatever is scrolled.
+   * Finds the character under a position of the text, given in layout units from its top left, where the
+   * top of the text is the top of its first line, whatever is scrolled. The answer is the first code unit of the cluster that the point hits (a
+   * surrogate pair, ligature or base with marks is never split), from Core's `ComposedFrame.getClusterStartAtPosition`.
    *
    * @returns The index, or `undefined` if there is no character at the position.
    * @throws RangeError if `x` or `y` is NaN.
@@ -149,6 +150,9 @@ export interface TTextViewHandle {
   getCaretPosition(index: number): CaretPosition | undefined;
   /**
    * Scrolls the line of a code unit to the top of the view.
+   *
+   * A text without code units has no line to scroll to: the call does nothing, does not throw for
+   * any whole number from 0, and leaves no request waiting for a text that is set later.
    *
    * @throws RangeError if the index is not a whole number from 0 and less than the number of code units
    *   of the text.
@@ -292,7 +296,16 @@ export const TTextView = forwardRef<TTextViewHandle, TTextViewProps>(function TT
       const known = getComposedFrame();
       return known === undefined ? undefined : getCaretPosition(known, index);
     },
-    scrollToCodeUnit: (index, smooth = false) => scrollToCodeUnit(checkScrollCodeUnit(index, getCodeUnitCount() || undefined), smooth),
+    scrollToCodeUnit: (index, smooth = false) => {
+      const count = getCodeUnitCount();
+      checkScrollCodeUnit(index, count || undefined);
+      if (count === 0) {
+        // The text is empty, so there is no line to scroll to, and no request waits for a text that is set later.
+        pending.current = { ...pending.current, codeUnit: undefined };
+        return;
+      }
+      scrollToCodeUnit(index, smooth);
+    },
     scrollToOffset: (distance, smooth = false) => scrollToOffset(checkScrollOffset(distance), smooth),
   }), [getComposedFrame, getCodeUnitCount, scrollToCodeUnit, scrollToOffset]);
 

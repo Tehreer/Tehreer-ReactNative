@@ -82,6 +82,23 @@ export class ComposedFrame extends NativeObject<"TRComposedFrame"> {
   }
 
   /**
+   * Returns the first code unit of the cluster that is under a position, which is the character that
+   * a point hits, for any direction of text. The line is the one whose top and bottom have the y, and
+   * the x is measured from the origin of the line (see `ComposedLine.getClusterStartAtDistance`). A
+   * cluster is never split.
+   *
+   * @param x The x in the coordinates of the frame. An infinite one hits nothing.
+   * @param y The y in the coordinates of the frame. An infinite one hits nothing.
+   * @returns The index, or -1 if no character is there: the position is above or below the lines,
+   *   outside the runs of the line, or on a truncation token, or the frame has no lines.
+   * @throws RangeError if `x` or `y` is NaN (Core answers -1 for it, but a NaN is a mistake of the
+   *   caller everywhere in this library).
+   */
+  getClusterStartAtPosition(x: number, y: number): number {
+    return getNativeBindings().TRComposedFrameGetClusterStartAtPosition(this.nativeHandle, { x, y });
+  }
+
+  /**
    * Returns the rectangles that cover the code units from `fromIndex` up to `toIndex`, in the
    * coordinates of the frame. A range that spans lines is covered with the paddings of the lines too:
    * the space after the text of the first line, the whole width of each line in between, and the

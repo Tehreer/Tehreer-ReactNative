@@ -188,6 +188,11 @@ export class TMutableText extends TText {
    * Removes attributes from the code units from `fromIndex` up to `toIndex`. An attribute that is
    * not set there is left as it is.
    *
+   * Removing `replacement` does not reset what the text remembers about replacements: a text on which
+   * a replacement was ever set is still refused by the typesetter of a `TLabel` or `TTextView` (which
+   * cannot tell whether one is left), also after the last one was removed. Make a new text if that
+   * matters.
+   *
    * @throws {RangeError} If the range is not within the text.
    * @throws TypeError if a name is not an attribute.
    */

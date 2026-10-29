@@ -99,6 +99,75 @@ function makeFrame(face: Typeface, width = 70): { resolver: FrameResolver; types
   return { resolver, typesetter, frame: resolver.createFrame(0, TEXT.length) };
 }
 
+/**
+ * What a hit test must satisfy on a real line: every point inside the runs hits the first code unit
+ * of a cluster (so a surrogate pair, a ligature or a base with its marks is never split, in either
+ * direction) whose visual edges hold the point. The center of a cluster hits that cluster, except
+ * where the carets of a cursive script overlap (Nastaliq): there it hits the first cluster whose
+ * edges hold it, which the same rule checks. Returns the number of clusters that were checked.
+ */
+function checkClusterHits(line: ComposedLine, text: string, label: string, isCursive = false): number {
+  let clusters = 0;
+  let selfHits = 0;
+  const starts = new Set<number>();
+  const runs = line.runs;
+  for (let r = 0; r < runs.length; r++) {
+    const run = runs.get(r);
+    // The run of a truncation token has the indices of the token's own text, not of the line's.
+    if (line.isTruncated && run.getClusterEnd(run.startIndex) < 0) {
+      run.dispose();
+      continue;
+    }
+    for (let start = run.startIndex; start < run.endIndex;) {
+      const end = run.getClusterEnd(start);
+      check(end > start && run.getClusterStart(start) === start, `${label}: the cluster at ${start} has no valid end ${end}`);
+      starts.add(start);
+      const edges = line.getVisualEdges(start, end);
+      const width = edges.reduce((sum, edge) => sum + edge.right - edge.left, 0);
+      if (width >= 1) {
+        const edge = edges[0]!;
+        const center = (edge.left + edge.right) / 2;
+        const hit = line.getClusterStartAtDistance(center);
+        check(hit >= 0, `${label}: the center of the cluster ${start}..${end} hits nothing`);
+        clusters++;
+        selfHits += hit === start ? 1 : 0;
+      }
+      start = end;
+    }
+    run.dispose();
+  }
+  // Only the carets of a cursive script overlap, so everywhere else every center hits its own cluster.
+  check(isCursive ? selfHits * 10 >= clusters * 7 : selfHits === clusters, `${label}: only ${selfHits} of ${clusters} cluster centers hit their own cluster`);
+  for (let x = 0.25; x < line.width - 0.25; x += 0.5) {
+    const hit = line.getClusterStartAtDistance(x);
+    if (hit === -1) {
+      // Only trailing whitespace may be outside the runs of a line; its width is a boundary case of Core.
+      continue;
+    }
+    check(starts.has(hit), `${label}: ${x} hits ${hit}, which starts no cluster`);
+    const code = text.charCodeAt(hit);
+    check(!(code >= 0xdc00 && code <= 0xdfff), `${label}: ${x} hits the low half of a surrogate pair`);
+    const end = clusterEndOf(line, hit);
+    check(line.getVisualEdges(hit, end).some((edge) => x >= edge.left - 0.01 && x <= edge.right + 0.01), `${label}: ${x} is not inside the edges of the cluster ${hit}..${end}`);
+  }
+  return clusters;
+}
+
+function clusterEndOf(line: ComposedLine, index: number): number {
+  const runs = line.runs;
+  for (let r = 0; r < runs.length; r++) {
+    const run = runs.get(r);
+    try {
+      if (index >= run.startIndex && index < run.endIndex) {
+        return run.getClusterEnd(index);
+      }
+    } finally {
+      run.dispose();
+    }
+  }
+  throw new Error(`no run holds ${index}`);
+}
+
 type Test = [name: string, body: (b: NativeBindings) => void];
 
 const matrix: Test[] = frameScenarios.map((scenario): Test => [
@@ -526,6 +595,102 @@ const tests: Test[] = [
     for (const object of [token, whole, truncated, roomy, typesetter]) {
       object.dispose();
     }
+  }],
+
+  ['a hit test finds the cluster under a point: Urdu ligatures, surrogate pairs, combining marks and mixed bidi', () => {
+    const { faces } = load();
+    const texts: [string, Typeface, number][] = [
+      ['تحریر ایک متنی انجن ہے', faces.nastaliq, 30],
+      ['\u0627\u064E\u0644\u0652 \u062A\u064E\u062D\u0652\u0631\u0650\u064A\u0631', faces.nastaliq, 30],
+      ['ab\u{1F600}c\u{1F601}d', faces.roboto, 24],
+      ['a\u0301b\u0302c', faces.roboto, 24],
+      ['abc تحریر abc ایک def', faces.nastaliq, 26],
+    ];
+    let clusters = 0;
+    for (const [text, face, size] of texts) {
+      const typesetter = new Typesetter(text, { typeface: face, typeSize: size });
+      const line = typesetter.createSimpleLine(0, text.length);
+      clusters += checkClusterHits(line, text, JSON.stringify(text), face === faces.nastaliq);
+      line.dispose();
+      typesetter.dispose();
+    }
+    check(clusters > 20, `only ${clusters} clusters were checked`);
+    // A surrogate pair is one cluster of two code units, so its start is the only index a hit gives.
+    const emoji = 'ab\u{1F600}c';
+    const typesetter = new Typesetter(emoji, { typeface: faces.roboto, typeSize: 24 });
+    const line = typesetter.createSimpleLine(0, emoji.length);
+    const edges = line.getVisualEdges(2, 4);
+    const inside = line.getClusterStartAtDistance(edges[0]!.left + 0.1);
+    const nearEnd = line.getClusterStartAtDistance(edges[0]!.right - 0.1);
+    check(inside === 2 && nearEnd === 2, `both ends of a surrogate pair hit its start, got ${inside} and ${nearEnd}`);
+    line.dispose();
+    typesetter.dispose();
+  }],
+
+  ['a hit test gives -1 outside the runs and on a truncation token, and refuses a NaN', () => {
+    const { faces } = load();
+    const typesetter = makeTypesetter(faces.roboto);
+    const whole = typesetter.createSimpleLine(0, TEXT.length);
+    check(whole.getClusterStartAtDistance(-0.5) === -1, 'before the left edge');
+    check(whole.getClusterStartAtDistance(whole.width + 5) === -1, 'after the right edge');
+    check(whole.getClusterStartAtDistance(Infinity) === -1 && whole.getClusterStartAtDistance(-Infinity) === -1, 'an infinite distance hits nothing');
+    expectThrows(() => whole.getClusterStartAtDistance(NaN), 'RangeError');
+    check(whole.getClusterStartAtDistance(1) === 0, 'the start of the text');
+
+    const token = typesetter.createTruncationToken(0, TEXT.length, TruncationPlace.End);
+    const truncated = typesetter.createTruncatedLine(0, TEXT.length, whole.width / 2, BreakMode.Line, TruncationPlace.End, token);
+    check(truncated.isTruncated, 'the line is truncated');
+    check(truncated.getClusterStartAtDistance(truncated.width - token.width / 2) === -1, 'the token is no character');
+    check(truncated.getClusterStartAtDistance(2) === 0, 'the text before the token is');
+    checkClusterHits(truncated, TEXT, 'truncated');
+
+    for (const object of [token, truncated, whole, typesetter]) {
+      object.dispose();
+    }
+  }],
+
+  ['a frame hit test measures x from the origin of the line, and finds no character above, below or beside the lines', () => {
+    const { faces } = load();
+    const text = 'abc تحریر ایک متنی انجن ہے abc abc abc';
+    const typesetter = new Typesetter(text, { typeface: faces.nastaliq, typeSize: 26 });
+    const resolver = new FrameResolver();
+    resolver.typesetter = typesetter;
+    resolver.frameWidth = 160;
+    resolver.frameHeight = 1000;
+    const frame = resolver.createFrame(0, text.length);
+    check(frame.lines.length >= 3, `${frame.lines.length} lines`);
+    for (let i = 0; i < frame.lines.length; i++) {
+      const line = frame.lines.get(i);
+      const y = line.origin.y - line.ascent + line.height / 2;
+      const runs = line.runs;
+      for (let r = 0; r < runs.length; r++) {
+        const run = runs.get(r);
+        for (let start = run.startIndex; start < run.endIndex;) {
+          const end = run.getClusterEnd(start);
+          const edge = line.getVisualEdges(start, end)[0]!;
+          if (edge.right - edge.left >= 1) {
+            const center = (edge.left + edge.right) / 2;
+            const hit = frame.getClusterStartAtPosition(line.origin.x + center, y);
+            // The frame's answer is the line's for the distance from its origin.
+            check(hit === line.getClusterStartAtDistance(center) && hit >= 0, `line ${i}: the cluster ${start}..${end} is hit as ${hit}, the line says ${line.getClusterStartAtDistance(center)}`);
+          }
+          start = end;
+        }
+        run.dispose();
+      }
+      check(frame.getClusterStartAtPosition(line.origin.x - 1, y) === -1, `line ${i}: left of the line`);
+      check(frame.getClusterStartAtPosition(line.origin.x + line.width + 1, y) === -1, `line ${i}: right of the line`);
+      line.dispose();
+    }
+    check(frame.getClusterStartAtPosition(5, -1) === -1, 'above the frame');
+    check(frame.getClusterStartAtPosition(5, frame.height + 1) === -1, 'below the frame');
+    check(frame.getClusterStartAtPosition(Infinity, 5) === -1 && frame.getClusterStartAtPosition(5, Infinity) === -1, 'infinite');
+    expectThrows(() => frame.getClusterStartAtPosition(NaN, 5), 'RangeError');
+    expectThrows(() => frame.getClusterStartAtPosition(5, NaN), 'RangeError');
+    frame.dispose();
+    expectThrows(() => frame.getClusterStartAtPosition(5, 5), 'Error', /disposed/);
+    resolver.dispose();
+    typesetter.dispose();
   }],
 
   ['lines and runs that are never disposed are collected without harm', (b) => {

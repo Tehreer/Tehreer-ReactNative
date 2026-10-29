@@ -682,6 +682,22 @@ test("a replacement is stored, read back as a wrapper of its own, and Core keeps
   assert.equal(held.refs, 0, "removing gives the references back");
 });
 
+test("a text remembers that a replacement was ever set, which removing it does not undo (Typesetter.hasReplacements reads it)", () => {
+  const flag = (text: unknown) => (text as { mayHaveReplacement?: boolean }).mayHaveReplacement;
+  const text = new TMutableText("ab");
+  assert.notEqual(flag(text), true, "a new text has none");
+  text.setAttributes(0, 1, { typeSize: 3 });
+  assert.notEqual(flag(text), true, "other attributes do not set it");
+
+  const replacement = new Replacement({ computeRoom: () => ({ ascent: 1, descent: 1, extent: 1 }) }, 1);
+  text.setAttributes(0, 2, { replacement });
+  assert.equal(flag(text), true);
+  text.removeAttributes(0, 2, "replacement");
+  assert.equal(flag(text), true, "it never resets after removeAttributes");
+  assert.equal(flag((text as unknown as { copy(): unknown }).copy()), true, "a copy keeps it");
+  replacement.dispose();
+});
+
 test("an attribute type that the wrapper has no member for is skipped, and its reference is given back", () => {
   const text = new TMutableText("a");
   const unknown = core("unknown");

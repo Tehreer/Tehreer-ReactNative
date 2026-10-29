@@ -232,6 +232,17 @@ jsi::Value BindTRComposedLineGetCodeUnitIndexAtDistance(jsi::Runtime &rt, const 
     return marshal::FromIndex(rt, result);
 }
 
+jsi::Value BindTRComposedLineGetClusterStartAtDistance(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
+    [[maybe_unused]] constexpr const char *kFunction = "TRComposedLineGetClusterStartAtDistance";
+    marshal::BeginCall();
+    TRFloat a_distance = marshal::ToNumber<TRFloat>(rt, marshal::ArgAt(args, count, 1), kFunction, "distance");
+    TRComposedLineRef a_line = marshal::ToHandle<TRComposedLineRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "line", false);
+
+    auto result = TRComposedLineGetClusterStartAtDistance(a_line, a_distance);
+    marshal::RethrowCallbackError(rt);
+    return marshal::FromIndex(rt, result);
+}
+
 jsi::Value BindTRComposedLineGetPenOffset(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRComposedLineGetPenOffset";
     marshal::BeginCall();
@@ -297,6 +308,7 @@ void InstallTRComposedLine(jsi::Runtime &rt, jsi::Object &target) {
     target.setProperty(rt, "TRComposedLineGetCodeUnitDistance", jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "TRComposedLineGetCodeUnitDistance"), 2, &BindTRComposedLineGetCodeUnitDistance));
     target.setProperty(rt, "TRComposedLineEnumerateVisualEdges", jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "TRComposedLineEnumerateVisualEdges"), 3, &BindTRComposedLineEnumerateVisualEdges));
     target.setProperty(rt, "TRComposedLineGetCodeUnitIndexAtDistance", jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "TRComposedLineGetCodeUnitIndexAtDistance"), 2, &BindTRComposedLineGetCodeUnitIndexAtDistance));
+    target.setProperty(rt, "TRComposedLineGetClusterStartAtDistance", jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "TRComposedLineGetClusterStartAtDistance"), 2, &BindTRComposedLineGetClusterStartAtDistance));
     target.setProperty(rt, "TRComposedLineGetPenOffset", jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "TRComposedLineGetPenOffset"), 3, &BindTRComposedLineGetPenOffset));
     target.setProperty(rt, "TRComposedLineComputeInkBox", jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "TRComposedLineComputeInkBox"), 2, &BindTRComposedLineComputeInkBox));
     target.setProperty(rt, "TRComposedLineDraw", jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "TRComposedLineDraw"), 3, &BindTRComposedLineDraw));
