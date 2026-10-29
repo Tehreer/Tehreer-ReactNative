@@ -17,44 +17,18 @@ export interface CaretPosition {
 
 /**
  * Finds the code unit under a position of a frame, in the coordinates of the frame (layout units,
- * the top of the text at 0). The cluster math is Core's (`ComposedLine.getCodeUnitIndexAtDistance`),
- * which follows the visual order of a bidirectional line, so these are the same indices that
- * `getSelectionRects` covers.
+ * the top of the text at 0): the first code unit of the cluster that the point hits
+ * (`ComposedFrame.getClusterStartAtPosition`). Core owns the cluster math, which follows the visual
+ * order of a bidirectional line and never splits a surrogate pair, a ligature or a base character
+ * with its marks, so these are the clusters that `getSelectionRects` covers.
  *
- * @returns The index, or `undefined` when no character is there: outside the width of the line
- *   that the y falls on, or above or below the frame, or in a frame without lines.
+ * @returns The index, or `undefined` when no character is there: outside the runs of the line that
+ *   the y falls on, on a truncation token, above or below the frame, or in a frame without lines.
  * @throws RangeError if `x` or `y` is NaN. An infinite coordinate is a position outside the text.
  */
 export function indexOfCodeUnit(frame: ComposedFrame, x: number, y: number): number | undefined {
-  if (Number.isNaN(x) || Number.isNaN(y)) {
-    throw new RangeError("The position must not be NaN.");
-  }
-  const lines = frame.lines;
-  if (lines.length === 0 || y < 0 || y > frame.height) {
-    return undefined;
-  }
-  const line = lines.get(frame.getLineIndexAtPosition(x, y));
-  try {
-    const left = line.origin.x;
-    if (x < left || x > left + line.width) {
-      return undefined;
-    }
-    // Core answers with the nearest boundary, which for a point inside a character is one of its two
-    // ends, so the character is the neighbour of the boundary whose visual edges hold the point.
-    // The edges follow the visual order, so this is right inside a right-to-left run too.
-    const distance = x - left;
-    const boundary = line.getCodeUnitIndexAtDistance(distance);
-    const last = line.endIndex - 1;
-    const candidates = [Math.min(boundary, last), Math.min(Math.max(boundary - 1, line.startIndex), last)];
-    for (const candidate of candidates) {
-      if (line.getVisualEdges(candidate, candidate + 1).some((edge) => distance >= edge.left && distance <= edge.right)) {
-        return candidate;
-      }
-    }
-    return candidates[0];
-  } finally {
-    line.dispose();
-  }
+  const index = frame.getClusterStartAtPosition(x, y);
+  return index < 0 ? undefined : index;
 }
 
 /**
@@ -131,9 +105,11 @@ export function checkScrollCodeUnit(index: number, length?: number): number {
 }
 
 /**
- * Makes the frame that the native view makes for the same typesetter, size and settings (the calls
- * of `ComposeFrame` in `cpp/views/TextLayout.cpp`), so that hit testing and selection rectangles
- * ask Core about the lines that are drawn. JavaScript makes it only when a query asks for it.
+ * Makes the frame that the view draws for a typesetter, size and settings, so that hit testing and
+ * selection rectangles ask Core about the lines that are drawn. The native side only measures
+ * (`MeasureText` in `cpp/views/TextLayout.cpp` fits a frame to its lines with the same settings),
+ * and the box that Yoga chooses from that is laid out here; device test `labels` checks that both
+ * give the same lines and rectangles.
  *
  * @param isScrollable A scrolling view lays out the whole text, however tall, for the width.
  */

@@ -154,10 +154,34 @@ function expectedFrame(testCase: LabelCase, setup: Setup, text: string | TText, 
   }
 }
 
-/** How many of the code units hit a character whose rectangle does not hold the center of their own. */
+/** The end of the cluster that starts at a code unit of the frame, or -1. */
+function clusterEndAt(frame: ComposedFrame, start: number): number {
+  const lineIndex = frame.getLineIndexForCodeUnit(start);
+  if (lineIndex < 0) {
+    return -1;
+  }
+  const line = frame.lines.get(lineIndex);
+  let end = -1;
+  for (let r = 0; end < 0 && r < line.runs.length; r++) {
+    const run = line.runs.get(r);
+    if (start >= run.startIndex && start < run.endIndex && run.getClusterStart(start) === start) {
+      end = run.getClusterEnd(start);
+    }
+    run.dispose();
+  }
+  line.dispose();
+  return end;
+}
+
+/**
+ * How many of the code units have a center that hits something else than the start of a cluster whose
+ * rectangles hold that center. A code unit of a ligature or a surrogate pair hits the start of its
+ * cluster, and where the carets of a cursive script overlap it can hit the cluster before.
+ */
 function hitDisagreements(handle: TLabelHandle | TTextViewHandle, length: number): { count: number; first: string } {
   let count = 0;
   let first = '';
+  const frame = handle.composedFrame;
   for (let i = 0; i < length; i++) {
     const rects = handle.getSelectionRects(i, i + 1);
     if (rects.length !== 1 || rects[0]!.width < 1) {
@@ -167,10 +191,11 @@ function hitDisagreements(handle: TLabelHandle | TTextViewHandle, length: number
     const x = rect.x + rect.width / 2;
     const y = rect.y + rect.height / 2;
     const hit = handle.indexOfCodeUnit(x, y);
-    const hitRects = hit === undefined ? [] : handle.getSelectionRects(hit, hit + 1);
+    const end = hit === undefined || frame === undefined ? -1 : clusterEndAt(frame, hit);
+    const hitRects = end < 0 ? [] : handle.getSelectionRects(hit!, end);
     if (!hitRects.some((r) => rectContains(r, x, y))) {
       count++;
-      first ||= `index ${i} rect ${JSON.stringify(rect)} hit ${hit}`;
+      first ||= `index ${i} rect ${JSON.stringify(rect)} hit ${hit} cluster end ${end}`;
     }
   }
   return { count, first };
@@ -357,6 +382,13 @@ export function LabelTestHost({ onDone }: { onDone: (report: SuiteReport) => voi
           if (testCase.truncate !== undefined && own !== undefined) {
             const lastLine = own.lines.get(own.lines.length - 1);
             ok(lastLine.isTruncated, `${testCase.name}/truncation: the last line is not truncated`);
+            // The ellipsis is no character: a hit there is undefined, in either direction of text.
+            if (testCase.truncate === TruncationPlace.End) {
+              const y = lastLine.origin.y - lastLine.ascent + lastLine.height / 2;
+              const x = lastLine.origin.x + (lastLine.paragraphLevel % 2 === 1 ? 1 : lastLine.width - 1);
+              const edgeHit = handle.indexOfCodeUnit(x, y);
+              ok(edgeHit === undefined, `${testCase.name}/truncation: a hit on the token is ${edgeHit}`);
+            }
             lastLine.dispose();
           }
           const disagreement = hitDisagreements(handle, expected.endIndex);

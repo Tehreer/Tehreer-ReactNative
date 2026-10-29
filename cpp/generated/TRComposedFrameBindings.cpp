@@ -128,6 +128,17 @@ jsi::Value BindTRComposedFrameGetLineIndexAtPosition(jsi::Runtime &rt, const jsi
     return marshal::FromIndex(rt, result);
 }
 
+jsi::Value BindTRComposedFrameGetClusterStartAtPosition(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
+    [[maybe_unused]] constexpr const char *kFunction = "TRComposedFrameGetClusterStartAtPosition";
+    marshal::BeginCall();
+    TRPoint a_position = TRPointFromJs(rt, marshal::ArgAt(args, count, 1), kFunction, "position");
+    TRComposedFrameRef a_frame = marshal::ToHandle<TRComposedFrameRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "frame", false);
+
+    auto result = TRComposedFrameGetClusterStartAtPosition(a_frame, a_position);
+    marshal::RethrowCallbackError(rt);
+    return marshal::FromIndex(rt, result);
+}
+
 jsi::Value BindTRComposedFrameEnumerateSelection(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRComposedFrameEnumerateSelection";
     marshal::BeginCall();
@@ -178,6 +189,7 @@ void InstallTRComposedFrame(jsi::Runtime &rt, jsi::Object &target) {
     target.setProperty(rt, "TRComposedFrameGetLine", jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "TRComposedFrameGetLine"), 2, &BindTRComposedFrameGetLine));
     target.setProperty(rt, "TRComposedFrameGetLineIndexForCodeUnit", jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "TRComposedFrameGetLineIndexForCodeUnit"), 2, &BindTRComposedFrameGetLineIndexForCodeUnit));
     target.setProperty(rt, "TRComposedFrameGetLineIndexAtPosition", jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "TRComposedFrameGetLineIndexAtPosition"), 2, &BindTRComposedFrameGetLineIndexAtPosition));
+    target.setProperty(rt, "TRComposedFrameGetClusterStartAtPosition", jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "TRComposedFrameGetClusterStartAtPosition"), 2, &BindTRComposedFrameGetClusterStartAtPosition));
     target.setProperty(rt, "TRComposedFrameEnumerateSelection", jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "TRComposedFrameEnumerateSelection"), 3, &BindTRComposedFrameEnumerateSelection));
     target.setProperty(rt, "TRComposedFrameDraw", jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "TRComposedFrameDraw"), 3, &BindTRComposedFrameDraw));
     target.setProperty(rt, "TRComposedFrameRetain", jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "TRComposedFrameRetain"), 1, &BindTRComposedFrameRetain));

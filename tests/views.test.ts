@@ -56,6 +56,20 @@ function makeFrame(lines: FakeLine[]) {
     },
     // As Core: the line whose top and bottom have the y, or the last line if there is none (also above the frame).
     getLineIndexAtPosition: (_x: number, y: number) => (y < 0 ? lines.length - 1 : Math.min(lines.length - 1, Math.floor(y / 20))),
+    // As Core: the line of the y, the x measured from its origin, ten units per code unit (a right-to-left
+    // line has its first code unit at the right end), -1 outside the lines and the runs.
+    getClusterStartAtPosition: (x: number, y: number) => {
+      if (Number.isNaN(x) || Number.isNaN(y)) {
+        throw new RangeError("must not be NaN");
+      }
+      const line = lines.length === 0 || y < 0 || y >= lines.length * 20 ? undefined : lines[Math.floor(y / 20)];
+      const distance = line === undefined ? -1 : x - line.origin.x;
+      if (line === undefined || distance < 0 || distance >= line.width) {
+        return -1;
+      }
+      const slot = Math.floor(distance / 10);
+      return line.isRtl ? line.endIndex - 1 - slot : line.startIndex + slot;
+    },
     getLineIndexForCodeUnit: (index: number) => lines.findIndex((line) => index >= line.startIndex && index < line.endIndex || (index === frame.endIndex && line === lines[lines.length - 1])),
   };
   return frame;
@@ -75,20 +89,18 @@ before(async () => {
 });
 after(() => rmSync(out, { recursive: true, force: true }));
 
-test("a position finds the code unit of its line, and no character outside the text", () => {
+test("a position finds the cluster of Core, and no character outside the runs", () => {
   const lines = [line(0, 5, 0), line(5, 9, 20)];
   const frame = makeFrame(lines) as never;
   assert.equal(queries.indexOfCodeUnit(frame, 12, 5), 1);
   assert.equal(queries.indexOfCodeUnit(frame, 12, 25), 6);
-  // The boundary after the last code unit of a line is not a character: it clamps to the last one.
-  assert.equal(queries.indexOfCodeUnit(frame, 50, 5), 4);
-  assert.equal(queries.indexOfCodeUnit(frame, 40, 25), 8);
+  // The right edge of the runs is not a character, the last one ends before it.
+  assert.equal(queries.indexOfCodeUnit(frame, 49, 5), 4);
+  assert.equal(queries.indexOfCodeUnit(frame, 50, 5), undefined, "Core gives no character at the right edge");
   assert.equal(queries.indexOfCodeUnit(frame, 45, 25), undefined, "beyond the width of the shorter line");
   assert.equal(queries.indexOfCodeUnit(frame, -1, 5), undefined);
   assert.equal(queries.indexOfCodeUnit(frame, 5, -1), undefined, "above the frame");
   assert.equal(queries.indexOfCodeUnit(frame, 5, 41), undefined, "below the frame");
-  // Both lines that were read (the hits, and the miss on the shorter line) were given back.
-  assert.deepEqual(lines.map((l) => l.disposed), [3, 3]);
 });
 
 test("a frame without lines has no character and no caret", () => {
@@ -97,14 +109,16 @@ test("a frame without lines has no character and no caret", () => {
   assert.equal(queries.getCodeUnitAtOffset(frame, 0), undefined);
 });
 
-test("every line wrapper that a query reads is disposed, also when the position misses", () => {
+test("every line wrapper that a query reads is disposed", () => {
   const lines = [line(0, 5, 0)];
   const frame = makeFrame(lines) as never;
+  // The hit test is one call of Core and reads no line.
   queries.indexOfCodeUnit(frame, 3, 3);
   queries.indexOfCodeUnit(frame, 500, 3);
+  assert.equal(lines[0]?.disposed, 0);
   queries.getCaretPosition(frame, 2);
   queries.getCodeUnitAtOffset(frame, 0);
-  assert.equal(lines[0]?.disposed, 4);
+  assert.equal(lines[0]?.disposed, 2);
 });
 
 test("the caret of a boundary follows the screen, in a right-to-left line too", () => {
@@ -132,9 +146,8 @@ test("the first visible code unit is the start of the line at the offset, and a 
   assert.equal(queries.getLineTop(frame, 6), 20);
 });
 
-test("a point inside a character finds that character, not the nearest boundary, in both directions", () => {
+test("a point inside a character finds that character, in both directions", () => {
   const frame = makeFrame([line(0, 4, 0), line(4, 8, 20, { isRtl: true })]) as never;
-  // Inside the character the boundary rounds to either end; the visual edges decide.
   assert.equal(queries.indexOfCodeUnit(frame, 14, 5), 1);
   assert.equal(queries.indexOfCodeUnit(frame, 16, 5), 1);
   // The first code unit of a right-to-left line is at its right end.

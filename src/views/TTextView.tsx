@@ -133,7 +133,7 @@ export interface TTextViewHandle {
   /** The index of the first code unit that is visible, or `undefined` when there is no text. */
   readonly firstVisibleCodeUnitIndex: number | undefined;
   /**
-   * Finds the code unit under a position of the text, in layout units from its top left, where the
+   * Finds the first code unit of the cluster under a position (Core's `ComposedFrame.getClusterStartAtPosition`) of the text, in layout units from its top left, where the
    * top of the text is the top of its first line, whatever is scrolled.
    *
    * @returns The index, or `undefined` if there is no character at the position.
@@ -149,6 +149,9 @@ export interface TTextViewHandle {
   getCaretPosition(index: number): CaretPosition | undefined;
   /**
    * Scrolls the line of a code unit to the top of the view.
+   *
+   * A text without code units has no line to scroll to: the call does nothing and does not throw for
+   * any whole number from 0.
    *
    * @throws RangeError if the index is not a whole number from 0 and less than the number of code units
    *   of the text.

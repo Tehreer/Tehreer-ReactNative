@@ -151,6 +151,24 @@ export class ComposedLine extends NativeObject<"TRComposedLine"> {
   }
 
   /**
+   * Returns the first code unit of the cluster that covers a distance from the start of the line,
+   * which is the character that a point hits. A cluster (a surrogate pair, a base character with its
+   * combining marks, a ligature) is never split, in either direction of text, and the distance is
+   * measured along the screen, so it follows the visual order of a bidirectional line. Unlike
+   * `getCodeUnitIndexAtDistance`, which gives the closest boundary and can be inside a cluster, this
+   * gives the cluster that is hit. A cluster that the line cuts starts at the start of the line.
+   *
+   * @param distance The distance from the left edge of the line. An infinite distance hits nothing.
+   * @returns The index, or -1 if nothing is hit: the distance is before the left edge or at or after
+   *   the right edge of the runs, it is on a truncation token, or the line has no runs.
+   * @throws RangeError if the distance is NaN (Core answers -1 for it, but a NaN is a mistake of the
+   *   caller everywhere in this library).
+   */
+  getClusterStartAtDistance(distance: number): number {
+    return getNativeBindings().TRComposedLineGetClusterStartAtDistance(this.nativeHandle, distance);
+  }
+
+  /**
    * Returns how far to move the start of the line so that it is aligned. The extent that the line
    * does not take, without its trailing whitespace, is multiplied by the flush factor.
    *

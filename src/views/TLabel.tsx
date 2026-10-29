@@ -42,7 +42,7 @@ export interface TLabelHandle {
    */
   readonly composedFrame: ComposedFrame | undefined;
   /**
-   * Finds the code unit under a position of the label, in layout units from its top left.
+   * Finds the first code unit of the cluster under a position (Core's `ComposedFrame.getClusterStartAtPosition`) of the label, in layout units from its top left.
    *
    * @returns The index, or `undefined` if there is no character at the position.
    * @throws RangeError if `x` or `y` is NaN.

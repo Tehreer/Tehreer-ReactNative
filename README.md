@@ -57,6 +57,22 @@ The wrapper sources are compiled with `-Wall -Wextra` and must stay free of warn
 
 `npm run test:android` builds the example app for the connected emulator, starts Metro, launches the app and runs every suite registered in `example/tests/index.ts` (output format in [AGENTS.md](AGENTS.md#device-test-output)). It exits non-zero on a failing test, a timeout or a missing result line. `npm run test:android -- --release` does the same with the release build (`assembleRelease`, signed with the debug key of the example app, and no Metro: the bundle is inside the app), which is the build where `FontFile.fromAsset` reads a copy of a `res/raw` resource.
 
+### Native memory of `TLabel` and `TTextView` on Android
+
+Measured on an API 30 arm64 emulator (debug build, `dumpsys meminfo` Native Heap "Heap Alloc", 800 mounts and unmounts of a one-line label, 20 at a time, before and after a Hermes collection). Mounting costs more native memory than a React Native `Text`, and part of it stays:
+
+| What is mounted (800 times) | Before a collection | After it, still allocated |
+|---|---|---|
+| `Text` | about 3 KB each | none |
+| plain `View` with a background | about 17 KB each | none |
+| `TLabel` | about 20 KB each | about 8 to 9 KB each |
+| `TTextView` | about 14 KB each | not measured separately |
+| an empty `TLinePaint` (no frame, no typesetter) | about 8 KB each | about 4.5 KB each |
+| `Typesetter` + `FrameResolver` + frame + registration, without a view (JavaScript only) | none | none |
+| a Core `Renderer` made and disposed from JavaScript | none | none |
+
+About 11 KB of a label's growth is native memory that waits for a collection (the glyph bitmaps of the draw, Java and Hermes objects) and is given back by it. What stays after a collection is linear in the number of mounts, so it is not a cache that levels off; Core objects, the id tables and the registrations do not contribute (the rows without a view), and the empty `TLinePaint` already keeps about half of it. The allocation site inside the native view or Fabric was not identified: `heapprofd` cannot be used on this emulator (the client disconnects during start-up when the ring buffer fills, and attaching to a running app crashed it), and malloc debug cannot be switched on for a debuggable app on a user build. The numbers are a bound, not a verdict: use a build with symbols and `heapprofd` on a device that allows it to find the site.
+
 ## iOS
 
 Supported architectures: `arm64` for devices and `arm64` and `x86_64` for the simulator. The deployment target is the one React Native 0.88 supports (iOS 15.1). Core and its dependencies are compiled from source into the pod by `tehreer-react-native.podspec`, together with the wrapper sources in `cpp/` (all subfolders) and `ios/`: the C files are compiled as C (Core as C89, FreeType, SheenBidi and libunibreak as gnu99), `harfbuzz.cc` and the wrapper as C++20. New files in `cpp/` and `ios/` are picked up by the next `pod install`.
