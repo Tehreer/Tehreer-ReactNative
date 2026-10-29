@@ -44,6 +44,9 @@ interface LabelCase {
   align?: TextAlignment;
   maxLines?: number;
   truncate?: TruncationPlace;
+  extraLineSpacing?: number;
+  lineHeightMultiplier?: number;
+  isJustified?: boolean;
   color?: number;
   text?: string;
   /** Builds attributed text; the host owns and disposes it. */
@@ -94,6 +97,12 @@ const labelCases: readonly LabelCase[] = [
   { name: 'empty-text', text: '', face: 'roboto', size: 20, width: 100, isEmpty: true },
   { name: 'emoji-mixed', text: 'abc \u{1F600} abc', face: 'roboto', size: 20, width: 60 },
   { name: 'typesetter-prop', text: LATIN, face: 'roboto', size: 20, width: 120, givesTypesetter: true },
+  // Settings that only the frame setup uses: native measuring and the JavaScript frame must agree on them.
+  { name: 'spacing', text: LATIN, face: 'roboto', size: 20, width: 120, extraLineSpacing: 6, lineHeightMultiplier: 1.5 },
+  { name: 'justified', text: LATIN, face: 'roboto', size: 20, width: 120, isJustified: true },
+  { name: 'justified-urdu', text: `${URDU} ${URDU}`, face: 'nastaliq', size: 26, width: 150, isJustified: true },
+  { name: 'maxlines-zero', text: LATIN, face: 'roboto', size: 20, width: 120, maxLines: 0 },
+  { name: 'fractional-width', text: LATIN, face: 'roboto', size: 20, width: 117.3, extraLineSpacing: 1.5 },
   { name: 'stroke-shadow', text: LATIN, face: 'roboto', size: 20, width: 120, isStyled: true },
 ];
 
@@ -142,6 +151,9 @@ function expectedFrame(testCase: LabelCase, setup: Setup, text: string | TText, 
     if (testCase.maxLines !== undefined) {
       resolver.maxLines = testCase.maxLines;
     }
+    resolver.extraLineSpacing = testCase.extraLineSpacing ?? 0;
+    resolver.lineHeightMultiplier = testCase.lineHeightMultiplier ?? 1;
+    resolver.isJustificationEnabled = testCase.isJustified === true;
     if (testCase.truncate !== undefined) {
       resolver.isTruncationEnabled = true;
       resolver.truncationPlace = testCase.truncate;
@@ -254,8 +266,10 @@ export function LabelTestHost({ onDone }: { onDone: (report: SuiteReport) => voi
   const handles = useRef<Record<string, TLabelHandle | null>>({});
   const viewHandle = useRef<TTextViewHandle | null>(null);
   const chipHandle = useRef<TTextViewHandle | null>(null);
-  const view = useRef({ frames: 0, offsets: [] as number[], lastOffset: -1, chipFrames: 0, earlyOffset: -1, earlyFrames: 0, insetOffset: -1, insetFrames: 0 });
+  const view = useRef({ frames: 0, offsets: [] as number[], lastOffset: -1, chipFrames: 0, earlyOffset: -1, earlyFrames: 0, insetOffset: -1, insetFrames: 0, emptyOffset: -1, emptyFrames: 0 });
   const insetHandle = useRef<TTextViewHandle | null>(null);
+  const emptyHandle = useRef<TTextViewHandle | null>(null);
+  const [emptyText, setEmptyText] = useState('');
   const started = useRef(false);
   // A typesetter that a label is given, which stays the caller's.
   const given = useRef<Typesetter | undefined>(undefined);
@@ -539,6 +553,16 @@ export function LabelTestHost({ onDone }: { onDone: (report: SuiteReport) => voi
           ok((b.testGetViewCounts?.().replacements ?? 0) > baseline.replacements, 'replacement: no holder is alive while the views show one');
         }
 
+        // Scrolling an empty text does nothing, throws nothing, and leaves no request for a text set later.
+        const empty = emptyHandle.current;
+        let emptyThrew = false;
+        try { empty?.scrollToCodeUnit(600); } catch { emptyThrew = true; }
+        ok(empty !== null && !emptyThrew && empty.composedFrame === undefined, 'view/empty: scrollToCodeUnit on an empty text threw or the text has a frame');
+        setEmptyText(Array.from({ length: 80 }, () => LATIN).join('\n'));
+        ok(await waitFor(() => view.current.emptyFrames > 0), 'view/empty: the text set later was not laid out');
+        await sleep(500);
+        ok(view.current.emptyOffset <= 0, `view/empty: the request for an empty text scrolled the new text to ${view.current.emptyOffset}`);
+
         // A view that shows a replacement is mounted and unmounted again and again; each cycle must give
         // everything back, so the counts are checked at the end, strictly.
         setStage('cycle');
@@ -614,6 +638,9 @@ export function LabelTestHost({ onDone }: { onDone: (report: SuiteReport) => voi
             shadowDy={testCase.isStyled === true ? 2 : undefined}
             textAlignment={testCase.align}
             maxLines={testCase.maxLines}
+            extraLineSpacing={testCase.extraLineSpacing}
+            lineHeightMultiplier={testCase.lineHeightMultiplier}
+            isJustificationEnabled={testCase.isJustified}
             isTruncationEnabled={testCase.truncate !== undefined}
             truncationPlace={testCase.truncate}
             style={{ minWidth: testCase.width, maxWidth: testCase.width, alignSelf: 'flex-start', marginBottom: 2 }}
@@ -676,6 +703,16 @@ export function LabelTestHost({ onDone }: { onDone: (report: SuiteReport) => voi
             style={{ width: 200, height: 60 }}
             onScroll={(offset) => { view.current.earlyOffset = offset; }}
             onFrameReady={() => { view.current.earlyFrames++; }}
+          />
+          <TTextView
+            testID="view-empty"
+            ref={emptyHandle}
+            text={emptyText}
+            typeface={setup.roboto}
+            textSize={16}
+            style={{ width: 200, height: 60 }}
+            onScroll={(offset) => { view.current.emptyOffset = offset; }}
+            onFrameReady={() => { view.current.emptyFrames++; }}
           />
           <TTextView
             testID="view-inset"

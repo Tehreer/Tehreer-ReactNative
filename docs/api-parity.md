@@ -44,7 +44,7 @@ Counts: 320 public functions in 21 headers (`TRSheenBidi.h` has one, `TRTextGetS
 | `TRComposedFrameGetLineCount` | bound | `ComposedFrame.lines` |  |
 | `TRComposedFrameGetLine` | bound | `ComposedFrame.lines` |  |
 | `TRComposedFrameGetLineIndexForCodeUnit` | bound | `ComposedFrame.getLineIndexForCodeUnit()` |  |
-| `TRComposedFrameGetClusterStartAtPosition` | bound | `ComposedFrame.getClusterStartAtPosition()` | Not in Web, Android or Cocoa yet; `-1` for no character. |
+| `TRComposedFrameGetClusterStartAtPosition` | bound | `ComposedFrame.getClusterStartAtPosition()` | Not in Web, Android or Cocoa (searched `ClusterStartAt` in Tehreer-Web `src`, tehreerAndroid and tehreerCocoa: no match); `-1` for no character. |
 | `TRComposedFrameGetLineIndexAtPosition` | bound | `ComposedFrame.getLineIndexAtPosition()` |  |
 | `TRComposedFrameEnumerateSelection` | renamed | `ComposedFrame.getSelectionRects()` | Core enumerates through a callback; JavaScript gets the array. |
 | `TRComposedFrameDraw` | bound | `ComposedFrame.draw()` |  |
@@ -71,7 +71,7 @@ Counts: 320 public functions in 21 headers (`TRSheenBidi.h` has one, `TRTextGetS
 | `TRComposedLineGetGlyphRun` | bound | `ComposedLine.runs` |  |
 | `TRComposedLineGetCodeUnitDistance` | bound | `ComposedLine.getCodeUnitDistance()` |  |
 | `TRComposedLineEnumerateVisualEdges` | bound | `ComposedLine.getVisualEdges()` | Core enumerates through a callback; JavaScript gets an array. |
-| `TRComposedLineGetClusterStartAtDistance` | bound | `ComposedLine.getClusterStartAtDistance()` | Not in Web, Android or Cocoa yet; `-1` for no character. |
+| `TRComposedLineGetClusterStartAtDistance` | bound | `ComposedLine.getClusterStartAtDistance()` | Not in Web, Android or Cocoa (searched `ClusterStartAt` in Tehreer-Web `src`, tehreerAndroid and tehreerCocoa: no match); `-1` for no character. |
 | `TRComposedLineGetCodeUnitIndexAtDistance` | bound | `ComposedLine.getCodeUnitIndexAtDistance()` |  |
 | `TRComposedLineGetPenOffset` | bound | `ComposedLine.getPenOffset()` |  |
 | `TRComposedLineComputeInkBox` | bound | `ComposedLine.computeInkBox()` |  |

@@ -38,7 +38,7 @@ export function useTextView(source: TextSource & RenderingProps, settings: Frame
   frame: ComposedFrame | undefined;
   composedFrameId: number;
   /** How many code units the text of the view has, or 0 while there is no text. */
-  getCodeUnitCount: () => number;
+  getCodeUnitCount: () => number | undefined;
 } {
   const { text, attributedText, typesetter, typeface, textSize = DEFAULT_TEXT_SIZE } = source;
   const [layoutWidth, setLayoutWidth] = useState(0);
@@ -179,7 +179,7 @@ export function useTextView(source: TextSource & RenderingProps, settings: Frame
     };
   }, [shown]);
 
-  const getCodeUnitCount = useCallback(() => current.current?.typesetter.codeUnitCount ?? 0, []);
+  const getCodeUnitCount = useCallback(() => current.current?.typesetter.codeUnitCount, []);
 
   if (failure !== undefined) {
     throw failure.error;

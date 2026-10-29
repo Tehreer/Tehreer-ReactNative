@@ -42,7 +42,7 @@ export interface TLabelHandle {
    */
   readonly composedFrame: ComposedFrame | undefined;
   /**
-   * Finds the first code unit of the cluster under a position (Core's `ComposedFrame.getClusterStartAtPosition`) of the label, in layout units from its top left.
+   * Finds the character under a position of the label, given in layout units from its top left. The answer is the first code unit of the cluster that the point hits (a surrogate pair, ligature or base with marks is never split), from Core's `ComposedFrame.getClusterStartAtPosition`.
    *
    * @returns The index, or `undefined` if there is no character at the position.
    * @throws RangeError if `x` or `y` is NaN.

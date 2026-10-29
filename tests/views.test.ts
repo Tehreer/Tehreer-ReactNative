@@ -59,6 +59,7 @@ function makeFrame(lines: FakeLine[]) {
     // As Core: the line of the y, the x measured from its origin, ten units per code unit (a right-to-left
     // line has its first code unit at the right end), -1 outside the lines and the runs.
     getClusterStartAtPosition: (x: number, y: number) => {
+      // The real binding throws this itself (marshalling refuses a NaN); the fake does the same so the test stays honest.
       if (Number.isNaN(x) || Number.isNaN(y)) {
         throw new RangeError("must not be NaN");
       }

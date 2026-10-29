@@ -99,7 +99,6 @@ function makeFrame(face: Typeface, width = 70): { resolver: FrameResolver; types
   return { resolver, typesetter, frame: resolver.createFrame(0, TEXT.length) };
 }
 
-
 /**
  * What a hit test must satisfy on a real line: every point inside the runs hits the first code unit
  * of a cluster (so a surrogate pair, a ligature or a base with its marks is never split, in either
@@ -107,7 +106,7 @@ function makeFrame(face: Typeface, width = 70): { resolver: FrameResolver; types
  * where the carets of a cursive script overlap (Nastaliq): there it hits the first cluster whose
  * edges hold it, which the same rule checks. Returns the number of clusters that were checked.
  */
-function checkClusterHits(line: ComposedLine, text: string, label: string): number {
+function checkClusterHits(line: ComposedLine, text: string, label: string, isCursive = false): number {
   let clusters = 0;
   let selfHits = 0;
   const starts = new Set<number>();
@@ -137,7 +136,8 @@ function checkClusterHits(line: ComposedLine, text: string, label: string): numb
     }
     run.dispose();
   }
-  check(selfHits * 10 >= clusters * 7, `${label}: only ${selfHits} of ${clusters} cluster centers hit their own cluster`);
+  // Only the carets of a cursive script overlap, so everywhere else every center hits its own cluster.
+  check(isCursive ? selfHits * 10 >= clusters * 7 : selfHits === clusters, `${label}: only ${selfHits} of ${clusters} cluster centers hit their own cluster`);
   for (let x = 0.25; x < line.width - 0.25; x += 0.5) {
     const hit = line.getClusterStartAtDistance(x);
     if (hit === -1) {
@@ -610,7 +610,7 @@ const tests: Test[] = [
     for (const [text, face, size] of texts) {
       const typesetter = new Typesetter(text, { typeface: face, typeSize: size });
       const line = typesetter.createSimpleLine(0, text.length);
-      clusters += checkClusterHits(line, text, JSON.stringify(text));
+      clusters += checkClusterHits(line, text, JSON.stringify(text), face === faces.nastaliq);
       line.dispose();
       typesetter.dispose();
     }
