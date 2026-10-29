@@ -20,6 +20,7 @@ The wrapper exposes the whole public Core API to React Native through one C++ JS
 | `example/` | Test-runner app used by tests and QA |
 | `demo/` | Demo app (`TehreerDemo`), a separate React Native app from the test-runner `example/`; screens of the Web demo on `TLabel` and `TTextView` |
 | `tests/` | Node tests for the generator and pure TypeScript |
+| `benchmarks/` | Layout, draw and memory benchmark against Tehreer-Android and Tehreer-Cocoa (`scenarios.json`, `run.mjs`, runners, `RESULTS.md`); the React Native runner is `example/index.benchmark.js`, not a test suite |
 
 Sibling repos (read-only references): `../Tehreer-Core`, `../Tehreer-Web`, `/Users/mta/Personal/UrduFeeds/tehreerAndroid`, `/Users/mta/Personal/UrduFeeds/tehreerCocoa`.
 

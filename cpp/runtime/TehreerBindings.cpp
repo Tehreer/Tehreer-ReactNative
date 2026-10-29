@@ -5,6 +5,7 @@
 #include "Errors.h"
 #include "HandleObject.h"
 #include "HandlerTable.h"
+#include "../painter/BenchmarkBindings.h"
 #include "../painter/PaintBindings.h"
 #include "PointerBuffers.h"
 #include "SheenBidiBindings.h"
@@ -269,6 +270,9 @@ void InstallBindings(jsi::Runtime &runtime) {
     InstallPointerTestHooks(runtime, bindings);
     InstallViewTestHooks(runtime, bindings);
     InstallSheenBidiTestHooks(runtime, bindings);
+#endif
+#ifdef TEHREER_BENCHMARKS
+    InstallBenchmarkHooks(runtime, bindings);
 #endif
 
     jsi::Object objectConstructor = global.getPropertyAsObject(runtime, "Object");

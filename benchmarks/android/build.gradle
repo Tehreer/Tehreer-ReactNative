@@ -1,0 +1,27 @@
+// The plugin versions are those of Tehreer-Android's own build.gradle, whose library module is built
+// here; run.mjs checks that they still match.
+buildscript {
+    ext {
+        kotlinVersion = "2.4.10"
+        composeVersion = "1.11.4"
+    }
+
+    repositories {
+        google()
+        mavenCentral()
+        gradlePluginPortal()
+    }
+
+    dependencies {
+        classpath 'com.android.tools.build:gradle:9.3.1'
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlinVersion"
+        classpath "org.jetbrains.kotlin:compose-compiler-gradle-plugin:$kotlinVersion"
+    }
+}
+
+allprojects {
+    repositories {
+        google()
+        mavenCentral()
+    }
+}
