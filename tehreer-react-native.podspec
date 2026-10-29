@@ -111,8 +111,8 @@ Pod::Spec.new do |s|
     # and then imports SheenBidi's headers a second time through the module, which makes every
     # SheenBidi name ambiguous. The pod has no Swift or @import users, so modules are not needed.
     "CLANG_ENABLE_MODULES" => "NO",
-    # CocoaPods Release builds default to -Os, which makes Core's shaping about 1.5 to 2 times slower
-    # than the -O2 that Swift Package Manager uses for tehreerCocoa (see benchmarks/RESULTS.md).
+    # CocoaPods Release builds default to -Os, which made Urdu shaping about 2 times slower than the
+    # -O2 that Swift Package Manager uses for tehreerCocoa (measured in #65, README of benchmarks/).
     "GCC_OPTIMIZATION_LEVEL[config=Release]" => "2",
   }
 
