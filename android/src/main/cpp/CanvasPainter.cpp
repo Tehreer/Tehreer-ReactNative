@@ -155,6 +155,34 @@ CanvasPainter::~CanvasPainter() {
     }
 }
 
+// The paint keeps its state between glyphs, so a call crosses JNI only when the state changes.
+void CanvasPainter::SetPaintColor(jint color) {
+    if (_paintColorKnown && _paintColor == color) {
+        return;
+    }
+    _env->CallVoidMethod(_paint, _jni->setColor, color);
+    // A failed call leaves the state unknown, so the next glyph sets it again.
+    if (HasPendingException()) {
+        _paintColorKnown = false;
+        return;
+    }
+    _paintColor = color;
+    _paintColorKnown = true;
+}
+
+void CanvasPainter::SetPaintFilter(bool filter) {
+    if (_paintFilterKnown && _paintFilter == filter) {
+        return;
+    }
+    _env->CallVoidMethod(_paint, _jni->setFilterBitmap, static_cast<jboolean>(filter));
+    if (HasPendingException()) {
+        _paintFilterKnown = false;
+        return;
+    }
+    _paintFilter = filter;
+    _paintFilterKnown = true;
+}
+
 jobject CanvasPainter::Retained(jobject local) {
     if (local == nullptr) {
         return nullptr;
@@ -179,22 +207,23 @@ void CanvasPainter::DrawGlyphImage(TRGlyphImageRef image, TRPoint origin, TRFloa
     // An alpha image is a mask that takes the color of the paint; a color image keeps its own
     // colors, and the paint must not tint or fade it.
     bool isAlpha = TRGlyphImageGetFormat(image) == TRGlyphImageFormatAlpha;
-    _env->CallVoidMethod(_paint, _jni->setColor, isAlpha ? static_cast<jint>(color) : kOpaqueWhite);
+    SetPaintColor(isAlpha ? static_cast<jint>(color) : kOpaqueWhite);
     // Smooth only what is stretched: a bitmap font's strike, or an image at a fraction of a pixel.
-    _env->CallVoidMethod(_paint, _jni->setFilterBitmap, static_cast<jboolean>(scaleX != 1.0f || scaleY != 1.0f));
+    bool scaled = scaleX != 1.0f || scaleY != 1.0f;
+    SetPaintFilter(scaled);
 
     float width = static_cast<float>(TRGlyphImageGetWidth(image)) * scaleX;
     float height = static_cast<float>(TRGlyphImageGetHeight(image)) * scaleY;
-    _env->CallVoidMethod(_rectF, _jni->rectFSet, origin.x, origin.y, origin.x + width, origin.y + height);
 
-    if (HasPendingException()) {
-        return;
-    }
+    // A clip that holds the whole image changes nothing, so the save, clip and restore calls go.
+    bool needsClip = clip != nullptr
+        && !(origin.x >= clip->origin.x && origin.y >= clip->origin.y && origin.x + width <= clip->origin.x + clip->size.width
+             && origin.y + height <= clip->origin.y + clip->size.height);
 
     // save and restore stay balanced: restore is not called with an exception pending, and a
     // failed save is never restored.
     bool saved = false;
-    if (clip != nullptr) {
+    if (needsClip) {
         _env->CallIntMethod(_target, _jni->save);
         if (HasPendingException()) {
             return;
@@ -205,7 +234,12 @@ void CanvasPainter::DrawGlyphImage(TRGlyphImageRef image, TRPoint origin, TRFloa
         HasPendingException();
     }
 
-    _env->CallVoidMethod(_target, _jni->drawBitmapRects, data->bitmap, static_cast<jobject>(nullptr), _rectF, _paint);
+    if (scaled) {
+        _env->CallVoidMethod(_rectF, _jni->rectFSet, origin.x, origin.y, origin.x + width, origin.y + height);
+        _env->CallVoidMethod(_target, _jni->drawBitmapRects, data->bitmap, static_cast<jobject>(nullptr), _rectF, _paint);
+    } else {
+        _env->CallVoidMethod(_target, _jni->drawBitmapAt, data->bitmap, origin.x, origin.y, _paint);
+    }
     HasPendingException();
 
     if (saved) {
@@ -219,7 +253,7 @@ void CanvasPainter::FillRect(TRRect rect, TRColor color) {
         return;
     }
 
-    _env->CallVoidMethod(_paint, _jni->setColor, static_cast<jint>(color));
+    SetPaintColor(static_cast<jint>(color));
     _env->CallVoidMethod(_target, _jni->drawRect, rect.origin.x, rect.origin.y, rect.origin.x + rect.size.width,
                          rect.origin.y + rect.size.height, _paint);
     HasPendingException();
@@ -317,8 +351,8 @@ void CanvasPainter::EndShadow() {
     }
 
     // The glyphs themselves go over their shadow.
-    _env->CallVoidMethod(_paint, _jni->setColor, kOpaqueWhite);
-    _env->CallVoidMethod(_paint, _jni->setFilterBitmap, static_cast<jboolean>(false));
+    SetPaintColor(kOpaqueWhite);
+    SetPaintFilter(false);
     _env->CallVoidMethod(_canvas, _jni->drawBitmapAt, _layerBitmap, static_cast<float>(_layerLeft), static_cast<float>(_layerTop),
                          _paint);
     HasPendingException();
@@ -363,8 +397,8 @@ void CanvasPainter::DrawShadow() {
     }
     jint offsets[2] = {0, 0};
     _env->GetIntArrayRegion(_offsets, 0, 2, offsets);
-    _env->CallVoidMethod(_paint, _jni->setColor, static_cast<jint>(_shadowColor));
-    _env->CallVoidMethod(_paint, _jni->setFilterBitmap, static_cast<jboolean>(false));
+    SetPaintColor(static_cast<jint>(_shadowColor));
+    SetPaintFilter(false);
     _env->CallVoidMethod(_canvas, _jni->drawBitmapAt, mask, static_cast<float>(_layerLeft + offsets[0]) + _shadowDx,
                          static_cast<float>(_layerTop + offsets[1]) + _shadowDy, _paint);
     HasPendingException();
