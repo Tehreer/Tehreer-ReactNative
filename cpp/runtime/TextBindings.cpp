@@ -17,13 +17,15 @@ jsi::Value BindTypesetterSetAttribute(jsi::Runtime &rt, const jsi::Value &, cons
     constexpr const char *kFunction = "TRTypesetterSetAttribute";
     marshal::BeginCall();
 
-    // Every conversion comes first, so a bad argument changes nothing. The attribute only borrows
-    // the handle of a typeface or font features from `args`, which the call keeps alive; Core
-    // retains what it keeps, so nothing is owned here and nothing has to be released.
-    TRMutableTypesetterRef typesetter = marshal::ToHandle<TRMutableTypesetterRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "typesetter", false);
+    // Every conversion comes first, so a bad argument changes nothing, and the handle is read last,
+    // after the conversions that can run JavaScript or throw, so no raw pointer is held across them.
+    // The attribute only borrows the handle of a typeface or font features from `args`, which the
+    // call keeps alive; Core retains what it keeps, so nothing is owned here and nothing has to be
+    // released.
     TRUInteger index = marshal::ToIndex(rt, marshal::ArgAt(args, count, 1), kFunction, "index");
     TRUInteger length = marshal::ToIndex(rt, marshal::ArgAt(args, count, 2), kFunction, "length");
     TRAttribute attribute = AttributeFromJs(rt, marshal::ArgAt(args, count, 3), kFunction, "attribute");
+    TRMutableTypesetterRef typesetter = marshal::ToHandle<TRMutableTypesetterRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "typesetter", false);
 
     TRBoolean result = TRTypesetterSetAttribute(typesetter, index, length, &attribute);
     marshal::RethrowCallbackError(rt);

@@ -167,7 +167,7 @@ The font extension (`.ttf`, `.otf`, `.ttc`) has to be one of Metro's `assetExts`
 
 ## Typesetters
 
-Since Core merged its text object into the typesetter (Tehreer Core `1a31c67`), `Typesetter` holds the text with the attributes on its ranges and shapes it paragraph by paragraph, and `MutableTypesetter` is the editable kind (`TText` and `TMutableText` are gone). The names follow Tehreer-Web and Tehreer-Android.
+Since Core merged its text object into the typesetter (Tehreer Core `1a31c67`), `Typesetter` holds the text with the attributes on its ranges and shapes it paragraph by paragraph, and `MutableTypesetter` is the editable kind (its former text classes are gone). The names follow Tehreer-Web and Tehreer-Android.
 
 ```ts
 const text = new MutableTypesetter({ typeface, typeSize: 20 }); // the default attributes

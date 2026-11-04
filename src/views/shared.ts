@@ -19,8 +19,9 @@ export interface TextSource {
    * lay out on any thread, and leaves the typesetter as it is. A typesetter whose default
    * attributes hold a replacement is refused with an `Error`, since Core cannot change defaults.
    * The view reads it when the property changes identity, and takes a copy of a
-   * `MutableTypesetter` when it reads it: pass `typesetter.copy()` (or the mutable typesetter again
-   * as a new object) to show an edit.
+   * `MutableTypesetter` when it reads it. The same instance does not run the effect again after an
+   * edit, so pass a new object (`typesetter.copy()`) to show it. A `MutableTypesetter` that is in
+   * an editing batch cannot be copied, so the view throws when it renders.
    */
   readonly typesetter?: Typesetter;
   /** Plain text, which is shown in `typeface` at `textSize`. */

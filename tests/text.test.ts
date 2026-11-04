@@ -654,6 +654,20 @@ test("boundary arguments are checked before Core sees them", () => {
   assert.deepEqual(calls, []);
 });
 
+test("boundary indices stop at Core's largest index", () => {
+  const text = new Typesetter("abc");
+  calls = [];
+  assert.throws(() => text.findBoundary(0xffffffff, 0, 1), RangeError);
+  assert.throws(() => text.getBoundaryRange(0xffffffff, 0), RangeError);
+  assert.deepEqual(calls, []);
+});
+
+test("appending nothing to a disposed typesetter throws", () => {
+  const text = mutable("abc");
+  text.dispose();
+  assert.throws(() => text.append(""));
+});
+
 test("boundaries are not available while the typesetter is in an editing batch", () => {
   const text = mutable("abc");
   assert.equal(text.findBoundary(0, 1, 1), 1);

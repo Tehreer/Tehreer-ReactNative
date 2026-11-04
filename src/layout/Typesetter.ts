@@ -46,6 +46,15 @@ export function withDefaultAttributes<Result>(
   }
 }
 
+// Core's largest index is 0xfffffffe, since 0xffffffff (-1 here) is its invalid index; Web refuses
+// the same.
+function checkBoundaryIndex(index: number): void {
+  checkIndex("index", index);
+  if (index > 0xfffffffe) {
+    throw new RangeError(`index (${String(index)}) must not be more than 4294967294.`);
+  }
+}
+
 /**
  * Holds a text with attributes on its ranges, shapes it, and breaks it into lines. The code units
  * are UTF-16, so the indices are those of a JavaScript string; a range may start or end between the
@@ -75,7 +84,9 @@ export class Typesetter extends NativeObject<"TRTypesetter"> {
 
   /**
    * Whether the default attributes had a replacement. Core cannot change the defaults of a
-   * typesetter, so a view cannot swap this one for a holder, and refuses it.
+   * typesetter, so a view cannot swap this one for a holder, and refuses it. Only a typesetter
+   * made by this class and its copies carry the flag: a wrapper adopted from a handle (such as one
+   * a frame or a line returns) does not, so a default replacement of an adopted one is not seen.
    *
    * @internal
    */
@@ -226,11 +237,11 @@ export class Typesetter extends NativeObject<"TRTypesetter"> {
    * @param index The index to search from, which can be the length of the text.
    * @returns The index of the boundary, or `undefined` if the index is past the end of the text,
    *   there is none in that direction, or the typesetter is in an editing batch.
-   * @throws RangeError if the index is not a whole number that is not negative, or the type or the
-   *   direction is not one of its constants.
+   * @throws RangeError if the index is not a whole number from 0 up to 0xfffffffe (the largest index
+   *   of Core, whose `-1` means none), or the type or the direction is not one of its constants.
    */
   findBoundary(index: number, type: BoundaryType, direction: BoundaryDirection): number | undefined {
-    checkIndex("index", index);
+    checkBoundaryIndex(index);
     checkConstant("type", type, BoundaryType);
     checkConstant("direction", direction, BoundaryDirection);
 
@@ -246,11 +257,11 @@ export class Typesetter extends NativeObject<"TRTypesetter"> {
    *   empty segment.
    * @returns The range, or `undefined` if the index is past the end of the text, or the typesetter
    *   is in an editing batch.
-   * @throws RangeError if the index is not a whole number that is not negative, or the type is not
-   *   one of its constants.
+   * @throws RangeError if the index is not a whole number from 0 up to 0xfffffffe (the largest index
+   *   of Core, whose `-1` means none), or the type is not one of its constants.
    */
   getBoundaryRange(index: number, type: BoundaryType): CodeUnitRange | undefined {
-    checkIndex("index", index);
+    checkBoundaryIndex(index);
     checkConstant("type", type, BoundaryType);
 
     const range = getNativeBindings().TRTypesetterGetBoundaryRange(this.nativeHandle, index, type);

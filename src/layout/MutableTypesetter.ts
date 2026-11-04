@@ -25,6 +25,9 @@ function create(defaultAttributes: TextAttributes | undefined): Handle<"TRTypese
  * A mutable typesetter is not thread safe: do not change it while something lays it out. Take a copy
  * with `copy()` to lay it out while the text is edited. No line can be made, no break suggested, no
  * boundary searched and no copy taken while it is in an editing batch.
+ *
+ * A `computeRoom` of a replacement runs while a paragraph is shaped. It may dispose the typesetter
+ * that is being shaped (the call holds a reference of its own), but must not edit it.
  */
 export class MutableTypesetter extends Typesetter {
   /**
@@ -54,7 +57,7 @@ export class MutableTypesetter extends Typesetter {
    * Starts a batch of edits, whose analysis and shaping are deferred until `endEditing()`. The
    * attributes can be set and removed in a batch, so a text with many attributes is built in one,
    * not by one change after another, each of which shapes its paragraph again. Batches do not nest:
-   * a second `beginEditing()` has no effect.
+   * a second `beginEditing()` has no effect, and the `endEditing()` of the first ends the batch.
    */
   beginEditing(): void {
     getNativeBindings().TRTypesetterBeginEditing(this.nativeHandle);
@@ -67,7 +70,8 @@ export class MutableTypesetter extends Typesetter {
 
   /**
    * Runs the edits that a function makes as one batch, which ends even if the function throws. The
-   * error of the function wins over one from shaping.
+   * error of the function wins over one from shaping. Do not nest `edit()` (or call `endEditing()`
+   * inside the body): batches do not nest, so the inner call ends the outer batch.
    */
   edit(body: (typesetter: this) => void): void {
     this.beginEditing();
@@ -99,6 +103,8 @@ export class MutableTypesetter extends Typesetter {
    */
   append(text: string): void {
     const units = toCodeUnits(text);
+    // Read first, so appending nothing to a disposed typesetter still throws.
+    void this.nativeHandle;
     if (units.length === 0) {
       return;
     }
