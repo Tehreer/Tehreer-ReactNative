@@ -18,13 +18,13 @@ const PRELUDE = `
   typedef struct _TRRect { TRPoint origin; TRFloat width; } TRRect;
   typedef struct _TRStringView { const void *buffer; TRUInteger length; TRStringEncoding encoding; } TRStringView;
   typedef const struct _TRThing *TRThingRef;
-  typedef struct _TRText *TRMutableTextRef;
-  typedef const struct _TRText *TRTextRef;
+  typedef struct _TRTypesetter *TRMutableTypesetterRef;
+  typedef const struct _TRTypesetter *TRTypesetterRef;
   TR_PUBLIC TRThingRef TRThingRetain(TRThingRef thing);
   TR_PUBLIC void TRThingRelease(TRThingRef thing);
-  TR_PUBLIC TRTextRef TRTextRetain(TRTextRef text);
-  TR_PUBLIC void TRTextRelease(TRTextRef text);
-  TR_PUBLIC TRStringEncoding TRTextGetEncoding(TRTextRef text);
+  TR_PUBLIC TRTypesetterRef TRTypesetterRetain(TRTypesetterRef text);
+  TR_PUBLIC void TRTypesetterRelease(TRTypesetterRef text);
+  TR_PUBLIC TRStringEncoding TRTypesetterGetEncoding(TRTypesetterRef text);
 `;
 
 function config(overrides: Partial<ModelConfig> = {}): ModelConfig {
@@ -87,10 +87,10 @@ test("Release is not bound, as a handle releases its own reference", () => {
 });
 
 test("a mutable and a constant reference to one struct share a group", () => {
-  const model = build("TR_PUBLIC void TRTextBegin(TRMutableTextRef text);");
+  const model = build("TR_PUBLIC void TRTypesetterBegin(TRMutableTypesetterRef text);");
   const groups = Object.fromEntries(model.refs.map((ref) => [ref.name, ref.group]));
-  assert.equal(groups["TRMutableTextRef"], "TRText");
-  assert.equal(groups["TRTextRef"], "TRText");
+  assert.equal(groups["TRMutableTypesetterRef"], "TRTypesetter");
+  assert.equal(groups["TRTypesetterRef"], "TRTypesetter");
 });
 
 test("an out parameter becomes part of the result, and a boolean makes it optional", () => {
@@ -140,10 +140,10 @@ test("the size of a void buffer comes from bytes, an encoding or the text", () =
   const encoded = binding("TR_PUBLIC TRThingRef TRThingCreateFromText(const void *string, TRUInteger length, TRStringEncoding encoding);", "TRThingCreateFromText");
   assert.equal(encoded.params[0]?.["unit"], "marshal::CodeUnitSize({encoding})");
 
-  const owned = binding("TR_PUBLIC TRBoolean TRTextAppend(TRMutableTextRef text, const void *codeUnitBuffer, TRUInteger codeUnitCount);", "TRTextAppend");
-  assert.equal(owned.params[1]?.["unit"], "marshal::CodeUnitSize(TRTextGetEncoding({text}))");
+  const owned = binding("TR_PUBLIC TRBoolean TRTypesetterAppend(TRMutableTypesetterRef text, const void *codeUnitBuffer, TRUInteger codeUnitCount);", "TRTypesetterAppend");
+  assert.equal(owned.params[1]?.["unit"], "marshal::CodeUnitSize(TRTypesetterGetEncoding({text}))");
 
-  const written = binding("TR_PUBLIC TRBoolean TRTextCopy(TRTextRef text, TRUInteger index, TRUInteger length, void *buffer);", "TRTextCopy");
+  const written = binding("TR_PUBLIC TRBoolean TRTypesetterCopy(TRTypesetterRef text, TRUInteger index, TRUInteger length, void *buffer);", "TRTypesetterCopy");
   assert.equal(written.params[3]?.kind, "outBuffer");
   assert.equal(written.params[3]?.["count"], "{length}");
 
@@ -361,16 +361,16 @@ test("a data pointer that the return text says Core accepts as NULL is nullable"
      * @param codeUnitBuffer The code units.
      * @return \`TRFalse\` if the buffer is \`NULL\`.
      */
-    TR_PUBLIC TRBoolean TRThingAppend(TRTextRef thing, const void *codeUnitBuffer, TRUInteger codeUnitCount);
+    TR_PUBLIC TRBoolean TRThingAppend(TRTypesetterRef thing, const void *codeUnitBuffer, TRUInteger codeUnitCount);
   `, "TRThingAppend", {});
   assert.equal(named.params[1]?.nullable, true);
 });
 
 test("a handle remembers whether its type is mutable", () => {
-  const model = build("TR_PUBLIC void TRTextBegin(TRMutableTextRef text);");
+  const model = build("TR_PUBLIC void TRTypesetterBegin(TRMutableTypesetterRef text);");
   const flags = Object.fromEntries(model.refs.map((ref) => [ref.name, ref.const]));
-  assert.equal(flags["TRTextRef"], true);
-  assert.equal(flags["TRMutableTextRef"], false);
+  assert.equal(flags["TRTypesetterRef"], true);
+  assert.equal(flags["TRMutableTypesetterRef"], false);
 });
 
 test("an enumeration cannot return a reference the caller owns", () => {

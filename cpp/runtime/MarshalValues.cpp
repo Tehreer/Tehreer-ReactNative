@@ -367,6 +367,8 @@ const void *ToToken(jsi::Runtime &rt, const jsi::Value &value, const char *funct
 extern const void *const kInstantiatedNumbers[];
 const void *const kInstantiatedNumbers[] = {
     TEHREER_NUMBER(TRAttributeType),
+    TEHREER_NUMBER(TRBoundaryDirection),
+    TEHREER_NUMBER(TRBoundaryType),
     TEHREER_NUMBER(TRBreakMode),
     TEHREER_NUMBER(TRColor),
     TEHREER_NUMBER(TRDrawStyle),

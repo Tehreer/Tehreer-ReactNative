@@ -1,8 +1,8 @@
 import { useRef, useState } from 'react';
 import { Linking, StyleSheet, Text, View } from 'react-native';
 import type { GestureResponderEvent } from 'react-native';
-import { Color, TLabel, TMutableText, TextAlignment, initialize } from 'tehreer-react-native';
-import type { Rect, TLabelHandle } from 'tehreer-react-native';
+import { Color, MutableTypesetter, TLabel, TextAlignment, initialize } from 'tehreer-react-native';
+import type { Rect, TLabelHandle, Typeface, Typesetter } from 'tehreer-react-native';
 import { DEFAULT_TEXT_FONT } from '../fonts/fonts';
 import { useTypeface } from '../hooks/useTypeface';
 import { ARTICLE_REFERENCE, ARTICLE_SEGMENTS, ARTICLE_TITLE } from '../data/article';
@@ -25,25 +25,35 @@ const LINKS = (() => {
   return links;
 })();
 
-function makeArticle(): TMutableText {
+/**
+ * The article with the colors of its segments. The typeface and the size are the defaults of the
+ * typesetter, so it is made again when the typeface arrives. The edits are one batch, so each
+ * paragraph is shaped once, and the label gets an immutable copy that nobody can edit.
+ */
+function makeArticle(typeface: Typeface): Typesetter {
   initialize();
-  const text = new TMutableText(ARTICLE_SEGMENTS.map((segment) => segment.text).join(''));
-  let index = 0;
-  for (const segment of ARTICLE_SEGMENTS) {
-    const end = index + segment.text.length;
-    if (segment.color !== undefined && end > index) {
-      text.setAttributes(index, end, { foregroundColor: Color.parse(segment.color) });
-    }
-    index = end;
+  const text = new MutableTypesetter({ typeface, typeSize: 26 });
+  try {
+    text.edit((editing) => {
+      editing.append(ARTICLE_SEGMENTS.map((segment) => segment.text).join(''));
+      let index = 0;
+      for (const segment of ARTICLE_SEGMENTS) {
+        const end = index + segment.text.length;
+        if (segment.color !== undefined && end > index) {
+          editing.setAttributes(index, end, { foregroundColor: Color.parse(segment.color) });
+        }
+        index = end;
+      }
+    });
+    return text.copy();
+  } finally {
+    text.dispose();
   }
-  return text;
 }
 
 export function CustomLabelScreen({ onBack }: { onBack: () => void }) {
   const { typeface, error } = useTypeface(DEFAULT_TEXT_FONT);
-  const article = useOwned(makeArticle, []);
-  // The label reads the text when it changes identity, so it gets a copy that nobody edits.
-  const shown = useOwned(() => article?.copy(), [article]);
+  const shown = useOwned(() => (typeface === undefined ? undefined : makeArticle(typeface)), [typeface]);
   const label = useRef<TLabelHandle>(null);
   // The rectangles of the link that is under the finger; the label has no highlights, so they are
   // views behind it. The touch events bubble up from the label, which keeps its own tap.
@@ -70,7 +80,7 @@ export function CustomLabelScreen({ onBack }: { onBack: () => void }) {
               <View key={index} pointerEvents="none" style={[styles.pressed, { left: rect.x, top: rect.y, width: rect.width, height: rect.height }]} />
             ))}
             <TLabel
-              attributedText={shown}
+              typesetter={shown}
               lineHeightMultiplier={1.3}
               onTap={(index) => {
                 const link = linkAt(index);
@@ -83,8 +93,6 @@ export function CustomLabelScreen({ onBack }: { onBack: () => void }) {
               testID="articleLabel"
               textAlignment={TextAlignment.Right}
               textColor="#1E5A3C"
-              textSize={26}
-              typeface={typeface}
             />
           </View>
         )}

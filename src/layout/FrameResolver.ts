@@ -199,7 +199,8 @@ export class FrameResolver extends NativeObject<"TRFrameResolver"> {
    * runs during the call, and an error it throws is thrown from here.
    *
    * @throws Error if there is no typesetter.
-   * @throws RangeError if the range is empty or is not within the text.
+   * @throws RangeError if the range is empty or is not within the text, or a paragraph of it has text without a typeface
+   *   (Core cannot shape it), or the typesetter is in an editing batch.
    */
   createFrame(fromIndex: number, toIndex: number): ComposedFrame {
     const b = getNativeBindings();
@@ -222,7 +223,7 @@ export class FrameResolver extends NativeObject<"TRFrameResolver"> {
       b.disposeHandle(typesetter);
     }
     if (frame === undefined) {
-      throw new RangeError(`The range ${fromIndex}..${toIndex} is not within the text.`);
+      throw new RangeError(`The range ${fromIndex}..${toIndex} is not within the text, or some of it has no typeface.`);
     }
     return ComposedFrame.adopting(frame);
   }

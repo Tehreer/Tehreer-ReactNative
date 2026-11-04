@@ -4,7 +4,7 @@ namespace tehreer::views {
 
 TRSize MeasureText(TRTypesetterRef typesetter, float maxWidth, float maxHeight, const FrameSettings &settings) {
     TRSize measured = {0, 0};
-    if (typesetter == nullptr || TRTypesetterGetCodeUnitCount(typesetter) == 0) {
+    if (typesetter == nullptr || TRTypesetterGetLength(typesetter) == 0) {
         return measured;
     }
 
@@ -33,7 +33,7 @@ TRSize MeasureText(TRTypesetterRef typesetter, float maxWidth, float maxHeight, 
     TRFrameResolverSetJustificationEnabled(resolver, settings.isJustificationEnabled ? TRTrue : TRFalse);
     TRFrameResolverSetJustificationLevel(resolver, settings.justificationLevel);
 
-    TRComposedFrameRef frame = TRFrameResolverCreateFrame(resolver, 0, TRTypesetterGetCodeUnitCount(typesetter));
+    TRComposedFrameRef frame = TRFrameResolverCreateFrame(resolver, 0, TRTypesetterGetLength(typesetter));
     TRFrameResolverRelease(resolver);
 
     if (frame != nullptr) {

@@ -64,7 +64,7 @@ A collecting callback is given the address of a `marshal::Collector` on the stac
 
 **Every binding checks for such an error.** Right after the Core call (before any result is converted) the generated code calls `marshal::RethrowCallbackError(rt)`, which throws the error that a trampoline of the runtime recorded and does nothing otherwise. A function that returns a reference the caller owns (`Create`, `Copy`, `Retain`) calls `RethrowCallbackError(rt, result)`, which releases that reference first so a failed callback leaks nothing. `GeneratedSupport.h` declares `HasCallbackError` and `ThrowCallbackError`, which `cpp/runtime/Callbacks.cpp` defines; `tests/callbacks.test.ts` requires the call after the call to Core in every binding, and `marshal::BeginCall()` as the first statement of every binding (it forgets an error that was recorded but never thrown, so a stale one cannot surface from an unrelated call). `RethrowCallbackError` also lets the runtime destroy the handlers that were queued (`DrainRetiredHandlers`).
 
-**Handles remember mutability.** A handle made from a `const` reference type (`TRTextRef`) is refused where a non-const type (`TRMutableTextRef`) is expected, so an object Core documents as immutable is never mutated; a mutable handle is accepted for both.
+**Handles remember mutability.** A handle made from a `const` reference type (`TRTypesetterRef`) is refused where a non-const type (`TRMutableTypesetterRef`) is expected, so an object Core documents as immutable is never mutated; a mutable handle is accepted for both.
 
 **Buffers cannot overrun.** The count of every buffer is read from the signature (`count`, `size`, `capacity`, `length` next to the pointer), or from `BOUNDS`, and the binding checks `count * unit <= byteLength` before calling Core. The unit of a `void *` is bytes (`size`, `capacity`), the code unit of the `encoding` parameter, or the code unit of the text in the first parameter. If none applies the generator stops.
 
@@ -80,8 +80,8 @@ A collecting callback is given the address of a `marshal::Collector` on the stac
 
 | Set | Functions | Why |
 |-----|-----------|-----|
-| `EXCLUDED` | `TRVersionGetString`, `TRTextGetSheenBidiText` | declared but not implemented / needs SheenBidi's text API |
-| `MANUAL` | draw callbacks and user data of the renderer, native data of a glyph image, `TRReplacementCreate`, `TRTextSetAttribute`, `TRTypesetterCreate` | C function pointers that stay native, retained callbacks that need the handler table (`TRReplacementCreate`, the only one, bound in `cpp/runtime/ReplacementBindings.cpp`), and the union `TRAttributeValue` written by the attribute codec (`TRTextSetAttribute`, `TRTypesetterCreate`, bound in `cpp/runtime/TextBindings.cpp`); `cpp/runtime` binds them by hand |
+| `EXCLUDED` | `TRVersionGetString`, `TRTypesetterGetSheenBidiText` | declared but not implemented / needs SheenBidi's text API |
+| `MANUAL` | draw callbacks and user data of the renderer, native data of a glyph image, `TRReplacementCreate`, `TRTypesetterSetAttribute`, `TRTypesetterCreate`, `TRTypesetterCreateMutable` | C function pointers that stay native, retained callbacks that need the handler table (`TRReplacementCreate`, the only one, bound in `cpp/runtime/ReplacementBindings.cpp`), and the union `TRAttributeValue` written by the attribute codec (`TRTypesetterSetAttribute`, `TRTypesetterCreate`, `TRTypesetterCreateMutable`, bound in `cpp/runtime/TextBindings.cpp`); `cpp/runtime` binds them by hand |
 | releases | every `TR*Release` | see Ownership |
 
 A name in `EXCLUDED`, `MANUAL` or `BOUNDS` that no header declares stops the generator, so these lists cannot go stale quietly.

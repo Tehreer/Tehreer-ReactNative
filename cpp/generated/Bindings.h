@@ -44,7 +44,6 @@ void InstallTRRenderer(jsi::Runtime &rt, jsi::Object &target);
 void InstallTRReplacement(jsi::Runtime &rt, jsi::Object &target);
 void InstallTRShapingEngine(jsi::Runtime &rt, jsi::Object &target);
 void InstallTRShapingResult(jsi::Runtime &rt, jsi::Object &target);
-void InstallTRText(jsi::Runtime &rt, jsi::Object &target);
 void InstallTRTypeface(jsi::Runtime &rt, jsi::Object &target);
 void InstallTRTypefaceManager(jsi::Runtime &rt, jsi::Object &target);
 void InstallTRTypesetter(jsi::Runtime &rt, jsi::Object &target);

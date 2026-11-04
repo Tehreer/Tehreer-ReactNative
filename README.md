@@ -165,6 +165,23 @@ The font extension (`.ttf`, `.otf`, `.ttc`) has to be one of Metro's `assetExts`
 
 **Apps that prefer a file system package.** If the app already uses a library such as `react-native-fs` or `expo-file-system` (to download fonts at run time, say), save the font there and call `FontFile.fromPath(path)` with the path it gives; that needs no asset support from this library.
 
+## Typesetters
+
+Since Core merged its text object into the typesetter (Tehreer Core `1a31c67`), `Typesetter` holds the text with the attributes on its ranges and shapes it paragraph by paragraph, and `MutableTypesetter` is the editable kind (its former text classes are gone). The names follow Tehreer-Web and Tehreer-Android.
+
+```ts
+const text = new MutableTypesetter({ typeface, typeSize: 20 }); // the default attributes
+text.edit((editing) => {                                         // one batch: each paragraph is shaped once
+  editing.append('Hello, world');
+  editing.setAttributes(0, 5, { foregroundColor: 0xffaa0000 });
+});
+const typesetter = text.copy();                                  // immutable; shares the shaping
+typesetter.findBoundary(3, BoundaryType.Word, BoundaryDirection.Forward); // 5, or undefined for none
+typesetter.getBoundaryRange(3, BoundaryType.Word);               // { startIndex: 0, endIndex: 5 }
+```
+
+A typesetter can be made of a text without a typeface; lines and frames of a part that has none cannot be made (`RangeError`), and neither can a copy nor a line while a `MutableTypesetter` is in an editing batch. `TLabel` and `TTextView` take the text as `typesetter` (the `attributedText` property is gone): a `MutableTypesetter` is copied by the view, and a replacement set on a range of its text is laid out by the view as before; a typesetter whose default attributes hold a replacement is refused.
+
 ## Enums
 
 The Core enums (`TypeWeight`, `StrokeCap`, `TextAlignment` and so on) are exported as constant objects with a type of the same name (`const X = { ... } as const; type X = ...`) instead of TypeScript `enum`s, because the project compiles with `erasableSyntaxOnly`. They are used the same way as Web's enums (`TypeWeight.Bold`, `value: TypeWeight`), but are not enum objects at run time. Web's `unicode` enums (bidi class, general category, script) come from SheenBidi's headers and are added by a separate issue.

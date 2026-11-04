@@ -58,6 +58,8 @@ function features(b: NativeBindings): Handle<"TRFontFeatures"> {
 const structs: Record<string, unknown> = {
   TRPoint: { x: 1.5, y: -2.25 },
   TRSize: { width: 10, height: 0 },
+  // An index of -1 is `TRInvalidIndex`, which Core's boundary functions answer with.
+  TRRange: { index: -1, length: 0 },
   TRRect: { origin: { x: 1, y: 2 }, size: { width: 3, height: 4 } },
   TRAffineTransform: { a: 1, b: 0.5, c: -0.5, d: 2, tx: 10, ty: -20 },
   // A tag and a value above 2^31 stay unsigned.

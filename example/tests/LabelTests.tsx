@@ -7,10 +7,10 @@ import type { ComposedFrame } from '../../src/layout/ComposedFrame';
 import { FrameResolver } from '../../src/layout/FrameResolver';
 import { Replacement } from '../../src/layout/Replacement';
 import { BreakMode, ReplacementKind, TextAlignment, TruncationPlace } from '../../src/layout/enums';
-import { TMutableText } from '../../src/layout/TMutableText';
+import { MutableTypesetter } from '../../src/layout/MutableTypesetter';
 import { DrawStyle } from '../../src/graphics/enums';
 import { Typesetter } from '../../src/layout/Typesetter';
-import type { TText } from '../../src/layout/TText';
+import type { TextAttributes } from '../../src/layout/TextAttributes';
 import { TLabel } from '../../src/views/TLabel';
 import type { TLabelHandle } from '../../src/views/TLabel';
 import { TTextView } from '../../src/views/TTextView';
@@ -49,8 +49,8 @@ interface LabelCase {
   isJustified?: boolean;
   color?: number;
   text?: string;
-  /** Builds attributed text; the host owns and disposes it. */
-  attributed?: (setup: Setup) => TText;
+  /** Builds a typesetter with attributes on its text, given the defaults of the case; the host owns and disposes it. */
+  attributed?: (setup: Setup, defaults: TextAttributes) => Typesetter;
   /** The room of the inline replacement in the text, to check its run. */
   replacementExtent?: number;
   /** A text that has no code unit: no frame, and every query is empty. */
@@ -61,21 +61,25 @@ interface LabelCase {
   isStyled?: boolean;
 }
 
-function mixed(setup: Setup): TText {
-  const text = new TMutableText(`abc ${URDU} cba 123 ${URDU}`);
-  text.setAttributes(4, 4 + URDU.length, { typeface: setup.nastaliq, typeSize: 28 });
-  const second = text.length - URDU.length;
-  text.setAttributes(second, text.length, { typeface: setup.nastaliq, typeSize: 22, foregroundColor: 0xffaa0000 });
+function mixed(setup: Setup, defaults: TextAttributes): Typesetter {
+  const text = new MutableTypesetter(defaults);
+  text.edit((editing) => {
+    editing.append(`abc ${URDU} cba 123 ${URDU}`);
+    editing.setAttributes(4, 4 + URDU.length, { typeface: setup.nastaliq, typeSize: 28 });
+    const second = editing.length - URDU.length;
+    editing.setAttributes(second, editing.length, { typeface: setup.nastaliq, typeSize: 22, foregroundColor: 0xffaa0000 });
+  });
   return text;
 }
 
 function withChip(extent: number) {
-  return (): TText => {
+  return (_setup: Setup, defaults: TextAttributes): Typesetter => {
     const original = new Replacement({
       computeRoom: () => ({ ascent: 14, descent: 4, extent }),
       draw: (context) => context.fillRect({ x: 0, y: -14, width: extent, height: 18 }, 0xff2255cc),
     }, ReplacementKind.Inline);
-    const text = new TMutableText('ab ￼ cd ef gh ij');
+    const text = new MutableTypesetter(defaults);
+    text.append('ab ￼ cd ef gh ij');
     text.setAttributes(3, 4, { replacement: original });
     // Core keeps the replacement as an attribute, so the wrapper is not needed any more.
     original.dispose();
@@ -137,9 +141,10 @@ function waitFor(condition: () => boolean, timeoutMs = 8000): Promise<boolean> {
 const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 
 /** Makes the frame with the JavaScript API, by hand, for the box that the view was laid out in. */
-function expectedFrame(testCase: LabelCase, setup: Setup, text: string | TText, box: { width: number; height: number }): ComposedFrame {
+function expectedFrame(testCase: LabelCase, setup: Setup, text: string | Typesetter, box: { width: number; height: number }): ComposedFrame {
   const typeface = testCase.face === 'roboto' ? setup.roboto : setup.nastaliq;
-  const typesetter = new Typesetter(text, { typeface, typeSize: testCase.size });
+  // A typesetter of the view is copied, as the view does, so that the one of the host stays as it is.
+  const typesetter = typeof text === 'string' ? new Typesetter(text, { typeface, typeSize: testCase.size }) : text.copy();
   const resolver = new FrameResolver();
   try {
     resolver.typesetter = typesetter;
@@ -159,7 +164,7 @@ function expectedFrame(testCase: LabelCase, setup: Setup, text: string | TText, 
       resolver.truncationPlace = testCase.truncate;
       resolver.truncationMode = BreakMode.Line;
     }
-    return resolver.createFrame(0, typesetter.codeUnitCount);
+    return resolver.createFrame(0, typesetter.length);
   } finally {
     resolver.dispose();
     typesetter.dispose();
@@ -248,7 +253,7 @@ class Catcher extends Component<{ children: ReactNode; onError: (error: unknown)
 
 export function LabelTestHost({ onDone }: { onDone: (report: SuiteReport) => void }) {
   const [setup, setSetup] = useState<Setup | undefined>();
-  const [texts, setTexts] = useState<Record<string, TText>>({});
+  const [texts, setTexts] = useState<Record<string, Typesetter>>({});
   const [stage, setStage] = useState<'labels' | 'views' | 'cycle' | 'gone'>('labels');
   const [width, setWidth] = useState(300);
   const [highlighted, setHighlighted] = useState(false);
@@ -256,12 +261,12 @@ export function LabelTestHost({ onDone }: { onDone: (report: SuiteReport) => voi
   const [rapid, setRapid] = useState(false);
   const [rooms, setRooms] = useState(false);
   const caught = useRef<unknown>(undefined);
-  const [rapidText, setRapidText] = useState<TText | undefined>();
-  const [roomsText, setRoomsText] = useState<TText | undefined>();
-  const roomsHolder = useRef<TText | undefined>(undefined);
+  const [rapidText, setRapidText] = useState<Typesetter | undefined>();
+  const [roomsText, setRoomsText] = useState<Typesetter | undefined>();
+  const roomsHolder = useRef<Typesetter | undefined>(undefined);
   const [tick, setTick] = useState(0);
-  const [longText, setLongText] = useState<TText | undefined>();
-  const [chipText, setChipText] = useState<TText | undefined>();
+  const [longText, setLongText] = useState<Typesetter | undefined>();
+  const [chipText, setChipText] = useState<Typesetter | undefined>();
   const seen = useRef<Record<string, Seen>>({});
   const handles = useRef<Record<string, TLabelHandle | null>>({});
   const viewHandle = useRef<TTextViewHandle | null>(null);
@@ -273,7 +278,7 @@ export function LabelTestHost({ onDone }: { onDone: (report: SuiteReport) => voi
   const started = useRef(false);
   // A typesetter that a label is given, which stays the caller's.
   const given = useRef<Typesetter | undefined>(undefined);
-  const rapidHolder = useRef<TText | undefined>(undefined);
+  const rapidHolder = useRef<Typesetter | undefined>(undefined);
   // Counted before anything of this suite is registered.
   const baselineRef = useRef<{ typesetters: number; composedFrames: number; replacements: number } | undefined>(undefined);
 
@@ -281,39 +286,45 @@ export function LabelTestHost({ onDone }: { onDone: (report: SuiteReport) => voi
     baselineRef.current = getNativeBindings().testGetViewCounts?.();
     const files = [new FontFile(fontBytes), new FontFile(nastaliqFontBytes)];
     const made: Setup = { roboto: files[0]!.typefaces.get(0), nastaliq: files[1]!.typefaces.get(0) };
-    const built: Record<string, TText> = {};
+    const built: Record<string, Typesetter> = {};
     for (const testCase of labelCases) {
       if (testCase.attributed !== undefined) {
-        built[testCase.name] = testCase.attributed(made);
+        built[testCase.name] = testCase.attributed(made, { typeface: testCase.face === 'roboto' ? made.roboto : made.nastaliq, typeSize: testCase.size });
       }
     }
-    // Many paragraphs of Latin with a run of Urdu in each: long enough to scroll many screens.
-    const long = new TMutableText('');
-    for (let index = 0; index < 120; index++) {
-      const lead = `${index}: ${LATIN} `;
-      const at = long.length;
-      long.append(`${lead}${URDU}\n`);
-      long.setAttributes(at + lead.length, at + lead.length + URDU.length, { typeface: made.nastaliq, typeSize: 20 });
-    }
+    // Many paragraphs of Latin with a run of Urdu in each: long enough to scroll many screens. One
+    // batch shapes each paragraph once.
+    const long = new MutableTypesetter({ typeface: made.roboto, typeSize: 16 });
+    long.edit((editing) => {
+      for (let index = 0; index < 120; index++) {
+        const lead = `${index}: ${LATIN} `;
+        const at = editing.length;
+        editing.append(`${lead}${URDU}\n`);
+        editing.setAttributes(at + lead.length, at + lead.length + URDU.length, { typeface: made.nastaliq, typeSize: 20 });
+      }
+    });
     given.current = new Typesetter(LATIN, { typeface: made.roboto, typeSize: 20 });
     setSetup(made);
     setTexts(built);
     setLongText(long);
-    setChipText(withChip(36)());
+    setChipText(withChip(36)(made, { typeface: made.roboto, typeSize: 18 }));
     // A long text with a replacement in every paragraph, to be unmounted while it is still being laid out.
-    const many = new TMutableText('');
+    const many = new MutableTypesetter({ typeface: made.roboto, typeSize: 16 });
     const original = new Replacement({ computeRoom: () => ({ ascent: 12, descent: 3, extent: 20 }), draw: (context) => context.fillRect({ x: 0, y: -12, width: 20, height: 15 }, 0xff2255cc) });
-    for (let index = 0; index < 400; index++) {
-      const at = many.length;
-      many.append(`${LATIN} \uFFFC ${LATIN}\n`);
-      many.setAttributes(at + LATIN.length + 1, at + LATIN.length + 2, { replacement: original });
-    }
+    many.edit((editing) => {
+      for (let index = 0; index < 400; index++) {
+        const at = editing.length;
+        editing.append(`${LATIN} \uFFFC ${LATIN}\n`);
+        editing.setAttributes(at + LATIN.length + 1, at + LATIN.length + 2, { replacement: original });
+      }
+    });
     original.dispose();
     rapidHolder.current = many;
     setRapidText(many);
     // A replacement whose delegate fails once it is asked for a width.
     const failing = new Replacement({ computeRoom: (width) => { if (width > 0) { throw new Error('the width went wrong'); } return { ascent: 5, descent: 1, extent: 10 }; } });
-    const rooms = new TMutableText('ab \uFFFC cd');
+    const rooms = new MutableTypesetter({ typeface: made.roboto, typeSize: 18 });
+    rooms.append('ab \uFFFC cd');
     rooms.setAttributes(3, 4, { replacement: failing });
     failing.dispose();
     roomsHolder.current = rooms;
@@ -368,7 +379,7 @@ export function LabelTestHost({ onDone }: { onDone: (report: SuiteReport) => voi
           ok(false, `${testCase.name}: no layout or frame`);
           continue;
         }
-        const source: string | TText = testCase.text ?? (texts[testCase.name] as TText);
+        const source: string | Typesetter = testCase.text ?? (texts[testCase.name] as Typesetter);
         const expected = expectedFrame(testCase, setup, source, entry.layout);
         try {
           // The native label and the JavaScript API lay the same text out the same way.
@@ -624,11 +635,10 @@ export function LabelTestHost({ onDone }: { onDone: (report: SuiteReport) => voi
             testID={`label-${testCase.name}`}
             ref={(handle) => { handles.current[testCase.name] = handle; }}
             text={testCase.givesTypesetter === true ? undefined : testCase.text}
-            attributedText={texts[testCase.name]}
             typeface={testCase.face === 'roboto' ? setup.roboto : setup.nastaliq}
             textSize={testCase.size}
             textColor={testCase.color}
-            typesetter={testCase.givesTypesetter === true ? given.current : undefined}
+            typesetter={testCase.givesTypesetter === true ? given.current : texts[testCase.name]}
             drawStyle={testCase.isStyled === true ? DrawStyle.FillStroke : undefined}
             strokeColor={testCase.isStyled === true ? '#cc2200' : undefined}
             strokeRadius={testCase.isStyled === true ? 1 : undefined}
@@ -659,26 +669,24 @@ export function LabelTestHost({ onDone }: { onDone: (report: SuiteReport) => voi
       )}
       {stage === 'cycle' && cycling && (
         <>
-          <TLabel testID="cycle-label" attributedText={chipText} typeface={setup.roboto} textSize={18} style={{ maxWidth: 200 }} />
-          <TTextView testID="cycle-view" attributedText={chipText} typeface={setup.roboto} textSize={18} style={{ width: 200, height: 60 }} />
+          <TLabel testID="cycle-label" typesetter={chipText} style={{ maxWidth: 200 }} />
+          <TTextView testID="cycle-view" typesetter={chipText} style={{ width: 200, height: 60 }} />
         </>
       )}
       {stage === 'cycle' && rooms && roomsText !== undefined && (
         <Catcher onError={(error) => { caught.current = error; }}>
-          <TLabel testID="rooms-label" attributedText={roomsText} typeface={setup.roboto} textSize={18} style={{ maxWidth: 200 }} />
+          <TLabel testID="rooms-label" typesetter={roomsText} style={{ maxWidth: 200 }} />
         </Catcher>
       )}
       {stage === 'cycle' && rapid && rapidText !== undefined && (
-        <TTextView testID="rapid-view" attributedText={rapidText} typeface={setup.roboto} textSize={16} style={{ width: 200, height: 100 }} />
+        <TTextView testID="rapid-view" typesetter={rapidText} style={{ width: 200, height: 100 }} />
       )}
       {stage === 'views' && (
         <>
           <TTextView
             testID="view-long"
             ref={viewHandle}
-            attributedText={longText}
-            typeface={setup.roboto}
-            textSize={16}
+            typesetter={longText}
             highlights={highlighted ? [{ fromIndex: 3, toIndex: 40 }, { fromIndex: 100, toIndex: 130, color: '#44aa0000' }] : undefined}
             separatorColor="#22000000"
             style={{ width, height: 220 }}
@@ -688,18 +696,14 @@ export function LabelTestHost({ onDone }: { onDone: (report: SuiteReport) => voi
           <TTextView
             testID="view-chip"
             ref={chipHandle}
-            attributedText={chipText}
-            typeface={setup.roboto}
-            textSize={18}
+            typesetter={chipText}
             style={{ width: 200, height: 60 }}
             onFrameReady={() => { view.current.chipFrames++; }}
           />
           <TTextView
             testID="view-early"
             ref={(handle) => { handle?.scrollToOffset(300); }}
-            attributedText={longText}
-            typeface={setup.roboto}
-            textSize={16}
+            typesetter={longText}
             style={{ width: 200, height: 60 }}
             onScroll={(offset) => { view.current.earlyOffset = offset; }}
             onFrameReady={() => { view.current.earlyFrames++; }}
@@ -717,9 +721,7 @@ export function LabelTestHost({ onDone }: { onDone: (report: SuiteReport) => voi
           <TTextView
             testID="view-inset"
             ref={insetHandle}
-            attributedText={longText}
-            typeface={setup.roboto}
-            textSize={16}
+            typesetter={longText}
             contentInset={{ top: 12, left: 20, right: 10, bottom: 15 }}
             style={{ width: 200, height: 60 }}
             onScroll={(offset) => { view.current.insetOffset = offset; }}

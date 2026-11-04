@@ -7,7 +7,7 @@ import type * as Library from '../../src/index';
 // sides write the same normalised events (see `format`), so "the same calls as Tehreer-Web" is a
 // comparison of two lists of strings.
 
-type Lib = Pick<typeof Library, 'DrawStyle' | 'FrameResolver' | 'Renderer' | 'Replacement' | 'ReplacementKind' | 'TMutableText' | 'Typesetter'>;
+type Lib = Pick<typeof Library, 'DrawStyle' | 'FrameResolver' | 'Renderer' | 'Replacement' | 'ReplacementKind' | 'MutableTypesetter'>;
 
 export interface Faces {
   readonly roboto: Library.Typeface;
@@ -69,7 +69,10 @@ export interface Prepared {
  * `replacement` event to `events`, the same list that the surface appends to.
  */
 export function prepare(lib: Lib, faces: Faces, scenario: DrawScenario, events: string[]): Prepared {
-  const text = new lib.TMutableText(scenario.text);
+  // The attributes are set in one batch, so each paragraph is shaped once.
+  const text = new lib.MutableTypesetter();
+  text.beginEditing();
+  text.append(scenario.text);
   text.setAttributes(0, scenario.text.length, { typeface: faces[scenario.face], typeSize: scenario.size });
   for (const [from, to, name] of scenario.parts ?? []) {
     text.setAttributes(from, to, { typeface: faces[name] });
@@ -90,7 +93,8 @@ export function prepare(lib: Lib, faces: Faces, scenario: DrawScenario, events: 
     text.setAttributes(from, to, { replacement });
   }
 
-  const typesetter = new lib.Typesetter(text);
+  text.endEditing();
+  const typesetter = text.copy();
   const resolver = new lib.FrameResolver();
   resolver.typesetter = typesetter;
   resolver.frameWidth = scenario.width;

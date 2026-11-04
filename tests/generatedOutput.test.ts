@@ -28,13 +28,13 @@ test("every public function is bound, excluded, manual or a release", { skip: no
   for (const name of [...EXCLUDED, ...MANUAL.keys(), ...model.releases]) {
     assert.ok(!bound.has(name), `${name} is bound although it is excluded, manual or a release`);
   }
-  assert.deepEqual([...EXCLUDED].sort(), ["TRTextGetSheenBidiText", "TRVersionGetString"]);
+  assert.deepEqual([...EXCLUDED].sort(), ["TRTypesetterGetSheenBidiText", "TRVersionGetString"]);
   const declaredCount = readdirSync(headers)
     .filter((name) => /^TR.*\.h$/.test(name))
     .reduce((total, name) => total + parseHeader(readFileSync(join(headers, name), "utf8"), { publicMacro: "TR_PUBLIC", prefix: "TR" }).functions.length, 0);
   assert.ok(declaredCount > 0);
   assert.equal(model.bindings.length + EXCLUDED.size + MANUAL.size + model.releases.length, declaredCount);
-  for (const name of ["TRRendererGetDrawCallbacks", "TRTextSetAttribute"]) assert.ok(MANUAL.has(name), name);
+  for (const name of ["TRRendererGetDrawCallbacks", "TRTypesetterSetAttribute", "TRTypesetterCreateMutable"]) assert.ok(MANUAL.has(name), name);
   assert.ok(Object.keys(BOUNDS).length > 0);
 });
 
@@ -89,9 +89,9 @@ test("the references that Core functions return are adopted or retained as revie
     "TRGlyphRunRetain", "TRLineLocatorCreate", "TRLineLocatorRetain", "TRPathRetain", "TRRendererCreate",
     "TRRendererCreateGlyphImage", "TRRendererCreateStrokeImage", "TRRendererCreateGlyphPath", "TRRendererRetain",
     "TRReplacementRetain", "TRShapingEngineCreate", "TRShapingEngineCreateShapingResult", "TRShapingEngineRetain",
-    "TRShapingResultRetain", "TRTextCreate", "TRTextCreateCopy", "TRTextCreateMutableCopy", "TRTextCopyAttributes",
-    "TRTextRetain", "TRTextCreateMutable", "TRTypefaceCreateWithVariation", "TRTypefaceCreateWithColors",
-    "TRTypefaceCreateGlyphPath", "TRTypefaceRetain", "TRTypesetterCreateSimpleLine", "TRTypesetterCreateTruncationToken",
+    "TRShapingResultRetain", "TRTypefaceCreateWithVariation", "TRTypefaceCreateWithColors",
+    "TRTypefaceCreateGlyphPath", "TRTypefaceRetain", "TRTypesetterCreateCopy", "TRTypesetterCreateMutableCopy",
+    "TRTypesetterCopyAttributes", "TRTypesetterCreateSimpleLine", "TRTypesetterCreateTruncationToken",
     "TRTypesetterCreateTruncatedLine", "TRTypesetterCreateJustifiedLine", "TRTypesetterRetain",
   ]);
 });
@@ -104,24 +104,24 @@ test("the nullable parameters are exactly the reviewed ones", { skip: noCore }, 
     "TRFrameResolverSetTypesetter.typesetter", "TRGlyphRunComputeInkBox.renderer", "TRGlyphRunDraw.renderer",
     "TRPathEnumerate.transform", "TRRendererSetGlyphCache.cache", "TRRendererSetTypeface.typeface",
     "TRShapingEngineSetTypeface.typeface", "TRShapingEngineSetOpenTypeFeatures.features",
-    "TRShapingEngineCreateShapingResult.codeUnits", "TRShapingResultGetCaretEdges.caretStops", "TRTextCreate.string",
-    "TRTextGetCodeUnits.buffer", "TRTextAppendCodeUnits.codeUnitBuffer", "TRTextInsertCodeUnits.codeUnitBuffer",
-    "TRTextSetCodeUnits.codeUnitBuffer", "TRTextReplaceCodeUnits.codeUnitBuffer", "TRTypefaceCreateWithVariation.coordinates",
-    "TRTypefaceCreateWithColors.colors", "TRTypefaceGetTableData.buffer", "TRTypefaceGetGlyphName.buffer",
-    "TRTypesetterCreateTruncationToken.tokenString",
+    "TRShapingEngineCreateShapingResult.codeUnits", "TRShapingResultGetCaretEdges.caretStops",
+    "TRTypefaceCreateWithVariation.coordinates", "TRTypefaceCreateWithColors.colors", "TRTypefaceGetTableData.buffer",
+    "TRTypefaceGetGlyphName.buffer", "TRTypesetterGetCodeUnits.buffer", "TRTypesetterAppendCodeUnits.codeUnitBuffer",
+    "TRTypesetterInsertCodeUnits.codeUnitBuffer", "TRTypesetterSetCodeUnits.codeUnitBuffer",
+    "TRTypesetterReplaceCodeUnits.codeUnitBuffer", "TRTypesetterCreateTruncationToken.tokenString",
   ]);
 });
 
-test("only the text has a mutable and a constant reference type that share an object", { skip: noCore }, () => {
+test("only the typesetter has a mutable and a constant reference type that share an object", { skip: noCore }, () => {
   const { model } = generate(headers);
   const groups = new Map<string, Set<boolean>>();
   for (const ref of model.refs) groups.set(ref.group, (groups.get(ref.group) ?? new Set()).add(ref.const));
   const mixed = [...groups].filter(([, flags]) => flags.size > 1).map(([group]) => group);
-  assert.deepEqual(mixed, ["TRText"]);
+  assert.deepEqual(mixed, ["TRTypesetter"]);
 
   const handles = readFileSync(join(root, "cpp/generated/Handles.h"), "utf8");
-  assert.match(handles, /HandleTraits<TRTextRef> \{[^}]*kMutable = false;/);
-  assert.match(handles, /HandleTraits<TRMutableTextRef> \{[^}]*kMutable = true;/);
+  assert.match(handles, /HandleTraits<TRTypesetterRef> \{[^}]*kMutable = false;/);
+  assert.match(handles, /HandleTraits<TRMutableTypesetterRef> \{[^}]*kMutable = true;/);
 });
 
 test("the renderer of an ink box or a draw call is required or optional as Core documents it", { skip: noCore }, () => {

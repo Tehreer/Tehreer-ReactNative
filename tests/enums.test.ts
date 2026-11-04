@@ -28,7 +28,9 @@ const prefixes: Record<string, [Values, string]> = {
   TruncationPlace: [layout.TruncationPlace as Values, "TRTruncationPlace"],
   TextAlignment: [layout.TextAlignment as Values, "TRTextAlignment"],
   VerticalAlignment: [layout.VerticalAlignment as Values, "TRVerticalAlignment"],
-  ReplacementKind: [layout.ReplacementKind as Values, "TRReplacementKind"]
+  ReplacementKind: [layout.ReplacementKind as Values, "TRReplacementKind"],
+  BoundaryType: [layout.BoundaryType as Values, "TRBoundaryType"],
+  BoundaryDirection: [layout.BoundaryDirection as Values, "TRBoundaryDirection"],
 };
 
 // Core enumerations that are not public API: booleans, the encoding and attribute ids that the

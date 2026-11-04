@@ -133,7 +133,7 @@ export function composeViewFrame(typesetter: Typesetter, width: number, height: 
     resolver.lineHeightMultiplier = settings.lineHeightMultiplier;
     resolver.isJustificationEnabled = settings.isJustificationEnabled;
     resolver.justificationLevel = settings.justificationLevel;
-    return resolver.createFrame(0, typesetter.codeUnitCount);
+    return resolver.createFrame(0, typesetter.length);
   } finally {
     resolver.dispose();
   }

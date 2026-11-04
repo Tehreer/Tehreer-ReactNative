@@ -47,7 +47,7 @@ the draw timer is a hook of its own.
 Same steps in the three runners (`example/benchmark/runBenchmark.ts`, `android/.../BenchActivity.java`,
 `cocoa/Sources/bench/main.swift`); one unit is one pixel (render scale 1).
 
-- **layoutMs**: from a prepared styled text (RN `TMutableText`, Android `SpannableString`, Cocoa
+- **layoutMs**: from a prepared styled text (RN: a string with its font runs, Android `SpannableString`, Cocoa
   `NSAttributedString`, made outside the timer) to a frame: typesetter creation, frame resolver, and
   `createFrame` over the whole text with `fitsVertically` (frame as high as its lines). Objects are
   released outside the timer. Warm-up iterations first, then the timed ones; the number is the median.

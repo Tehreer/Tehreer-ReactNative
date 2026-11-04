@@ -89,10 +89,10 @@ export interface TTextViewProps extends TextSource, RenderingProps, ParagraphPro
    * covers nothing, since the text may change in the same render.
    */
   readonly highlights?: readonly TextHighlight[];
-  /** Whether the runs of the attributed text that have a `userData` are links. The default is `true`. */
+  /** Whether the runs of the text of the `typesetter` that have a `userData` are links. The default is `true`. */
   readonly isLinkInteractionEnabled?: boolean;
   /**
-   * Called when a link is tapped. A link is a run of the attributed text whose `userData` is not zero.
+   * Called when a link is tapped. A link is a run of the text of the `typesetter` whose `userData` is not zero.
    *
    * @param userData The `userData` of the run.
    * @param fromIndex The first code unit of the run.
@@ -189,7 +189,7 @@ export interface TTextViewHandle {
 export const TTextView = forwardRef<TTextViewHandle, TTextViewProps>(function TTextView(props, ref) {
   const {
     separatorColor, highlightColor, highlights, isLinkInteractionEnabled = true, onLinkClick, style, testID, onTap,
-    onScroll, onFrameReady, onLayout: onLayoutProp, attributedText,
+    onScroll, onFrameReady, onLayout: onLayoutProp,
   } = props;
   const renderer = toNativeRenderer(props);
   const inset = resolveContentInset(props.contentInset);
@@ -199,7 +199,7 @@ export const TTextView = forwardRef<TTextViewHandle, TTextViewProps>(function TT
   const insetRight = inset.right;
   const settings = resolveFrameSettings(props);
   const { typesetter, onLayout: onTextLayout, getComposedFrame, getCodeUnitCount, frame, composedFrameId } = useTextView(props, settings, true);
-  const links = useMemo(() => findLinks(attributedText), [attributedText]);
+  const links = useMemo(() => findLinks(props.typesetter), [props.typesetter]);
   const scroller = useRef<ScrollViewInstance>(null);
   // `measure` answers later, and a press must not report to an owner that is gone by then.
   const isMounted = useRef(true);

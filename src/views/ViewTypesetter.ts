@@ -5,10 +5,10 @@ import type { Rect } from "../geometry.js";
 import type { Typeface } from "../graphics/Typeface.js";
 import { getNativeBindings } from "../internal/NativeBindings.js";
 import { Replacement } from "../layout/Replacement.js";
+import { MutableTypesetter } from "../layout/MutableTypesetter.js";
 import { Typesetter } from "../layout/Typesetter.js";
 import type { ReplacementKind } from "../layout/enums.js";
 import type { TextAttributes } from "../layout/TextAttributes.js";
-import { TText } from "../layout/TText.js";
 import type { TextSource } from "./shared.js";
 
 /**
@@ -72,33 +72,42 @@ export class ViewTypesetter {
   /**
    * @param layoutWidth What the delegates of the replacements get as the layout width.
    * @returns `undefined` when there is nothing to show: a plain text without a typeface, as in the
-   *   other wrappers (an attributed text has to give every range a typeface, or the call throws).
-   * @throws Error if Core refuses the typesetter, a given typesetter holds a replacement, or a
-   *   delegate throws (its error is rethrown).
+   *   other wrappers (a typesetter has to give every range a typeface, or no line can be made).
+   * @throws Error if Core refuses the typesetter, the defaults of a given typesetter hold a
+   *   replacement, or a delegate throws (its error is rethrown).
    */
   static create(source: TextSource & { readonly typeface?: Typeface; readonly textSize: number }, layoutWidth: number): ViewTypesetter | undefined {
-    if (source.typesetter !== undefined) {
-      if (source.typesetter.hasReplacements) {
-        throw new Error("A typesetter with a replacement cannot be shown in a view: give the text as attributedText, and the view makes the replacements.");
-      }
-      const id = getNativeBindings().registerTypesetter(source.typesetter.nativeHandle);
-      if (id === 0) {
-        throw new Error("Could not register the typesetter of a view.");
-      }
-      return new ViewTypesetter(id, source.typesetter, [], false);
-    }
-    if (source.attributedText === undefined && source.typeface === undefined) {
+    const given = source.typesetter;
+    if (given === undefined && source.typeface === undefined) {
       return undefined;
     }
-    const original = source.attributedText ?? new TText(source.text ?? "");
-    const ownsOriginal = source.attributedText === undefined;
+    if (given?.hasDefaultReplacement === true) {
+      throw new Error("A typesetter whose default attributes hold a replacement cannot be shown in a view: set the replacement on the ranges of the text, and the view makes the replacements.");
+    }
+
+    // The view never uses an object that the caller can change: a mutable typesetter is copied
+    // (the copy shares its shaping), and the original is never edited either.
+    let base: Typesetter;
+    let ownsBase = true;
+    if (given === undefined) {
+      const defaults: TextAttributes = source.typeface === undefined ? { typeSize: source.textSize } : { typeface: source.typeface, typeSize: source.textSize };
+      base = new Typesetter(source.text ?? "", defaults);
+    } else if (given instanceof MutableTypesetter) {
+      base = given.copy();
+    } else {
+      base = given;
+      ownsBase = false;
+    }
+
     const replaced: ReplacedRange[] = [];
-    let editable: ReturnType<TText["mutableCopy"]> | undefined;
-    let copy: TText | undefined;
+    let editable: MutableTypesetter | undefined;
     let typesetter: Typesetter | undefined;
+    let ownsTypesetter = ownsBase;
+    let usesBase = false;
+    let made: ViewTypesetter | undefined;
     try {
-      for (let index = 0; index < original.length; ) {
-        const run = original.getAttributeRun(index);
+      for (let index = 0; index < base.length; ) {
+        const run = base.getAttributeRun(index);
         if (run === undefined || run.length <= 0) {
           break;
         }
@@ -110,41 +119,47 @@ export class ViewTypesetter {
       }
 
       if (replaced.length === 0) {
-        copy = original;
+        typesetter = base;
+        usesBase = true;
       } else {
-        // The original is never changed: a copy gets the holders.
-        editable = original.mutableCopy();
-        for (const range of replaced) {
-          const holder = makeHolder(range.source, range.room);
-          try {
-            editable.setAttributes(range.fromIndex, range.toIndex, { replacement: holder });
-          } finally {
-            // Core retains it as an attribute; the text keeps it alive from here.
-            holder.dispose();
+        // A copy gets the holders.
+        editable = base.mutableCopy();
+        editable.edit((text) => {
+          for (const range of replaced) {
+            const holder = makeHolder(range.source, range.room);
+            try {
+              text.setAttributes(range.fromIndex, range.toIndex, { replacement: holder });
+            } finally {
+              // Core retains it as an attribute; the typesetter keeps it alive from here.
+              holder.dispose();
+            }
           }
-        }
-        copy = editable;
+        });
+        // An immutable copy shares the shaping, and is what the native side and the frames use.
+        typesetter = editable.copy();
+        ownsTypesetter = true;
       }
 
-      const defaults: TextAttributes = source.typeface === undefined ? { typeSize: source.textSize } : { typeface: source.typeface, typeSize: source.textSize };
-      typesetter = new Typesetter(copy, defaults);
       const id = getNativeBindings().registerTypesetter(typesetter.nativeHandle);
       if (id === 0) {
         throw new Error("Could not register the typesetter of a view.");
       }
-      const made = new ViewTypesetter(id, typesetter, replaced.splice(0), true);
+      made = new ViewTypesetter(id, typesetter, replaced.splice(0), ownsTypesetter);
       typesetter = undefined;
       return made;
     } catch (error) {
-      typesetter?.dispose();
+      // The base is disposed below if it is ours, so it is not disposed twice here.
+      if (typesetter !== undefined && ownsTypesetter && !usesBase) {
+        typesetter.dispose();
+      }
       for (const range of replaced) {
         range.source.dispose();
       }
       throw error;
     } finally {
       editable?.dispose();
-      if (ownsOriginal) {
-        original.dispose();
+      if (ownsBase && !(usesBase && made !== undefined)) {
+        base.dispose();
       }
     }
   }

@@ -150,7 +150,11 @@ test("the memory window of the React Native runner is like the other runners' (#
   const afterMatch = /const after = memory\(bindings\)\.heapKB/.exec(loop);
   assert.ok(afterMatch, "the heap is read after the layout");
   const afterRead = afterMatch.index;
-  for (const owner of ["text", "made\\.resolver", "made\\.typesetter"]) {
+  // The styled text is plain data now (a string and its runs); the mutable typesetter it is built into
+  // is released by layoutOnce, before it returns, so it is gone when the heap is read.
+  const layout = runner.slice(runner.indexOf("function layoutOnce"), runner.indexOf("function memory"));
+  assert.match(layout, /editable\.dispose\(\)/, "the mutable typesetter is released by layoutOnce");
+  for (const owner of ["made\\.resolver", "made\\.typesetter"]) {
     const release = new RegExp(`${owner}\\s*\\.dispose\\(`).exec(loop);
     assert.ok(release && release.index < afterRead, `${owner} must be disposed before the heap is read`);
   }

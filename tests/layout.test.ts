@@ -57,7 +57,7 @@ interface FrameLike extends Wrapper {
 }
 
 interface TypesetterLike extends Wrapper {
-  readonly codeUnitCount: number;
+  readonly length: number;
   suggestForwardBreak(from: number, to: number, extent: number, mode: number): number;
   suggestBackwardBreak(from: number, to: number, extent: number, mode: number): number;
   createSimpleLine(from: number, to: number, width?: number): LineLike;
@@ -89,12 +89,13 @@ let LineLocator: { new (frame: unknown, renderer: unknown): LocatorLike };
 let Replacement: { new (delegate: unknown, kind?: number): Wrapper & { kind: number; computeRoom(width: number): unknown } };
 let Renderer: { new (): Wrapper };
 let Typeface: { adopting(handle: FakeHandle): Wrapper };
-let TText: { new (text: string): Wrapper };
 let ComposedLine: { adopting(handle: FakeHandle): LineLike };
 let ComposedFrame: { adopting(handle: FakeHandle): FrameLike };
 
 let cores: Core[];
 let calls: string[];
+/** What the typesetters were created from, kept apart from `calls` so that helpers can make them. */
+let created: string[];
 let attributesSeen: { type: number; value: unknown }[] | undefined | null;
 let failNext: Set<string>;
 /** Runs inside the Core call of the bindings that can reach a replacement, as its computeRoom would. */
@@ -166,7 +167,6 @@ function fake(): Record<string, unknown> {
       calls.push("buffer");
       return view.memory;
     },
-    TRTextCreate: (units: Uint16Array | undefined, length: number) => handleOf(core("text", { length })),
     TRFontFeaturesCreate: () => handleOf(core("features")),
     TRRendererCreate: () => handleOf(core("renderer")),
     TRRendererRetain: retainer(),
@@ -180,11 +180,10 @@ function fake(): Record<string, unknown> {
       const handler = live(handle).data["handler"] as { computeRoom(width: number): unknown };
       return handler.computeRoom(width);
     },
-    TRTypesetterCreate(text: FakeHandle, attributes: { type: number; value: unknown }[] | undefined) {
-      live(text);
+    TRTypesetterCreate(units: Uint16Array | undefined, length: number, encoding: number, attributes: { type: number; value: unknown }[] | undefined) {
       attributesSeen = attributes;
+      created.push(`create ${length} ${units === undefined ? "none" : "buffer"} ${encoding}`);
       duringCall?.();
-      live(text);
       for (const attribute of attributes ?? []) {
         if (typeof attribute.value === "object") live(attribute.value as FakeHandle);
       }
@@ -196,7 +195,7 @@ function fake(): Record<string, unknown> {
       return handleOf(core("typesetter", { attributes }));
     },
     TRTypesetterRetain: retainer(),
-    TRTypesetterGetCodeUnitCount: () => TEXT_LENGTH,
+    TRTypesetterGetLength: () => TEXT_LENGTH,
     TRTypesetterSuggestForwardBreak(handle: FakeHandle, index: number, length: number, extent: number, mode: number) {
       live(handle);
       calls.push(`forward ${index} ${length} ${extent} ${mode}`);
@@ -354,7 +353,7 @@ function fake(): Record<string, unknown> {
 before(async () => {
   out = compileModules([
     "src/layout/Typesetter.ts", "src/layout/FrameResolver.ts", "src/layout/LineLocator.ts", "src/layout/Replacement.ts",
-    "src/layout/TText.ts", "src/graphics/Renderer.ts", "src/graphics/Typeface.ts", "src/sfnt/FontFeatures.ts",
+    "src/graphics/Renderer.ts", "src/graphics/Typeface.ts", "src/sfnt/FontFeatures.ts",
   ]);
   const load = async <T>(file: string, name: string): Promise<T> => ((await importModule(out, file)) as Record<string, T>)[name] as T;
   Typesetter = await load("layout/Typesetter.js", "Typesetter");
@@ -363,7 +362,6 @@ before(async () => {
   Replacement = await load("layout/Replacement.js", "Replacement");
   Renderer = await load("graphics/Renderer.js", "Renderer");
   Typeface = await load("graphics/Typeface.js", "Typeface");
-  TText = await load("layout/TText.js", "TText");
   ComposedLine = await load("layout/ComposedLine.js", "ComposedLine");
   ComposedFrame = await load("layout/ComposedFrame.js", "ComposedFrame");
 });
@@ -371,6 +369,7 @@ before(async () => {
 beforeEach(() => {
   cores = [];
   calls = [];
+  created = [];
   attributesSeen = undefined;
   failNext = new Set();
   duringCall = undefined;
@@ -458,15 +457,14 @@ test("an error from computeRoom reaches the caller, and a disposed replacement i
 
 // ---- Typesetter ----
 
-test("a typesetter of a string makes and disposes its own text, and a TText is left alone", () => {
+test("a typesetter of a string gives Core its UTF-16 code units, and none for an empty string", () => {
   const set = new Typesetter("abc", { typeface: typeface(), typeSize: 12 });
-  const text = cores.find((c) => c.kind === "text");
-  assert.equal(must(text).refs, 0, "the text made for the string is disposed after Core copied it");
-  assert.equal(set.codeUnitCount, TEXT_LENGTH);
+  assert.equal(set.length, TEXT_LENGTH);
+  assert.ok(created.includes("create 3 buffer 1"), "UTF-16 is encoding 1");
 
-  const own = new TText("abc");
-  new Typesetter(own, { typeface: typeface() });
-  assert.equal(refs(own), 1, "a text that the caller made is not disposed");
+  created.length = 0;
+  new Typesetter("", { typeface: typeface() });
+  assert.ok(created.includes("create 0 none 1"));
 });
 
 test("the default attributes reach Core as typed attributes, and temporaries are given back", () => {
@@ -490,13 +488,12 @@ test("the default attributes reach Core as typed attributes, and temporaries are
 test("a typesetter that Core cannot make is an Error, and nothing stays held", () => {
   const face = typeface();
   failNext.add("createTypesetter");
-  assert.throws(() => new Typesetter("abc", { typeface: face, fontFeatures: [{ tag: 1, value: 1 }] }), /typeface/);
+  assert.throws(() => new Typesetter("abc", { typeface: face, fontFeatures: [{ tag: 1, value: 1 }] }), /Could not create a typesetter/);
   assert.equal(refs(face), 1);
-  assert.equal(must(cores.find((c) => c.kind === "text")).refs, 0);
   assert.equal(must(cores.find((c) => c.kind === "features")).refs, 0);
 });
 
-test("a typesetter refuses what is not a text or an attribute before it asks Core", () => {
+test("a typesetter refuses what is not a string or an attribute before it asks Core", () => {
   assert.throws(() => new Typesetter(5 as never), TypeError);
   assert.throws(() => new Typesetter({} as never), TypeError);
   assert.throws(() => new Typesetter("abc", { bogus: 1 }), TypeError);
@@ -504,9 +501,6 @@ test("a typesetter refuses what is not a text or an attribute before it asks Cor
   assert.throws(() => new Typesetter("abc", { replacement: {} }), TypeError);
   assert.throws(() => new Typesetter("abc", { typeface: {} }), TypeError);
   assert.equal(calls.length, 0);
-  const disposed = new TText("abc");
-  disposed.dispose();
-  assert.throws(() => new Typesetter(disposed), /already disposed/);
 });
 
 test("ranges are checked in TypeScript, and Core's refusal of the upper bound is a RangeError", () => {
@@ -567,7 +561,7 @@ test("use after dispose of a typesetter throws, and what it made lives on", () =
   set.dispose();
   set.dispose();
   const message = /already disposed/;
-  assert.throws(() => set.codeUnitCount, message);
+  assert.throws(() => set.length, message);
   assert.throws(() => set.createSimpleLine(0, 1), message);
   assert.throws(() => set.suggestForwardBreak(0, 1, 1, 0), message);
   assert.throws(() => set.createTruncationToken(0, 1, 0), message);
@@ -884,10 +878,9 @@ test("a call that can reach computeRoom holds its own references, so a handler m
   assert.ok(replacement.isDisposed);
 
   duringCall = undefined;
-  const text = new TText("abc");
   const face = typeface();
-  duringCall = () => { text.dispose(); face.dispose(); };
-  new Typesetter(text, { typeface: face });
-  assert.ok(text.isDisposed && face.isDisposed);
-  assert.deepEqual(cores.filter((c) => c.kind === "text" && c.refs !== 0), [], "nothing is left held");
+  duringCall = () => { face.dispose(); };
+  new Typesetter("abc", { typeface: face });
+  assert.ok(face.isDisposed);
+  assert.deepEqual(cores.filter((c) => c.kind === "typeface" && c.refs !== 1), [], "the typesetter holds the typeface, nothing else is left held");
 });

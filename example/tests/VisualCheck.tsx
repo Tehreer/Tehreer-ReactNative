@@ -8,7 +8,7 @@ import type { DrawingContext } from '../../src/drawing/DrawingContext';
 import { Replacement } from '../../src/layout/Replacement';
 import { TLabel } from '../../src/views/TLabel';
 import { TTextView } from '../../src/views/TTextView';
-import { TMutableText } from '../../src/layout/TMutableText';
+import { MutableTypesetter } from '../../src/layout/MutableTypesetter';
 import { DrawStyle } from '../../src/graphics/enums';
 import { TextAlignment, TruncationPlace } from '../../src/layout/enums';
 import { encodePng, toBase64 } from '../../tests/device/png';
@@ -78,7 +78,8 @@ function makePictures(): Picture[] {
 // The labels and the text view that QA screenshots: Urdu, mixed right-to-left and left-to-right runs,
 // truncation, alignment, a replacement and a scrolling view with a selection.
 function makeSamples(faces: { roboto: Typeface; nastaliq: Typeface }) {
-  const mixed = new TMutableText(`abc ${URDU} cba bca ${URDU}`);
+  const mixed = new MutableTypesetter({ typeface: faces.roboto, typeSize: 22 });
+  mixed.append(`abc ${URDU} cba bca ${URDU}`);
   mixed.setAttributes(4, 4 + URDU.length, { typeface: faces.nastaliq, typeSize: 28, foregroundColor: 0xff0a7a3d });
   const chip = new Replacement({
     computeRoom: () => ({ ascent: 16, descent: 5, extent: 44 }),
@@ -87,16 +88,19 @@ function makeSamples(faces: { roboto: Typeface; nastaliq: Typeface }) {
       context.fillRect({ x: 3, y: -13, width: 38, height: 15 }, 0xffaaccff);
     },
   });
-  const inline = new TMutableText('abc \uFFFC cba abc bca cab abc cba');
+  const inline = new MutableTypesetter({ typeface: faces.roboto, typeSize: 20 });
+  inline.append('abc \uFFFC cba abc bca cab abc cba');
   inline.setAttributes(4, 5, { replacement: chip });
   chip.dispose();
-  const long = new TMutableText('');
-  for (let index = 0; index < 80; index++) {
-    const lead = `${index + 1}. abc abc abc abc abc abc `;
-    const at = long.length;
-    long.append(`${lead}${URDU}\n`);
-    long.setAttributes(at + lead.length, at + lead.length + URDU.length, { typeface: faces.nastaliq, typeSize: 20 });
-  }
+  const long = new MutableTypesetter({ typeface: faces.roboto, typeSize: 16 });
+  long.edit((editing) => {
+    for (let index = 0; index < 80; index++) {
+      const lead = `${index + 1}. abc abc abc abc abc abc `;
+      const at = editing.length;
+      editing.append(`${lead}${URDU}\n`);
+      editing.setAttributes(at + lead.length, at + lead.length + URDU.length, { typeface: faces.nastaliq, typeSize: 20 });
+    }
+  });
   return { mixed, inline, long };
 }
 
@@ -124,15 +128,15 @@ export function VisualCheck({ onClose }: { onClose: () => void }) {
         <Text style={styles.caption}>TLabel: Urdu, mixed, alignment, truncation, replacement</Text>
         <View style={styles.box}>
           <TLabel text={URDU} typeface={faces.nastaliq} textSize={34} textColor="#aa1122" style={[styles.view, { minWidth: 300, maxWidth: 300 }]} />
-          <TLabel attributedText={samples.mixed} typeface={faces.roboto} textSize={22} style={[styles.view, { maxWidth: 300 }]} />
+          <TLabel typesetter={samples.mixed} style={[styles.view, { maxWidth: 300 }]} />
           <TLabel text="abc abc abc abc abc abc abc" typeface={faces.roboto} textSize={22} textAlignment={TextAlignment.Right} style={[styles.view, { minWidth: 300, maxWidth: 300 }]} />
           <TLabel text="abc abc abc abc abc abc abc abc abc abc" typeface={faces.roboto} textSize={22} maxLines={2} isTruncationEnabled truncationPlace={TruncationPlace.End} style={[styles.view, { maxWidth: 220 }]} />
           <TLabel text="abc abc" typeface={faces.roboto} textSize={40} textColor="#2255cc" drawStyle={DrawStyle.FillStroke} strokeColor="#cc2200" strokeRadius={1.5} shadowColor="#88000000" shadowRadius={3} shadowDx={4} shadowDy={4} style={[styles.view, { maxWidth: 300 }]} />
-          <TLabel attributedText={samples.inline} typeface={faces.roboto} textSize={20} style={[styles.view, { maxWidth: 300 }]} />
+          <TLabel typesetter={samples.inline} style={[styles.view, { maxWidth: 300 }]} />
         </View>
         <Text style={styles.caption}>TTextView (TLinePaint views, highlight 10..60, separators)</Text>
         <View style={styles.box}>
-          <TTextView attributedText={samples.long} typeface={faces.roboto} textSize={16} highlights={[{ fromIndex: 10, toIndex: 60 }]} separatorColor="#33000000" style={{ width: 320, height: 200 }} />
+          <TTextView typesetter={samples.long} highlights={[{ fromIndex: 10, toIndex: 60 }]} separatorColor="#33000000" style={{ width: 320, height: 200 }} />
         </View>
         {error !== undefined && <Text style={styles.error}>{error}</Text>}
         {pictures.map(({ scene, uri }) => (

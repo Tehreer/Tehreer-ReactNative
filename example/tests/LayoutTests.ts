@@ -10,9 +10,10 @@ import { FrameResolver } from '../../src/layout/FrameResolver';
 import { GlyphRun } from '../../src/layout/GlyphRun';
 import { LineLocator } from '../../src/layout/LineLocator';
 import { Replacement } from '../../src/layout/Replacement';
-import { TMutableText } from '../../src/layout/TMutableText';
+import { MutableTypesetter } from '../../src/layout/MutableTypesetter';
 import { Typesetter } from '../../src/layout/Typesetter';
 import { WritingDirection } from '../../src/sfnt/enums';
+import { mutableText } from './mutableText';
 import { fontBytes as robotoBytes, nastaliqFontBytes } from './fontData';
 import { layoutExpected } from './layoutExpected';
 import { frameScenarios, measure, measureTypesetter } from './layoutScenarios';
@@ -77,7 +78,7 @@ function load(): { faces: Faces; roboto: FontFile; nastaliq: FontFile } {
 }
 
 const library = {
-  BreakMode, FrameResolver, LineLocator, Renderer, Replacement, ReplacementKind, TextAlignment, TMutableText,
+  BreakMode, FrameResolver, LineLocator, Renderer, Replacement, ReplacementKind, TextAlignment, MutableTypesetter,
   TruncationPlace, Typesetter, VerticalAlignment,
 };
 
@@ -227,7 +228,7 @@ const tests: Test[] = [
   ['empty text: a typesetter exists, a line and a frame of nothing are a RangeError', () => {
     const { faces } = load();
     const typesetter = makeTypesetter(faces.roboto, '');
-    check(typesetter.codeUnitCount === 0, 'no code units');
+    check(typesetter.length === 0, 'no code units');
     expectThrows(() => typesetter.createSimpleLine(0, 0), 'RangeError');
     expectThrows(() => typesetter.suggestForwardBreak(0, 0, 10, BreakMode.Line), 'RangeError');
     const resolver = new FrameResolver();
@@ -248,7 +249,6 @@ const tests: Test[] = [
     expectThrows(() => typesetter.suggestForwardBreak(0, TEXT.length + 1, 10, BreakMode.Line), 'RangeError');
     expectThrows(() => typesetter.createSimpleLine(0, 3, NaN), 'RangeError', /layoutWidth/);
     expectThrows(() => typesetter.createTruncationToken(0, 3, 7 as TruncationPlace), 'RangeError');
-    expectThrows(() => new Typesetter('abc'), 'Error', /typeface/);
     expectThrows(() => new Typesetter(5 as unknown as string), 'TypeError');
 
     const { resolver, frame } = makeFrame(faces.roboto);
@@ -347,7 +347,7 @@ const tests: Test[] = [
     const locator = new LineLocator(frame, renderer);
     const replacement = new Replacement({ computeRoom: () => room });
     const uses: (() => unknown)[][] = [
-      [() => typesetter.codeUnitCount, () => typesetter.createSimpleLine(0, 1), () => typesetter.suggestForwardBreak(0, 1, 5, 0)],
+      [() => typesetter.length, () => typesetter.createSimpleLine(0, 1), () => typesetter.suggestForwardBreak(0, 1, 5, 0)],
       [() => resolver.frameWidth, () => { resolver.frameWidth = 1; }, () => resolver.createFrame(0, 1), () => resolver.typesetter],
       [() => frame.width, () => frame.lines, () => frame.getSelectionRects(0, 1), () => frame.getLineIndexForCodeUnit(0)],
       [() => line.width, () => line.runs, () => line.getCodeUnitDistance(0), () => line.computeInkBox(renderer)],
@@ -407,7 +407,7 @@ const tests: Test[] = [
   ['a replacement is stored in a text attribute and read back as a wrapper over the same state', () => {
     const calls: number[] = [];
     const replacement = new Replacement({ computeRoom: (width) => { calls.push(width); return room; } }, ReplacementKind.Block);
-    const text = new TMutableText('ab￼a');
+    const text = mutableText('ab￼a');
     text.setAttributes(2, 3, { replacement });
     replacement.dispose();
 
@@ -431,19 +431,21 @@ const tests: Test[] = [
     let replacement: Replacement | undefined = new Replacement({ computeRoom: (width) => { seen.push(width); return { ...room, extent: width }; } }, ReplacementKind.Block);
     check(count() === before + 1, 'the handler is in the table');
 
-    let text: TMutableText | undefined = new TMutableText('ab￼a');
-    // The replacement's range needs a typeface too: Core (ShapeResolver.c) refuses the typesetter
-    // otherwise, though TRTypesetter.h says it is not needed there.
+    let text: MutableTypesetter | undefined = mutableText('ab￼a');
+    // The replacement's range needs a typeface too: Core (ShapeResolver.c) cannot shape the
+    // paragraph otherwise, though TRTypesetter.h says it is not needed there. The batch shapes once.
+    text.beginEditing();
     text.setAttributes(0, 4, { typeface: faces.roboto, typeSize: 20 });
     text.setAttributes(2, 3, { replacement });
+    text.endEditing();
     replacement.dispose();
     replacement = undefined;
-    check(count() === before + 1, 'the text holds the replacement, so its state stays after the wrapper is disposed');
+    check(count() === before + 1, 'the typesetter holds the replacement, so its state stays after the wrapper is disposed');
 
-    const typesetter = new Typesetter(text);
+    const typesetter = text.copy();
     text.dispose();
     text = undefined;
-    check(count() === before + 1, 'the typesetter holds it');
+    check(count() === before + 1, 'the copy holds it');
     check(seen.length > 0 && seen.every((width) => width === 0), `Core asked for the room with a layout width of 0 while it shaped: ${seen.join()}`);
 
     const resolver = new FrameResolver();
@@ -471,18 +473,38 @@ const tests: Test[] = [
     const count = (): number => (b.testDrainHandlers?.(), (b.testGetHandlerCount as () => number).call(b));
     const before = count();
     const boom = new Error('boom');
-    const text = new TMutableText('ab￼a');
+    const text = mutableText('ab￼a');
     text.setAttributes(0, 4, { typeface: faces.roboto, typeSize: 20 });
 
     const failing = new Replacement({ computeRoom: () => { throw boom; } });
+    // The paragraph is shaped when the batch ends, which asks the replacement for its room.
+    text.beginEditing();
     text.setAttributes(2, 3, { replacement: failing });
     let thrown: unknown;
     try {
-      new Typesetter(text);
+      text.endEditing();
     } catch (e) {
       thrown = e;
     }
-    check(thrown === boom, 'the typesetter creation threw the very value');
+    check(thrown === boom, 'ending the batch threw the very value');
+    check(text.string === 'ab￼a', 'and the edits stay applied');
+    let outside: unknown;
+    const unbatched = mutableText('ab￼a');
+    try {
+      unbatched.setAttributes(0, 4, { typeface: faces.roboto, typeSize: 20 });
+      unbatched.setAttributes(2, 3, { replacement: failing });
+    } catch (e) {
+      outside = e;
+    }
+    unbatched.dispose();
+    check(outside === boom, 'an edit outside of a batch threw it too');
+    let created: unknown;
+    try {
+      new Typesetter('ab￼a', { typeface: faces.roboto, typeSize: 20, replacement: failing });
+    } catch (e) {
+      created = e;
+    }
+    check(created === boom, 'so did a typesetter made with it as a default');
     check(failing.isDisposed === false, 'the wrapper is not disposed by the failure');
     let direct: unknown;
     try {
@@ -493,14 +515,14 @@ const tests: Test[] = [
     check(direct === boom, 'computeRoom of the wrapper throws it too');
     failing.dispose();
     text.dispose();
-    check(count() === before, 'the failed typesetter released its replacement');
+    check(count() === before, 'the failed typesetters released their replacement');
 
     // A handler that fails only in the layout, where the width is not 0.
     const late = new Replacement({ computeRoom: (width) => { if (width > 0) { throw boom; } return room; } }, ReplacementKind.Block);
-    const second = new TMutableText('ab￼a');
+    const second = mutableText('ab￼a');
     second.setAttributes(0, 4, { typeface: faces.roboto, typeSize: 20 });
     second.setAttributes(2, 3, { replacement: late });
-    const typesetter = new Typesetter(second);
+    const typesetter = second.copy();
     expectThrows(() => typesetter.createSimpleLine(0, 4, 50), 'Error', /boom/);
     const resolver = new FrameResolver();
     resolver.typesetter = typesetter;
@@ -534,7 +556,7 @@ const tests: Test[] = [
     const { faces } = load();
     const count = (): number => (b.testDrainHandlers?.(), (b.testGetHandlerCount as () => number).call(b));
     const before = count();
-    const text = new TMutableText('ab\uFFFCa');
+    const text = mutableText('ab\uFFFCa');
     text.setAttributes(0, 4, { typeface: faces.roboto, typeSize: 20 });
 
     let typesetter: Typesetter | undefined;
@@ -554,7 +576,7 @@ const tests: Test[] = [
       },
     }, ReplacementKind.Block);
     text.setAttributes(2, 3, { replacement });
-    typesetter = new Typesetter(text);
+    typesetter = text.copy();
     check(typesetter !== undefined, 'the typesetter was made');
 
     disposing = true;
@@ -564,7 +586,7 @@ const tests: Test[] = [
     expectThrows(() => typesetter?.createSimpleLine(0, 1), 'Error', /already disposed/);
 
     disposing = false;
-    typesetter = new Typesetter(text);
+    typesetter = text.copy();
     resolver = new FrameResolver();
     resolver.typesetter = typesetter;
     resolver.frameWidth = 100;
@@ -575,6 +597,28 @@ const tests: Test[] = [
     disposing = false;
     const direct = new Replacement({ computeRoom: () => { direct.dispose(); return room; } });
     check(direct.computeRoom(1).extent === 30 && direct.isDisposed, 'and for the replacement that is asked');
+
+    // An edit shapes the paragraphs it touches, which asks the replacement: it may dispose the mutable typesetter.
+    let editable: MutableTypesetter | undefined = mutableText('ab\uFFFCa');
+    editable.setAttributes(0, 4, { typeface: faces.roboto, typeSize: 20 });
+    let editing = false;
+    let asked = 0;
+    const disposer = new Replacement({
+      computeRoom: (width) => {
+        if (editing) {
+          asked++;
+          editable?.dispose();
+        }
+        return { ...room, extent: width };
+      },
+    }, ReplacementKind.Block);
+    editable.setAttributes(2, 3, { replacement: disposer });
+    editing = true;
+    editable.append('b');
+    check(asked > 0 && editable.isDisposed, `the handler disposed the typesetter during the edit (asked ${asked} times)`);
+    expectThrows(() => editable?.append('c'), 'Error', /already disposed/);
+    editable = undefined;
+    disposer.dispose();
     for (const object of [line, frame, typesetter, replacement, text]) {
       object.dispose();
     }

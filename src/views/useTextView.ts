@@ -40,7 +40,7 @@ export function useTextView(source: TextSource & RenderingProps, settings: Frame
   /** How many code units the text of the view has, or 0 while there is no text. */
   getCodeUnitCount: () => number | undefined;
 } {
-  const { text, attributedText, typesetter, typeface, textSize = DEFAULT_TEXT_SIZE } = source;
+  const { text, typesetter, typeface, textSize = DEFAULT_TEXT_SIZE } = source;
   const [layoutWidth, setLayoutWidth] = useState(0);
   const [made, setMade] = useState<ViewTypesetter | undefined>();
   const current = useRef<ViewTypesetter | undefined>(undefined);
@@ -66,7 +66,7 @@ export function useTextView(source: TextSource & RenderingProps, settings: Frame
   // Rooms that depend on the width get their three tries again for another text.
   useLayoutEffect(() => {
     rebuilds.current = 0;
-  }, [text, attributedText, typesetter, typeface, textSize]);
+  }, [text, typesetter, typeface, textSize]);
 
   useLayoutEffect(() => {
     // A throw below must not leave a typesetter that was already disposed as the current one.
@@ -74,7 +74,7 @@ export function useTextView(source: TextSource & RenderingProps, settings: Frame
     // An error of a delegate belongs to the text that it came from; a new text starts clean (the view
     // that threw is normally unmounted by its error boundary, which also clears it).
     setFailure(undefined);
-    const created = ViewTypesetter.create({ text, attributedText, typesetter, typeface, textSize }, layoutWidth);
+    const created = ViewTypesetter.create({ text, typesetter, typeface, textSize }, layoutWidth);
     current.current = created;
     setMade(created);
     return () => {
@@ -87,7 +87,7 @@ export function useTextView(source: TextSource & RenderingProps, settings: Frame
         }
       }
     };
-  }, [text, attributedText, typesetter, typeface, textSize, layoutWidth]);
+  }, [text, typesetter, typeface, textSize, layoutWidth]);
 
   useEffect(() => {
     if (made !== undefined) {
@@ -129,7 +129,7 @@ export function useTextView(source: TextSource & RenderingProps, settings: Frame
     const known = current.current;
     const { width, height } = box.current;
     // A text without code units has no frame: Core makes none of an empty range.
-    if (known === undefined || width <= 0 || known.typesetter.codeUnitCount === 0) {
+    if (known === undefined || width <= 0 || known.typesetter.length === 0) {
       return undefined;
     }
     const key = `${known.id}:${width}:${height}:${settingsKey}`;
@@ -179,7 +179,7 @@ export function useTextView(source: TextSource & RenderingProps, settings: Frame
     };
   }, [shown]);
 
-  const getCodeUnitCount = useCallback(() => current.current?.typesetter.codeUnitCount, []);
+  const getCodeUnitCount = useCallback(() => current.current?.typesetter.length, []);
 
   if (failure !== undefined) {
     throw failure.error;

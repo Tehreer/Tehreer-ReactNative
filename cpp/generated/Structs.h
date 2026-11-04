@@ -127,6 +127,21 @@ inline TRReplacementRoom TRReplacementRoomFromJs(jsi::Runtime &rt, const jsi::Va
     return result;
 }
 
+inline jsi::Value TRRangeToJs(jsi::Runtime &rt, const TRRange &value) {
+    jsi::Object object(rt);
+    object.setProperty(rt, "index", marshal::FromIndex(rt, value.index));
+    object.setProperty(rt, "length", marshal::FromIndex(rt, value.length));
+    return jsi::Value(std::move(object));
+}
+
+inline TRRange TRRangeFromJs(jsi::Runtime &rt, const jsi::Value &value, const char *function, const std::string &parameter) {
+    jsi::Object object = marshal::ToObject(rt, value, function, parameter.c_str());
+    TRRange result = {};
+    result.index = marshal::ToIndex(rt, object.getProperty(rt, "index"), function, (parameter + ".index").c_str());
+    result.length = marshal::ToIndex(rt, object.getProperty(rt, "length"), function, (parameter + ".length").c_str());
+    return result;
+}
+
 /** A struct that is converted by value, with its conversions erased to the struct's name. */
 struct StructCodec {
     const char *name;
@@ -177,6 +192,13 @@ inline const StructCodec kStructCodecs[] = {
         [](jsi::Runtime &rt, const void *value) { return TRReplacementRoomToJs(rt, *static_cast<const TRReplacementRoom *>(value)); },
         [](jsi::Runtime &rt, const jsi::Value &value, const char *function, const std::string &parameter, void *out) {
             *static_cast<TRReplacementRoom *>(out) = TRReplacementRoomFromJs(rt, value, function, parameter);
+        },
+    },
+    {
+        "TRRange", sizeof(TRRange),
+        [](jsi::Runtime &rt, const void *value) { return TRRangeToJs(rt, *static_cast<const TRRange *>(value)); },
+        [](jsi::Runtime &rt, const jsi::Value &value, const char *function, const std::string &parameter, void *out) {
+            *static_cast<TRRange *>(out) = TRRangeFromJs(rt, value, function, parameter);
         },
     },
 };

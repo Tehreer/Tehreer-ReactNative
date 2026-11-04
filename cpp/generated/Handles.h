@@ -131,20 +131,6 @@ template <> struct HandleTraits<TRShapingResultRef> {
     static void Release(TRShapingResultRef ref) { TRShapingResultRelease(ref); }
 };
 
-template <> struct HandleTraits<TRTextRef> {
-    static constexpr const char *kGroup = "TRText";
-    static constexpr bool kMutable = false;
-    static void Retain(TRTextRef ref) { TRTextRetain(ref); }
-    static void Release(TRTextRef ref) { TRTextRelease(ref); }
-};
-
-template <> struct HandleTraits<TRMutableTextRef> {
-    static constexpr const char *kGroup = "TRText";
-    static constexpr bool kMutable = true;
-    static void Retain(TRMutableTextRef ref) { TRTextRetain(ref); }
-    static void Release(TRMutableTextRef ref) { TRTextRelease(ref); }
-};
-
 template <> struct HandleTraits<TRTypefaceRef> {
     static constexpr const char *kGroup = "TRTypeface";
     static constexpr bool kMutable = false;
@@ -157,6 +143,13 @@ template <> struct HandleTraits<TRTypesetterRef> {
     static constexpr bool kMutable = false;
     static void Retain(TRTypesetterRef ref) { TRTypesetterRetain(ref); }
     static void Release(TRTypesetterRef ref) { TRTypesetterRelease(ref); }
+};
+
+template <> struct HandleTraits<TRMutableTypesetterRef> {
+    static constexpr const char *kGroup = "TRTypesetter";
+    static constexpr bool kMutable = true;
+    static void Retain(TRMutableTypesetterRef ref) { TRTypesetterRetain(ref); }
+    static void Release(TRMutableTypesetterRef ref) { TRTypesetterRelease(ref); }
 };
 
 /**

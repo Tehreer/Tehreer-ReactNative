@@ -85,6 +85,8 @@ TEHREER_CHECK_SCALAR(TRWidth, uint32_t, 4);
 TEHREER_CHECK_SCALAR(TRSlope, uint32_t, 4);
 TEHREER_CHECK_SCALAR(TRBreakMode, uint32_t, 4);
 TEHREER_CHECK_SCALAR(TRTruncationPlace, uint32_t, 4);
+TEHREER_CHECK_SCALAR(TRBoundaryType, uint8_t, 1);
+TEHREER_CHECK_SCALAR(TRBoundaryDirection, uint8_t, 1);
 
 union TRAttributeValueLayout {
     TRTypefaceRef typeface;
@@ -149,6 +151,14 @@ struct TRAttributeLayout {
 TEHREER_CHECK_STRUCT(TRAttribute, TRAttributeLayout);
 TEHREER_CHECK_MEMBER(TRAttribute, TRAttributeLayout, type);
 TEHREER_CHECK_MEMBER(TRAttribute, TRAttributeLayout, value);
+
+struct TRRangeLayout {
+    TRUInteger index;
+    TRUInteger length;
+};
+TEHREER_CHECK_STRUCT(TRRange, TRRangeLayout);
+TEHREER_CHECK_MEMBER(TRRange, TRRangeLayout, index);
+TEHREER_CHECK_MEMBER(TRRange, TRRangeLayout, length);
 
 struct TRDrawCallbacksLayout {
     void (*drawGlyphImage)(void *userData, TRGlyphImageRef image, TRPoint origin, TRFloat scaleX, TRFloat scaleY, TRColor color, const TRRect *clip);

@@ -116,25 +116,33 @@ export interface NativeBindings extends NativeFunctions, SheenBidiFunctions {
    */
   testApplyRendererSettings?(renderer: Handle<"TRRenderer">, props: Readonly<Record<string, number>>): void;
   /**
-   * `TRTextSetAttribute`, bound by hand because its argument is a union. The text copies the
-   * attribute and retains the typeface or font features that it holds, so the caller may dispose
-   * them afterwards. Returns false when the range is not within the text. Throws `RangeError` for a
-   * type that Core does not know or a number that does not fit its type, and a plain `Error` for a
-   * value of the wrong JavaScript type and for a handle that is disposed, immutable or of the
-   * wrong group.
+   * `TRTypesetterSetAttribute`, bound by hand because its argument is a union. The typesetter
+   * copies the attribute and retains the typeface or font features that it holds, so the caller may
+   * dispose them afterwards. Returns false when the range is not within the text. Throws
+   * `RangeError` for a type that Core does not know or a number that does not fit its type, and a
+   * plain `Error` for a value of the wrong JavaScript type and for a handle that is disposed,
+   * immutable or of the wrong group. The `computeRoom` handler of a replacement can run while the
+   * paragraphs are shaped, and an error it throws is thrown by the call.
    */
-  TRTextSetAttribute(text: Handle<"TRText">, index: number, length: number, attribute: NativeAttribute): boolean;
+  TRTypesetterSetAttribute(typesetter: Handle<"TRTypesetter">, index: number, length: number, attribute: NativeAttribute): boolean;
   /**
    * `TRTypesetterCreate`, bound by hand because the default attributes are `TRAttribute` structs
-   * with a union. The text is copied, and the typesetter retains the typeface, font features and
-   * replacement that the attributes hold, so the caller may dispose them afterwards. `undefined`
-   * when Core made nothing (some text has no typeface). The `computeRoom` handler of a replacement
-   * runs during the call, and an error it throws is thrown by it once Core returns. Throws
-   * `RangeError` for a type that Core does not know or a number that does not fit its type, and a
-   * plain `Error` for a value of the wrong JavaScript type and for a handle that is disposed or of
-   * the wrong group.
+   * with a union. The string (`length` code units of `encoding`; `undefined` for none) is copied,
+   * and the typesetter retains the typeface, font features and replacement that the attributes
+   * hold, so the caller may dispose them afterwards. `undefined` when Core made nothing (the
+   * encoding is not valid). The `computeRoom` handler of a replacement runs during the call, and an
+   * error it throws is thrown by it once Core returns. Throws `RangeError` for a type that Core does
+   * not know or a number that does not fit its type, and a plain `Error` for a value of the wrong
+   * JavaScript type and for a handle that is disposed or of the wrong group.
    */
-  TRTypesetterCreate(text: Handle<"TRText">, defaultAttributes: readonly NativeAttribute[] | undefined): Handle<"TRTypesetter"> | undefined;
+  TRTypesetterCreate(
+    string: ArrayBuffer | ArrayBufferView | undefined,
+    length: number,
+    encoding: number,
+    defaultAttributes: readonly NativeAttribute[] | undefined,
+  ): Handle<"TRTypesetter"> | undefined;
+  /** `TRTypesetterCreateMutable`, bound by hand for the same reason as `TRTypesetterCreate`. The handle is mutable. */
+  TRTypesetterCreateMutable(encoding: number, defaultAttributes: readonly NativeAttribute[] | undefined): Handle<"TRTypesetter"> | undefined;
 
   /**
    * An `ArrayBuffer` of `count` elements of a pointer that Core gave (a `*Ptr()` getter), over the
