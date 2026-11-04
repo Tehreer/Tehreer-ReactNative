@@ -170,7 +170,7 @@ const tests: [string, (b: NativeBindings) => void][] = [
   ['an immutable handle is refused where a mutable one is needed', (b) => {
     const text = b.TRTypesetterCreate(new Uint16Array([0x61, 0x62, 0x63]), 3, 1, undefined) as Handle<'TRTypesetter'>;
     check(b.TRTypesetterGetLength(text) === 3, 'a const reference works for reads');
-    expectThrows(() => b.TRTypesetterBeginEditing(text as unknown as Handle<'TRTypesetter'>), /'text' is immutable/);
+    expectThrows(() => b.TRTypesetterBeginEditing(text as unknown as Handle<'TRTypesetter'>), /'typesetter' is immutable/);
     b.disposeHandle(text);
   }],
 
