@@ -96,6 +96,12 @@ export interface TRReplacementRoom {
   extent: number;
 }
 
+/** `TRRange` */
+export interface TRRange {
+  index: number;
+  length: number;
+}
+
 /** The functions of Tehreer Core that the native module installs. */
 export interface NativeFunctions {
   /** `const TRAttribute *TRAttributeListGetItem(TRAttributeListRef list, TRUInteger index)` */
@@ -534,40 +540,6 @@ export interface NativeFunctions {
   TRShapingResultGetCaretEdges(result: Handle<"TRShapingResult">, caretStops: ArrayBuffer | ArrayBufferView | undefined, caretEdges: ArrayBuffer | ArrayBufferView): void;
   /** `TRShapingResultRef TRShapingResultRetain(TRShapingResultRef result)` (the handle owns the reference) */
   TRShapingResultRetain(result: Handle<"TRShapingResult">): Handle<"TRShapingResult"> | undefined;
-  /** `TRTextRef TRTextCreate(const void *string, TRUInteger length, TRStringEncoding encoding)` (the handle owns the reference) */
-  TRTextCreate(string: ArrayBuffer | ArrayBufferView | undefined, length: number, encoding: number): Handle<"TRText"> | undefined;
-  /** `TRTextRef TRTextCreateCopy(TRTextRef text)` (the handle owns the reference) */
-  TRTextCreateCopy(text: Handle<"TRText">): Handle<"TRText"> | undefined;
-  /** `TRMutableTextRef TRTextCreateMutableCopy(TRTextRef text)` (the handle owns the reference) */
-  TRTextCreateMutableCopy(text: Handle<"TRText">): Handle<"TRText"> | undefined;
-  /** `TRStringEncoding TRTextGetEncoding(TRTextRef text)` */
-  TRTextGetEncoding(text: Handle<"TRText">): number;
-  /** `TRUInteger TRTextGetLength(TRTextRef text)` */
-  TRTextGetLength(text: Handle<"TRText">): number;
-  /** `TRBoolean TRTextGetCodeUnits(TRTextRef text, TRUInteger index, TRUInteger length, void *buffer)` */
-  TRTextGetCodeUnits(text: Handle<"TRText">, index: number, length: number, buffer: ArrayBuffer | ArrayBufferView | undefined): boolean;
-  /** `TRAttributeListRef TRTextCopyAttributes(TRTextRef text, TRUInteger index, TRUInteger *outLength)` (the handle owns the reference) */
-  TRTextCopyAttributes(text: Handle<"TRText">, index: number): { result: Handle<"TRAttributeList"> | undefined; outLength: number };
-  /** `TRTextRef TRTextRetain(TRTextRef text)` (the handle owns the reference) */
-  TRTextRetain(text: Handle<"TRText">): Handle<"TRText"> | undefined;
-  /** `TRMutableTextRef TRTextCreateMutable(TRStringEncoding encoding)` (the handle owns the reference) */
-  TRTextCreateMutable(encoding: number): Handle<"TRText"> | undefined;
-  /** `void TRTextBeginEditing(TRMutableTextRef text)` */
-  TRTextBeginEditing(text: Handle<"TRText">): void;
-  /** `void TRTextEndEditing(TRMutableTextRef text)` */
-  TRTextEndEditing(text: Handle<"TRText">): void;
-  /** `TRBoolean TRTextAppendCodeUnits(TRMutableTextRef text, const void *codeUnitBuffer, TRUInteger codeUnitCount)` */
-  TRTextAppendCodeUnits(text: Handle<"TRText">, codeUnitBuffer: ArrayBuffer | ArrayBufferView | undefined, codeUnitCount: number): boolean;
-  /** `TRBoolean TRTextInsertCodeUnits(TRMutableTextRef text, TRUInteger index, const void *codeUnitBuffer, TRUInteger codeUnitCount)` */
-  TRTextInsertCodeUnits(text: Handle<"TRText">, index: number, codeUnitBuffer: ArrayBuffer | ArrayBufferView | undefined, codeUnitCount: number): boolean;
-  /** `TRBoolean TRTextDeleteCodeUnits(TRMutableTextRef text, TRUInteger index, TRUInteger length)` */
-  TRTextDeleteCodeUnits(text: Handle<"TRText">, index: number, length: number): boolean;
-  /** `TRBoolean TRTextSetCodeUnits(TRMutableTextRef text, const void *codeUnitBuffer, TRUInteger codeUnitCount)` */
-  TRTextSetCodeUnits(text: Handle<"TRText">, codeUnitBuffer: ArrayBuffer | ArrayBufferView | undefined, codeUnitCount: number): boolean;
-  /** `TRBoolean TRTextReplaceCodeUnits(TRMutableTextRef text, TRUInteger index, TRUInteger length, const void *codeUnitBuffer, TRUInteger codeUnitCount)` */
-  TRTextReplaceCodeUnits(text: Handle<"TRText">, index: number, length: number, codeUnitBuffer: ArrayBuffer | ArrayBufferView | undefined, codeUnitCount: number): boolean;
-  /** `TRBoolean TRTextRemoveAttribute(TRMutableTextRef text, TRUInteger index, TRUInteger length, TRAttributeType attributeType)` */
-  TRTextRemoveAttribute(text: Handle<"TRText">, index: number, length: number, attributeType: number): boolean;
   /** `TRWeight TRTypefaceGetWeight(TRTypefaceRef typeface)` */
   TRTypefaceGetWeight(typeface: Handle<"TRTypeface">): number;
   /** `TRWidth TRTypefaceGetWidth(TRTypefaceRef typeface)` */
@@ -666,8 +638,34 @@ export interface NativeFunctions {
   TRTypefaceManagerEnumerateTypefaces(): Handle<"TRTypeface">[];
   /** `void TRTypefaceManagerEnumerateFamilies(TRTypefaceManagerFamilyCallback callback, void *context)` */
   TRTypefaceManagerEnumerateFamilies(): { familyID: number; familyName: string }[];
-  /** `TRUInteger TRTypesetterGetCodeUnitCount(TRTypesetterRef typesetter)` */
-  TRTypesetterGetCodeUnitCount(typesetter: Handle<"TRTypesetter">): number;
+  /** `TRTypesetterRef TRTypesetterCreateCopy(TRTypesetterRef typesetter)` (the handle owns the reference) */
+  TRTypesetterCreateCopy(typesetter: Handle<"TRTypesetter">): Handle<"TRTypesetter"> | undefined;
+  /** `TRMutableTypesetterRef TRTypesetterCreateMutableCopy(TRTypesetterRef typesetter)` (the handle owns the reference) */
+  TRTypesetterCreateMutableCopy(typesetter: Handle<"TRTypesetter">): Handle<"TRTypesetter"> | undefined;
+  /** `TRStringEncoding TRTypesetterGetEncoding(TRTypesetterRef typesetter)` */
+  TRTypesetterGetEncoding(typesetter: Handle<"TRTypesetter">): number;
+  /** `TRUInteger TRTypesetterGetLength(TRTypesetterRef typesetter)` */
+  TRTypesetterGetLength(typesetter: Handle<"TRTypesetter">): number;
+  /** `TRBoolean TRTypesetterGetCodeUnits(TRTypesetterRef typesetter, TRUInteger index, TRUInteger length, void *buffer)` */
+  TRTypesetterGetCodeUnits(typesetter: Handle<"TRTypesetter">, index: number, length: number, buffer: ArrayBuffer | ArrayBufferView | undefined): boolean;
+  /** `TRAttributeListRef TRTypesetterCopyAttributes(TRTypesetterRef typesetter, TRUInteger index, TRUInteger *outLength)` (the handle owns the reference) */
+  TRTypesetterCopyAttributes(typesetter: Handle<"TRTypesetter">, index: number): { result: Handle<"TRAttributeList"> | undefined; outLength: number };
+  /** `void TRTypesetterBeginEditing(TRMutableTypesetterRef typesetter)` */
+  TRTypesetterBeginEditing(typesetter: Handle<"TRTypesetter">): void;
+  /** `void TRTypesetterEndEditing(TRMutableTypesetterRef typesetter)` */
+  TRTypesetterEndEditing(typesetter: Handle<"TRTypesetter">): void;
+  /** `TRBoolean TRTypesetterAppendCodeUnits(TRMutableTypesetterRef typesetter, const void *codeUnitBuffer, TRUInteger codeUnitCount)` */
+  TRTypesetterAppendCodeUnits(typesetter: Handle<"TRTypesetter">, codeUnitBuffer: ArrayBuffer | ArrayBufferView | undefined, codeUnitCount: number): boolean;
+  /** `TRBoolean TRTypesetterInsertCodeUnits(TRMutableTypesetterRef typesetter, TRUInteger index, const void *codeUnitBuffer, TRUInteger codeUnitCount)` */
+  TRTypesetterInsertCodeUnits(typesetter: Handle<"TRTypesetter">, index: number, codeUnitBuffer: ArrayBuffer | ArrayBufferView | undefined, codeUnitCount: number): boolean;
+  /** `TRBoolean TRTypesetterDeleteCodeUnits(TRMutableTypesetterRef typesetter, TRUInteger index, TRUInteger length)` */
+  TRTypesetterDeleteCodeUnits(typesetter: Handle<"TRTypesetter">, index: number, length: number): boolean;
+  /** `TRBoolean TRTypesetterSetCodeUnits(TRMutableTypesetterRef typesetter, const void *codeUnitBuffer, TRUInteger codeUnitCount)` */
+  TRTypesetterSetCodeUnits(typesetter: Handle<"TRTypesetter">, codeUnitBuffer: ArrayBuffer | ArrayBufferView | undefined, codeUnitCount: number): boolean;
+  /** `TRBoolean TRTypesetterReplaceCodeUnits(TRMutableTypesetterRef typesetter, TRUInteger index, TRUInteger length, const void *codeUnitBuffer, TRUInteger codeUnitCount)` */
+  TRTypesetterReplaceCodeUnits(typesetter: Handle<"TRTypesetter">, index: number, length: number, codeUnitBuffer: ArrayBuffer | ArrayBufferView | undefined, codeUnitCount: number): boolean;
+  /** `TRBoolean TRTypesetterRemoveAttribute(TRMutableTypesetterRef typesetter, TRUInteger index, TRUInteger length, TRAttributeType attributeType)` */
+  TRTypesetterRemoveAttribute(typesetter: Handle<"TRTypesetter">, index: number, length: number, attributeType: number): boolean;
   /** `TRUInteger TRTypesetterSuggestForwardBreak(TRTypesetterRef typesetter, TRUInteger index, TRUInteger length, TRFloat extent, TRBreakMode breakMode)` */
   TRTypesetterSuggestForwardBreak(typesetter: Handle<"TRTypesetter">, index: number, length: number, extent: number, breakMode: number): number;
   /** `TRUInteger TRTypesetterSuggestBackwardBreak(TRTypesetterRef typesetter, TRUInteger index, TRUInteger length, TRFloat extent, TRBreakMode breakMode)` */
@@ -680,6 +678,10 @@ export interface NativeFunctions {
   TRTypesetterCreateTruncatedLine(typesetter: Handle<"TRTypesetter">, index: number, length: number, extent: number, breakMode: number, truncationPlace: number, tokenLine: Handle<"TRComposedLine">): Handle<"TRComposedLine"> | undefined;
   /** `TRComposedLineRef TRTypesetterCreateJustifiedLine(TRTypesetterRef typesetter, TRUInteger index, TRUInteger length, TRFloat justificationFactor, TRFloat justificationExtent)` (the handle owns the reference) */
   TRTypesetterCreateJustifiedLine(typesetter: Handle<"TRTypesetter">, index: number, length: number, justificationFactor: number, justificationExtent: number): Handle<"TRComposedLine"> | undefined;
+  /** `TRUInteger TRTypesetterFindBoundary(TRTypesetterRef typesetter, TRUInteger index, TRBoundaryType type, TRBoundaryDirection direction)` */
+  TRTypesetterFindBoundary(typesetter: Handle<"TRTypesetter">, index: number, type: number, direction: number): number;
+  /** `TRRange TRTypesetterGetBoundaryRange(TRTypesetterRef typesetter, TRUInteger index, TRBoundaryType type)` */
+  TRTypesetterGetBoundaryRange(typesetter: Handle<"TRTypesetter">, index: number, type: number): TRRange;
   /** `TRTypesetterRef TRTypesetterRetain(TRTypesetterRef typesetter)` (the handle owns the reference) */
   TRTypesetterRetain(typesetter: Handle<"TRTypesetter">): Handle<"TRTypesetter"> | undefined;
 }

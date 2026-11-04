@@ -1,4 +1,4 @@
-import { FontFile, FrameResolver, Renderer, TMutableText, Typesetter } from 'tehreer-react-native';
+import { FontFile, FrameResolver, MutableTypesetter, Renderer } from 'tehreer-react-native';
 import type { Typeface } from 'tehreer-react-native';
 import type { NativeBindings } from '../../src/internal/NativeBindings';
 import scenarioFile from '../../benchmarks/scenarios.json';
@@ -59,25 +59,41 @@ function nowMs(): number {
   return globalThis.performance.now();
 }
 
-/** The styled text of a scenario: the type size everywhere and the font of each segment. */
-function makeText(scenario: Scenario, faces: Map<string, Typeface>): TMutableText {
-  const styled = new TMutableText(expandText(scenario));
-  for (const [start, end, font] of expandRuns(scenario)) {
-    styled.setAttributes(start, end, { typeface: faces.get(font), typeSize: scenario.typeSize });
-  }
-  return styled;
+/** The styled text of a scenario: the string, and the font and type size of each run. It owns nothing native. */
+interface StyledText {
+  readonly string: string;
+  readonly runs: readonly (readonly [start: number, end: number, typeface: Typeface])[];
+  readonly typeSize: number;
 }
 
-function layoutOnce(scenario: Scenario, text: TMutableText) {
+function makeText(scenario: Scenario, faces: Map<string, Typeface>): StyledText {
+  return {
+    string: expandText(scenario),
+    runs: expandRuns(scenario).map(([start, end, font]) => [start, end, faces.get(font)!] as const),
+    typeSize: scenario.typeSize,
+  };
+}
+
+function layoutOnce(scenario: Scenario, text: StyledText) {
   const start = nowMs();
-  const typesetter = new Typesetter(text);
+  // Like Tehreer-Android, which builds a mutable typesetter in one batch and copies it: the paragraphs
+  // are shaped when the batch ends, so the shaping is part of the timed typesetter creation.
+  const editable = new MutableTypesetter();
+  editable.edit((editing) => {
+    editing.append(text.string);
+    for (const [from, to, typeface] of text.runs) {
+      editing.setAttributes(from, to, { typeface, typeSize: text.typeSize });
+    }
+  });
+  const typesetter = editable.copy();
+  editable.dispose();
   const resolver = new FrameResolver();
   resolver.typesetter = typesetter;
   resolver.frameWidth = scenario.width;
   resolver.frameHeight = frameHeight;
   // The frame is as high as its lines (otherwise it is the box, and the canvas would be a million pixels).
   resolver.fitsVertically = true;
-  const frame = resolver.createFrame(0, text.length);
+  const frame = resolver.createFrame(0, text.string.length);
   const elapsed = nowMs() - start;
   return { typesetter, resolver, frame, elapsed };
 }
@@ -98,7 +114,6 @@ async function runScenario(scenario: Scenario, faces: Map<string, Typeface>, bin
     const before = memory(bindings).heapKB;
     const text = makeText(scenario, faces);
     const made = layoutOnce(scenario, text);
-    text.dispose();
     made.resolver.dispose();
     made.typesetter.dispose();
     const after = memory(bindings).heapKB;
@@ -143,7 +158,6 @@ async function runScenario(scenario: Scenario, faces: Map<string, Typeface>, bin
   kept.frame.dispose();
   kept.resolver.dispose();
   kept.typesetter.dispose();
-  text.dispose();
   return { scenario: scenario.id, characters: scenario.characters, lines, frameWidth: width, frameHeight: height, layoutMs: summarize(layoutMs), drawMs: summarize(drawMs), memLayoutKB: summarize(memSamples) };
 }
 

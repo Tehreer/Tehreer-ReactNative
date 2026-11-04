@@ -39,7 +39,6 @@ void InstallBindings(jsi::Runtime &rt, jsi::Object &target) {
     InstallTRReplacement(rt, target);
     InstallTRShapingEngine(rt, target);
     InstallTRShapingResult(rt, target);
-    InstallTRText(rt, target);
     InstallTRTypeface(rt, target);
     InstallTRTypefaceManager(rt, target);
     InstallTRTypesetter(rt, target);

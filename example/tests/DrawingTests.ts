@@ -11,7 +11,8 @@ import { ComposedFrame } from '../../src/layout/ComposedFrame';
 import { ReplacementKind } from '../../src/layout/enums';
 import { FrameResolver } from '../../src/layout/FrameResolver';
 import { Replacement } from '../../src/layout/Replacement';
-import { TMutableText } from '../../src/layout/TMutableText';
+import { MutableTypesetter } from '../../src/layout/MutableTypesetter';
+import { mutableText } from './mutableText';
 import { Typesetter } from '../../src/layout/Typesetter';
 import { drawScenarios, format, prepare } from './drawingScenarios';
 import type { DrawScenario, Faces } from './drawingScenarios';
@@ -54,7 +55,7 @@ function load(): Faces {
   return { roboto: roboto.typefaces.get(0), nastaliq: nastaliq.typefaces.get(0) };
 }
 
-const library = { DrawStyle, FrameResolver, Renderer, Replacement, ReplacementKind, TMutableText, Typesetter };
+const library = { DrawStyle, FrameResolver, Renderer, Replacement, ReplacementKind, MutableTypesetter };
 
 /**
  * A surface that writes the same normalised events as the `CanvasRecorder` that made
@@ -229,9 +230,9 @@ const tests: Test[] = [
       beginShadow: recorder.beginShadow.bind(recorder),
     };
     // A background makes the fill callback run once, whatever the shadow does.
-    const text = new TMutableText('abc');
+    const text = mutableText('abc');
     text.setAttributes(0, 3, { typeface: load().roboto, typeSize: 20, backgroundColor: 0xff00ff00 });
-    const typesetter = new Typesetter(text);
+    const typesetter = text.copy();
     const resolver = new FrameResolver();
     resolver.typesetter = typesetter;
     resolver.frameWidth = 300;
@@ -356,10 +357,10 @@ const tests: Test[] = [
     }
     const delegate = new Box();
     const replacement = new Replacement(delegate);
-    const text = new TMutableText('ab￼ab');
+    const text = mutableText('ab￼ab');
     text.setAttributes(0, 5, { typeface: faces.roboto, typeSize: 20 });
     text.setAttributes(2, 3, { replacement });
-    const typesetter = new Typesetter(text);
+    const typesetter = text.copy();
     const resolver = new FrameResolver();
     resolver.typesetter = typesetter;
     resolver.frameWidth = 300;
@@ -387,10 +388,10 @@ const tests: Test[] = [
     const { count } = hooks(b);
     const faces = load();
     const build = (replacement: Replacement) => {
-      const text = new TMutableText('ab￼ab');
+      const text = mutableText('ab￼ab');
       text.setAttributes(0, 5, { typeface: faces.roboto, typeSize: 20 });
       text.setAttributes(2, 3, { replacement });
-      const typesetter = new Typesetter(text);
+      const typesetter = text.copy();
       const resolver = new FrameResolver();
       resolver.typesetter = typesetter;
       resolver.frameWidth = 300;

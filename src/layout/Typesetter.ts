@@ -1,48 +1,61 @@
+import { checkRange } from "../collections/ListBounds.js";
 import { adopt } from "../internal/Adopt.js";
 import { getNativeBindings } from "../internal/NativeBindings.js";
+import type { NativeAttribute } from "../internal/NativeBindings.js";
 import { holding } from "../internal/Holding.js";
 import type { Handle } from "../internal/NativeFunctions.js";
 import { NativeObject } from "../internal/NativeObject.js";
-import { checkConstant, checkNonEmptyRange } from "./Checks.js";
+import { checkConstant, checkIndex, checkNonEmptyRange } from "./Checks.js";
+import { fromCodeUnits, toCodeUnits, UTF16 } from "./CodeUnits.js";
 import { ComposedLine } from "./ComposedLine.js";
-import { BreakMode, TruncationPlace } from "./enums.js";
-import { disposeTemporaries, prepareAttributes } from "./TextAttributeCodec.js";
-import type { TextAttributes } from "./TextAttributes.js";
-import { TText, UTF16, toCodeUnits } from "./TText.js";
+import { BoundaryDirection, BoundaryType, BreakMode, TruncationPlace } from "./enums.js";
+import type { MutableTypesetter } from "./MutableTypesetter.js";
+import { disposeTemporaries, prepareAttributes, readAttributeList } from "./TextAttributeCodec.js";
+import type { TextAttributeRun, TextAttributes } from "./TextAttributes.js";
 
-function create(text: TText | string, defaultAttributes: TextAttributes | undefined): Handle<"TRTypesetter"> {
-  if (typeof text !== "string" && !(text instanceof TText)) {
-    throw new TypeError("text must be a string or a TText.");
-  }
+/** A range of code units, from `startIndex` up to but not including `endIndex`. */
+export interface CodeUnitRange {
+  readonly startIndex: number;
+  readonly endIndex: number;
+}
 
+/**
+ * Prepares the default attributes for Core, runs `body` with them, and disposes what was made for
+ * the values once Core has them. What Core uses during the call is held, since the `computeRoom` of
+ * a replacement can run inside it and dispose a wrapper.
+ *
+ * @internal
+ */
+export function withDefaultAttributes<Result>(
+  defaultAttributes: TextAttributes | undefined,
+  body: (attributes: readonly NativeAttribute[] | undefined) => Result,
+): Result {
   // Everything is prepared before anything is made, so that a bad argument leaves nothing behind.
   const prepared = prepareAttributes(defaultAttributes ?? {});
-  let own: TText | undefined;
   try {
-    own = typeof text === "string" ? new TText(text) : undefined;
-    const source = own ?? (text as TText);
-    // What Core uses during the call is held, since a replacement's computeRoom runs inside it.
     const attributes = prepared.map(({ attribute }) => attribute);
     const handles = attributes.flatMap(({ value }) => (typeof value === "object" ? [value] : []));
-    const created = holding([source.nativeHandle, ...handles], ([text, ...copies]) => {
+    return holding(handles, (copies) => {
       let next = 0;
       const held = attributes.map((attribute) => (typeof attribute.value === "object" ? { ...attribute, value: copies[next++] as Handle<string> } : attribute));
-      return getNativeBindings().TRTypesetterCreate(text, held.length === 0 ? undefined : held);
+      return body(held.length === 0 ? undefined : held);
     });
-    if (created === undefined) {
-      throw new Error("Could not create a typesetter. Does all of the text have a typeface?");
-    }
-    return created;
   } finally {
-    // Core copies the text and retains what the attributes hold, so none of these is needed now.
-    own?.dispose();
+    // Core retains what the attributes hold, so none of the temporaries is needed now.
     disposeTemporaries(prepared);
   }
 }
 
 /**
- * Shapes text and breaks it into lines. It copies the text, so the text can be changed or disposed
- * after the typesetter is made. A typesetter is immutable and thread safe.
+ * Holds a text with attributes on its ranges, shapes it, and breaks it into lines. The code units
+ * are UTF-16, so the indices are those of a JavaScript string; a range may start or end between the
+ * halves of a surrogate pair, as Core counts code units. Each paragraph is shaped when it is made or
+ * changed, so lines can be made over and over again for different ranges and extents.
+ *
+ * A typesetter is immutable and thread safe; {@link MutableTypesetter} is the editable kind. Editing
+ * a copy never changes its source. A text without a typeface is fine until a line or a frame is
+ * asked for: then the typeface must come from the attributes of the text or the defaults, for every
+ * part that is not a replacement.
  *
  * The extents and widths that it takes are numbers that are not NaN (a NaN is a `RangeError`); an
  * infinite one is valid. The calls that can run a replacement's `computeRoom` hold references of
@@ -51,49 +64,204 @@ function create(text: TText | string, defaultAttributes: TextAttributes | undefi
  * `fromIndex` up to but not including `toIndex`.
  */
 export class Typesetter extends NativeObject<"TRTypesetter"> {
-  private readonly _hasReplacements: boolean;
+  /**
+   * Whether a replacement was ever set on this typesetter or on the one it was copied from. It is
+   * never false for a typesetter that has one, so {@link hasReplacements} can answer without walking
+   * the runs.
+   *
+   * @internal
+   */
+  mayHaveReplacement?: boolean;
 
   /**
-   * Makes a typesetter for a text.
+   * Whether the default attributes had a replacement. Core cannot change the defaults of a
+   * typesetter, so a view cannot swap this one for a holder, and refuses it.
    *
-   * @param text The text to typeset. A string has no attributes, so the defaults have to give it a
-   *   typeface.
+   * @internal
+   */
+  hasDefaultReplacement?: boolean;
+
+  /**
+   * Makes a typesetter of a string, which has no attributes.
+   *
+   * @param text The string of the text.
    * @param defaultAttributes The attributes to use where the text sets none. Core looks only at
    *   those that decide how text is shaped: the typeface, type size, scales, baseline offset,
-   *   obliqueness, replacement, language tag and font features. A typeface has to be given by the
-   *   text or by them for every part, a replacement's included: Core refuses a replacement whose
-   *   range has no typeface (ShapeResolver.c), although TRTypesetter.h says a typeface is not needed
-   *   there. A `computeRoom` that a replacement has runs during this call, and an error it throws is
-   *   thrown from here. The call holds references of its own to what it uses, so a `computeRoom`
-   *   that disposes the text or an attribute's object only takes effect after it.
-   * @throws TypeError if `text` is not a string or a `TText`, or an attribute is of the wrong type.
+   *   obliqueness, replacement, language tag and font features. A typeface has to be given by them,
+   *   or by the attributes of the text, for every part that is not a replacement, or no line can be
+   *   made over that part. A `computeRoom` that a replacement has runs during this call, and an
+   *   error it throws is thrown from here. The call holds references of its own to what it uses, so
+   *   a `computeRoom` that disposes an attribute's object only takes effect after it.
+   * @throws TypeError if `text` is not a string, or an attribute is of the wrong type.
    * @throws RangeError if the value of an attribute is not valid.
-   * @throws Error if some text, a replacement's included, has no typeface, or Core cannot create the
-   *   typesetter.
+   * @throws Error if Core cannot create the typesetter.
    */
-  constructor(text: TText | string, defaultAttributes?: TextAttributes);
+  constructor(text: string, defaultAttributes?: TextAttributes);
   /** @internal */
   constructor(token: typeof adopt, handle: Handle<"TRTypesetter">);
-  constructor(text: TText | string | typeof adopt, defaultAttributes?: TextAttributes | Handle<"TRTypesetter">) {
-    // Answered from what the text remembers, before the call (a `computeRoom` that runs during it may dispose the text).
-    const hasReplacements = text !== adopt && ((defaultAttributes as TextAttributes | undefined)?.replacement !== undefined || (text instanceof TText && text.mayHaveReplacement === true));
-    super(text === adopt ? (defaultAttributes as Handle<"TRTypesetter">) : create(text, defaultAttributes as TextAttributes | undefined));
-    this._hasReplacements = hasReplacements;
+  constructor(text: string | typeof adopt, defaultAttributes?: TextAttributes | Handle<"TRTypesetter">) {
+    if (text === adopt) {
+      super(defaultAttributes as Handle<"TRTypesetter">);
+      return;
+    }
+
+    const attributes = defaultAttributes as TextAttributes | undefined;
+    const units = toCodeUnits(text);
+    // Core accepts no buffer for no code units.
+    const created = withDefaultAttributes(attributes, (held) =>
+      getNativeBindings().TRTypesetterCreate(units.length === 0 ? undefined : units, units.length, UTF16, held));
+    if (created === undefined) {
+      throw new Error("Could not create a typesetter.");
+    }
+    super(created);
+    this.mayHaveReplacement = attributes?.replacement !== undefined;
+    this.hasDefaultReplacement = this.mayHaveReplacement;
   }
 
   /**
-   * Whether the text or the defaults had a replacement when it was made. A view refuses such a
-   * typesetter: the replacements of a view have to be made by the view (see `ViewTypesetter`).
+   * Whether the typesetter or its defaults had a replacement when it was made or edited. A view
+   * refuses such a typesetter: the replacements of a view have to be made by the view (see
+   * `ViewTypesetter`).
    *
    * @internal
    */
   get hasReplacements(): boolean {
-    return this._hasReplacements;
+    return this.mayHaveReplacement === true;
   }
 
   /** The number of code units of the text. */
-  get codeUnitCount(): number {
-    return getNativeBindings().TRTypesetterGetCodeUnitCount(this.nativeHandle);
+  get length(): number {
+    return getNativeBindings().TRTypesetterGetLength(this.nativeHandle);
+  }
+
+  /** The code units as a string. */
+  get string(): string {
+    return this.getString(0, this.length);
+  }
+
+  /**
+   * Copies the code units from `fromIndex` up to `toIndex` as a string.
+   *
+   * @throws {RangeError} If the range is not within the text.
+   */
+  getString(fromIndex: number, toIndex: number): string {
+    const b = getNativeBindings();
+    const handle = this.nativeHandle;
+    checkRange(fromIndex, toIndex, b.TRTypesetterGetLength(handle));
+
+    const units = new Uint16Array(toIndex - fromIndex);
+    if (units.length === 0) {
+      return "";
+    }
+    if (!b.TRTypesetterGetCodeUnits(handle, fromIndex, units.length, units)) {
+      throw new Error("Could not copy the code units.");
+    }
+    return fromCodeUnits(units);
+  }
+
+  /**
+   * Returns the attributes that are set at an index, and how long they stay the same. The typeface
+   * and font features in them are wrappers that the caller owns and disposes.
+   *
+   * @returns The attributes, or `undefined` if the index is not less than the length.
+   * @throws {RangeError} If the index is not a whole number that is not negative.
+   */
+  getAttributeRun(index: number): TextAttributeRun | undefined {
+    checkIndex("index", index);
+
+    const b = getNativeBindings();
+    const { result, outLength } = b.TRTypesetterCopyAttributes(this.nativeHandle, index);
+    if (result === undefined) {
+      return undefined;
+    }
+
+    try {
+      return { attributes: readAttributeList(result), length: outLength };
+    } finally {
+      // The objects that were read hold references of their own.
+      b.disposeHandle(result);
+    }
+  }
+
+  /**
+   * Makes an immutable copy, which has the attributes too. It shares the shaping of the paragraphs,
+   * so it costs little.
+   *
+   * @throws Error if the typesetter is in an editing batch.
+   */
+  copy(): Typesetter {
+    const created = getNativeBindings().TRTypesetterCreateCopy(this.nativeHandle);
+    if (created === undefined) {
+      throw new Error("Could not copy the typesetter. Is it in an editing batch?");
+    }
+    const copy = new Typesetter(adopt, created);
+    copy.mayHaveReplacement = this.mayHaveReplacement;
+    copy.hasDefaultReplacement = this.hasDefaultReplacement;
+    return copy;
+  }
+
+  /**
+   * Makes a copy that can be edited, which has the attributes too.
+   *
+   * It needs `MutableTypesetter.ts` to be loaded, which importing the package index does.
+   *
+   * @throws Error if the typesetter is in an editing batch.
+   */
+  mutableCopy(): MutableTypesetter {
+    const created = getNativeBindings().TRTypesetterCreateMutableCopy(this.nativeHandle);
+    if (created === undefined) {
+      throw new Error("Could not copy the typesetter. Is it in an editing batch?");
+    }
+    const copy = makeMutable(created);
+    copy.mayHaveReplacement = this.mayHaveReplacement;
+    copy.hasDefaultReplacement = this.hasDefaultReplacement;
+    return copy;
+  }
+
+  /**
+   * Finds the boundary of a type that is next to an index, by Unicode Standard Annex #29 for
+   * graphemes and words, and by the separators of the text for paragraphs. The start and the end of
+   * the text are boundaries of every type. It needs no typeface.
+   *
+   * @param index The index to search from, which can be the length of the text.
+   * @returns The index of the boundary, or `undefined` if the index is past the end of the text,
+   *   there is none in that direction, or the typesetter is in an editing batch.
+   * @throws RangeError if the index is not a whole number that is not negative, or the type or the
+   *   direction is not one of its constants.
+   */
+  findBoundary(index: number, type: BoundaryType, direction: BoundaryDirection): number | undefined {
+    checkIndex("index", index);
+    checkConstant("type", type, BoundaryType);
+    checkConstant("direction", direction, BoundaryDirection);
+
+    const boundary = getNativeBindings().TRTypesetterFindBoundary(this.nativeHandle, index, type, direction);
+    return boundary === -1 ? undefined : boundary;
+  }
+
+  /**
+   * Gets the range of the segment of a boundary type that contains an index, such as the word under
+   * a caret.
+   *
+   * @param index The index that the segment contains, which can be the length of the text and has an
+   *   empty segment.
+   * @returns The range, or `undefined` if the index is past the end of the text, or the typesetter
+   *   is in an editing batch.
+   * @throws RangeError if the index is not a whole number that is not negative, or the type is not
+   *   one of its constants.
+   */
+  getBoundaryRange(index: number, type: BoundaryType): CodeUnitRange | undefined {
+    checkIndex("index", index);
+    checkConstant("type", type, BoundaryType);
+
+    const range = getNativeBindings().TRTypesetterGetBoundaryRange(this.nativeHandle, index, type);
+    if (range.index === -1) {
+      return undefined;
+    }
+    return { startIndex: range.index, endIndex: range.index + range.length };
+  }
+
+  override toString(): string {
+    return this.string;
   }
 
   /**
@@ -206,18 +374,30 @@ export class Typesetter extends NativeObject<"TRTypesetter"> {
     const index = direction === "forward"
       ? b.TRTypesetterSuggestForwardBreak(handle, fromIndex, toIndex - fromIndex, extent, breakMode)
       : b.TRTypesetterSuggestBackwardBreak(handle, fromIndex, toIndex - fromIndex, extent, breakMode);
-    // Core has no index for a range that is not within the text.
+    // Core has no index for a range that is not within the text or touches text without a typeface.
     if (index === -1) {
-      throw new RangeError(`The range ${fromIndex}..${toIndex} is not within the text.`);
+      throw new RangeError(`The range ${fromIndex}..${toIndex} is not within the text, or some of it has no typeface.`);
     }
     return index;
   }
 }
 
-// Core gives no line for a range that is not within the text, and for a failure.
+// Core gives no line for a range that is not within the text, text without a typeface, a typesetter
+// that is in an editing batch, and for a failure.
 function checkLine(handle: Handle<"TRComposedLine"> | undefined, what: string): Handle<"TRComposedLine"> {
   if (handle === undefined) {
-    throw new RangeError(`Could not create ${what}. Is the range within the text?`);
+    throw new RangeError(`Could not create ${what}. Is the range within the text, does all of it have a typeface, and is the typesetter outside an editing batch?`);
   }
   return handle;
+}
+
+
+// MutableTypesetter extends Typesetter, so it cannot be imported here; it registers how to wrap a handle.
+let makeMutable: (handle: Handle<"TRTypesetter">) => MutableTypesetter = () => {
+  throw new Error("MutableTypesetter is not loaded.");
+};
+
+/** @internal */
+export function setMutableTypesetterFactory(factory: (handle: Handle<"TRTypesetter">) => MutableTypesetter): void {
+  makeMutable = factory;
 }

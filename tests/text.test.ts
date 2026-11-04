@@ -4,8 +4,8 @@ import { join } from "node:path";
 import { after, before, beforeEach, test } from "node:test";
 import { compileModules, importModule } from "./CompileModules.mjs";
 
-// TText and TMutableText run over a fake of Core's text: code units with an attribute map for each
-// of them, and reference counts for what the attributes hold. What is checked is what the TypeScript
+// Typesetter and MutableTypesetter run over a fake of Core's typesetter: code units with an attribute map for
+// each of them, and reference counts for what the attributes hold. What is checked is what the TypeScript
 // layer decides: ranges, argument checks, the mapping of every attribute to its Core type, ownership
 // of typefaces and font features, and use after dispose. What Core does with a real text (copies,
 // runs, edits) is tested on a device (example/tests/TextTests.ts).
@@ -15,6 +15,8 @@ interface Core {
   refs: number;
   // text
   units?: number[];
+  defaults?: { type: number; value: unknown }[];
+  editing?: boolean;
   attrs?: Map<number, unknown>[];
   // list
   entries?: { type: number; value: unknown }[];
@@ -49,6 +51,8 @@ interface TextLike extends Wrapper {
   readonly string: string;
   getString(from: number, to: number): string;
   getAttributeRun(index: number): Run | undefined;
+  findBoundary(index: number, type: number, direction: number): number | undefined;
+  getBoundaryRange(index: number, type: number): { startIndex: number; endIndex: number } | undefined;
   copy(): TextLike;
   mutableCopy(): MutableLike;
   toString(): string;
@@ -68,8 +72,8 @@ interface MutableLike extends TextLike {
 }
 
 let out: string;
-let TText: { new (text: string): TextLike };
-let TMutableText: { new (text?: string): MutableLike };
+let Typesetter: { new (text: string, defaults?: Attributes): TextLike };
+let MutableTypesetter: { new (defaults?: Attributes): MutableLike };
 let Typeface: { adopting(handle: FakeHandle): Wrapper };
 let FontFeatures: { new (features: { tag: number; value: number }[]): Wrapper };
 let Replacement: { new (delegate: unknown, kind?: number): Wrapper };
@@ -112,6 +116,9 @@ function release(target: Core): void {
   for (const entry of target.entries ?? []) {
     if (typeof entry.value === "object") release(entry.value as Core);
   }
+  for (const entry of target.defaults ?? []) {
+    if (typeof entry.value === "object") release(entry.value as Core);
+  }
 }
 
 function textOf(handle: FakeHandle): Core & { units: number[]; attrs: Map<number, unknown>[] } {
@@ -120,6 +127,20 @@ function textOf(handle: FakeHandle): Core & { units: number[]; attrs: Map<number
 
 function makeText(units: number[], mutable: boolean): FakeHandle {
   return handleOf(core(mutable ? "mutable" : "text", { units, attrs: units.map(() => new Map()) }));
+}
+
+function keepDefaults(target: Core, defaults: { type: number; value: unknown }[] | undefined): void {
+  target.defaults = defaults?.map(({ type, value }) => {
+    // Core retains what the defaults hold.
+    if (typeof value === "object") retain((value as FakeHandle).core);
+    return { type, value: typeof value === "object" ? (value as FakeHandle).core : value };
+  });
+}
+
+function copyOf(source: Core & { units: number[]; attrs: Map<number, unknown>[] }, kind: string): Core {
+  const copy = core(kind, { units: [...source.units], attrs: source.attrs.map(cloneAttrs) });
+  keepDefaults(copy, source.defaults?.map(({ type, value }) => ({ type, value: typeof value === "object" ? handleOf(value as Core) : value })));
+  return copy;
 }
 
 function cloneAttrs(map: Map<number, unknown>): Map<number, unknown> {
@@ -156,32 +177,57 @@ function fake(): Record<string, unknown> {
     },
     isHandleMutable: (handle: FakeHandle) => live(handle).kind === "mutable",
     handleEquals: (a: FakeHandle, b: FakeHandle) => live(a).core === live(b).core,
-    TRTextCreate(units: Uint16Array | undefined, length: number, encoding: number) {
-      calls.push(`create ${length} ${units === undefined ? "none" : "buffer"} ${encoding}`);
+    // A call that holds the object for its length takes a reference of its own, as the real one does.
+    retainHandle(handle: FakeHandle) {
+      retain(live(handle).core);
+      return { ...handle };
+    },
+    TRTypesetterCreate(units: Uint16Array | undefined, length: number, encoding: number, defaults: { type: number; value: unknown }[] | undefined) {
+      calls.push(`create ${length} ${units === undefined ? "none" : "buffer"} ${encoding}${defaults === undefined ? "" : ` defaults ${defaults.map((d) => d.type).join(",")}`}`);
       if (units === undefined && length !== 0) return undefined;
-      return makeText(unitsOf(units, length), false);
+      const made = makeText(unitsOf(units, length), false);
+      keepDefaults(made.core, defaults);
+      return made;
     },
-    TRTextCreateMutable(encoding: number) {
-      calls.push(`createMutable ${encoding}`);
-      return makeText([], true);
+    TRTypesetterCreateMutable(encoding: number, defaults: { type: number; value: unknown }[] | undefined) {
+      calls.push(`createMutable ${encoding}${defaults === undefined ? "" : ` defaults ${defaults.map((d) => d.type).join(",")}`}`);
+      const made = makeText([], true);
+      keepDefaults(made.core, defaults);
+      return made;
     },
-    TRTextCreateCopy(handle: FakeHandle) {
+    TRTypesetterCreateCopy(handle: FakeHandle) {
       const source = textOf(handle);
-      return handleOf(core("text", { units: [...source.units], attrs: source.attrs.map(cloneAttrs) }));
+      if (source.editing) return undefined;
+      return handleOf(copyOf(source, "text"));
     },
-    TRTextCreateMutableCopy(handle: FakeHandle) {
+    TRTypesetterCreateMutableCopy(handle: FakeHandle) {
       const source = textOf(handle);
-      return handleOf(core("mutable", { units: [...source.units], attrs: source.attrs.map(cloneAttrs) }));
+      if (source.editing) return undefined;
+      return handleOf(copyOf(source, "mutable"));
     },
-    TRTextGetLength: (handle: FakeHandle) => textOf(handle).units.length,
-    TRTextGetCodeUnits(handle: FakeHandle, index: number, length: number, buffer: Uint16Array) {
+    TRTypesetterFindBoundary(handle: FakeHandle, index: number, type: number, direction: number) {
+      calls.push(`findBoundary ${index} ${type} ${direction}`);
+      const text = textOf(handle);
+      if (text.editing || index > text.units.length) return -1;
+      // Every boundary type is every position in this fake: only the mapping is under test.
+      const boundary = direction === 1 ? index + 1 : index - 1;
+      return boundary < 0 || boundary > text.units.length ? -1 : boundary;
+    },
+    TRTypesetterGetBoundaryRange(handle: FakeHandle, index: number, type: number) {
+      calls.push(`getBoundaryRange ${index} ${type}`);
+      const text = textOf(handle);
+      if (text.editing || index > text.units.length) return { index: -1, length: 0 };
+      return index === text.units.length ? { index, length: 0 } : { index, length: 1 };
+    },
+    TRTypesetterGetLength: (handle: FakeHandle) => textOf(handle).units.length,
+    TRTypesetterGetCodeUnits(handle: FakeHandle, index: number, length: number, buffer: Uint16Array) {
       calls.push(`getCodeUnits ${index} ${length}`);
       const text = textOf(handle);
       if (index + length > text.units.length) return false;
       buffer.set(text.units.slice(index, index + length));
       return true;
     },
-    TRTextCopyAttributes(handle: FakeHandle, index: number) {
+    TRTypesetterCopyAttributes(handle: FakeHandle, index: number) {
       const text = textOf(handle);
       if (index >= text.units.length) return { result: undefined, outLength: 0 };
       const first = must(text.attrs[index]);
@@ -205,9 +251,9 @@ function fake(): Record<string, unknown> {
       }
       return [{ type, value }];
     },
-    TRTextBeginEditing: (handle: FakeHandle) => { calls.push("begin"); live(handle); },
-    TRTextEndEditing: (handle: FakeHandle) => { calls.push("end"); live(handle); },
-    TRTextAppendCodeUnits(handle: FakeHandle, units: Uint16Array, count: number) {
+    TRTypesetterBeginEditing: (handle: FakeHandle) => { calls.push("begin"); textOf(handle).editing = true; },
+    TRTypesetterEndEditing: (handle: FakeHandle) => { calls.push("end"); textOf(handle).editing = false; },
+    TRTypesetterAppendCodeUnits(handle: FakeHandle, units: Uint16Array, count: number) {
       calls.push(`append ${count}`);
       if (failNext.delete("append")) return false;
       const text = textOf(handle);
@@ -215,28 +261,28 @@ function fake(): Record<string, unknown> {
       for (let i = 0; i < count; i++) text.attrs.push(new Map());
       return true;
     },
-    TRTextInsertCodeUnits(handle: FakeHandle, index: number, units: Uint16Array, count: number) {
+    TRTypesetterInsertCodeUnits(handle: FakeHandle, index: number, units: Uint16Array, count: number) {
       calls.push(`insert ${index} ${count}`);
       const text = textOf(handle);
       text.units.splice(index, 0, ...unitsOf(units, count));
       text.attrs.splice(index, 0, ...Array.from({ length: count }, () => new Map()));
       return true;
     },
-    TRTextDeleteCodeUnits(handle: FakeHandle, index: number, length: number) {
+    TRTypesetterDeleteCodeUnits(handle: FakeHandle, index: number, length: number) {
       calls.push(`delete ${index} ${length}`);
       const text = textOf(handle);
       text.units.splice(index, length);
       text.attrs.splice(index, length);
       return true;
     },
-    TRTextSetCodeUnits(handle: FakeHandle, units: Uint16Array | undefined, count: number) {
+    TRTypesetterSetCodeUnits(handle: FakeHandle, units: Uint16Array | undefined, count: number) {
       calls.push(`setCodeUnits ${count} ${units === undefined ? "none" : "buffer"}`);
       const text = textOf(handle);
       text.units = unitsOf(units, count);
       text.attrs = text.units.map(() => new Map());
       return true;
     },
-    TRTextReplaceCodeUnits(handle: FakeHandle, index: number, length: number, units: Uint16Array | undefined, count: number) {
+    TRTypesetterReplaceCodeUnits(handle: FakeHandle, index: number, length: number, units: Uint16Array | undefined, count: number) {
       calls.push(`replace ${index} ${length} ${count} ${units === undefined ? "none" : "buffer"}`);
       const text = textOf(handle);
       const inherited = text.attrs[index] ?? new Map();
@@ -244,7 +290,7 @@ function fake(): Record<string, unknown> {
       text.attrs.splice(index, length, ...Array.from({ length: count }, () => cloneAttrs(inherited)));
       return true;
     },
-    TRTextSetAttribute(handle: FakeHandle, index: number, length: number, attribute: { type: number; value: unknown }) {
+    TRTypesetterSetAttribute(handle: FakeHandle, index: number, length: number, attribute: { type: number; value: unknown }) {
       calls.push(`setAttribute ${index} ${length} ${attribute.type}`);
       const text = textOf(handle);
       if (index + length > text.units.length || attribute.type < TYPE_MIN || attribute.type > TYPE_MAX) return false;
@@ -264,7 +310,7 @@ function fake(): Record<string, unknown> {
       }
       return true;
     },
-    TRTextRemoveAttribute(handle: FakeHandle, index: number, length: number, type: number) {
+    TRTypesetterRemoveAttribute(handle: FakeHandle, index: number, length: number, type: number) {
       calls.push(`removeAttribute ${index} ${length} ${type}`);
       const text = textOf(handle);
       if (index + length > text.units.length || type < TYPE_MIN || type > TYPE_MAX) return false;
@@ -290,11 +336,11 @@ function fake(): Record<string, unknown> {
 
 before(async () => {
   out = compileModules([
-    "src/layout/TText.ts", "src/layout/TMutableText.ts", "src/graphics/Typeface.ts", "src/sfnt/FontFeatures.ts",
+    "src/layout/Typesetter.ts", "src/layout/MutableTypesetter.ts", "src/graphics/Typeface.ts", "src/sfnt/FontFeatures.ts",
     "src/layout/Replacement.ts",
   ]);
-  TText = ((await importModule(out, "layout/TText.js")) as { TText: typeof TText }).TText;
-  TMutableText = ((await importModule(out, "layout/TMutableText.js")) as { TMutableText: typeof TMutableText }).TMutableText;
+  Typesetter = ((await importModule(out, "layout/Typesetter.js")) as { Typesetter: typeof Typesetter }).Typesetter;
+  MutableTypesetter = ((await importModule(out, "layout/MutableTypesetter.js")) as { MutableTypesetter: typeof MutableTypesetter }).MutableTypesetter;
   Typeface = ((await importModule(out, "graphics/Typeface.js")) as { Typeface: typeof Typeface }).Typeface;
   FontFeatures = ((await importModule(out, "sfnt/FontFeatures.js")) as { FontFeatures: typeof FontFeatures }).FontFeatures;
   Replacement = ((await importModule(out, "layout/Replacement.js")) as { Replacement: typeof Replacement }).Replacement;
@@ -311,6 +357,14 @@ after(() => {
   delete (globalThis as Record<string, unknown>)["__tehreer"];
   rmSync(out, { recursive: true, force: true });
 });
+
+function mutable(text: string): MutableLike {
+  const made = new MutableTypesetter();
+  if (text !== "") {
+    made.append(text);
+  }
+  return made;
+}
 
 function typeface(): Wrapper {
   return Typeface.adopting(handleOf(core("typeface")));
@@ -359,7 +413,7 @@ const EVERY_ATTRIBUTE: Attributes = {
 };
 
 test("a text keeps its string, and an empty one is made with no buffer", () => {
-  const text = new TText("abc");
+  const text = new Typesetter("abc");
   assert.equal(text.length, 3);
   assert.equal(text.string, "abc");
   assert.equal(text.getString(1, 3), "bc");
@@ -368,39 +422,39 @@ test("a text keeps its string, and an empty one is made with no buffer", () => {
   assert.equal(calls[0], "create 3 buffer 1", "UTF-16 is encoding 1");
 
   calls = [];
-  assert.equal(new TText("").length, 0);
+  assert.equal(new Typesetter("").length, 0);
   assert.equal(calls[0], "create 0 none 1");
-  assert.throws(() => new TText(5 as unknown as string), TypeError);
+  assert.throws(() => new Typesetter(5 as unknown as string), TypeError);
 });
 
 test("indices are code units: a range may end inside a surrogate pair, and lone surrogates survive", () => {
-  const text = new TText("a\u{1F600}b");
+  const text = new Typesetter("a\u{1F600}b");
   assert.equal(text.length, 4);
   assert.equal(text.getString(1, 3), "\u{1F600}");
   assert.equal(text.getString(1, 2), "\ud83d", "the high half alone");
   assert.equal(text.getString(2, 3), "\ude00", "the low half alone");
 
-  const lone = new TText("\ud800x\udc00");
+  const lone = new Typesetter("\ud800x\udc00");
   assert.equal(lone.string, "\ud800x\udc00");
 
-  const mutable = new TMutableText("a\u{1F600}");
-  mutable.setAttributes(2, 3, { typeSize: 9 });
-  assert.equal(mutable.getAttributeRun(1)?.length, 1, "the pair is split by the range, as Core counts units");
-  assert.equal(mutable.getAttributeRun(2)?.attributes["typeSize"], 9);
-  mutable.delete(2, 3);
-  assert.equal(mutable.length, 2);
+  const editable = mutable("a\u{1F600}");
+  editable.setAttributes(2, 3, { typeSize: 9 });
+  assert.equal(editable.getAttributeRun(1)?.length, 1, "the pair is split by the range, as Core counts units");
+  assert.equal(editable.getAttributeRun(2)?.attributes["typeSize"], 9);
+  editable.delete(2, 3);
+  assert.equal(editable.length, 2);
 });
 
 test("a long string is read in chunks", () => {
   const long = "ab".repeat(40000);
-  assert.equal(new TText(long).string, long);
+  assert.equal(new Typesetter(long).string, long);
 });
 
 test("every attribute that the wrapper supports has the Core type of its name in TRAttribute.h", () => {
   const types = headerTypes();
   assert.equal(types.size, 26, "26 attributes in TRAttribute.h, all of them supported");
 
-  const text = new TMutableText("a");
+  const text = mutable("a");
   for (const [name, type] of types) {
     calls = [];
     const value = name === "typeface" ? typeface()
@@ -414,7 +468,7 @@ test("every attribute that the wrapper supports has the Core type of its name in
 });
 
 test("every kind of attribute is stored and read back", () => {
-  const text = new TMutableText("abc");
+  const text = mutable("abc");
   const face = typeface();
   text.setAttributes(0, 3, { ...EVERY_ATTRIBUTE, typeface: face, fontFeatures: [{ tag: 0x6c696761, value: 0 }] });
 
@@ -429,7 +483,7 @@ test("every kind of attribute is stored and read back", () => {
 });
 
 test("attributes come back as runs, a later one replacing the earlier in its part", () => {
-  const text = new TMutableText("abcde");
+  const text = mutable("abcde");
   text.setAttributes(0, 3, { typeSize: 20 });
   text.setAttributes(2, 5, { foregroundColor: 0xff112233 });
 
@@ -438,11 +492,11 @@ test("attributes come back as runs, a later one replacing the earlier in its par
   assert.deepEqual(text.getAttributeRun(3), { attributes: { foregroundColor: 0xff112233 }, length: 2 });
   assert.equal(text.getAttributeRun(5), undefined, "an index at the length has no run");
   assert.equal(text.getAttributeRun(500), undefined);
-  assert.deepEqual(new TText("").getAttributeRun(0), undefined);
+  assert.deepEqual(new Typesetter("").getAttributeRun(0), undefined);
 });
 
 test("attributes are removed from ranges, and one that is not set is left alone", () => {
-  const text = new TMutableText("abcd");
+  const text = mutable("abcd");
   text.setAttributes(0, 4, { typeSize: 10, underline: true });
   text.removeAttributes(1, 3, "typeSize", "underline", "scaleX");
 
@@ -452,7 +506,7 @@ test("attributes are removed from ranges, and one that is not set is left alone"
 });
 
 test("invalid ranges are a RangeError, and nothing reaches Core", () => {
-  const text = new TMutableText("abc");
+  const text = mutable("abc");
   calls = [];
   const bad: [number, number][] = [[2, 4], [-1, 2], [3, 2], [0.5, 2], [0, NaN], [0, Infinity], [Number.MAX_SAFE_INTEGER, Number.MAX_SAFE_INTEGER + 1]];
   for (const [from, to] of bad) {
@@ -477,7 +531,7 @@ test("invalid ranges are a RangeError, and nothing reaches Core", () => {
 });
 
 test("an empty range is valid and changes nothing", () => {
-  const text = new TMutableText("abc");
+  const text = mutable("abc");
   calls = [];
   text.setAttributes(1, 1, { typeSize: 3 });
   text.removeAttributes(1, 1, "typeSize");
@@ -487,7 +541,7 @@ test("an empty range is valid and changes nothing", () => {
 });
 
 test("editing passes code units, takes no buffer for no code units, and batches", () => {
-  const text = new TMutableText("hello");
+  const text = mutable("hello");
   text.append(" world");
   text.insert(5, ",");
   assert.equal(text.string, "hello, world");
@@ -518,23 +572,147 @@ test("editing passes code units, takes no buffer for no code units, and batches"
   assert.deepEqual(calls, ["begin", "end"], "the batch ends when the body throws");
 });
 
-test("a mutable text is made with its string, and is disposed if the string cannot be added", () => {
-  const text = new TMutableText("ab");
+test("a typesetter takes default attributes, and a bad one creates nothing", () => {
+  const face = typeface();
+  calls = [];
+  const text = new Typesetter("ab", { typeface: face, typeSize: 12 });
+  assert.equal(calls[0], "create 2 buffer 1 defaults 1,2", "the typeface and the size are attributes 1 and 2");
+  const core = text.nativeHandle.core;
+  assert.equal(core.defaults?.length, 2);
+  assert.equal(refsOf(face), 2, "Core retains the typeface of the defaults, and the call's own reference is back");
+
+  const made = cores.length;
+  assert.throws(() => new Typesetter("ab", { typeSize: "3" as unknown as number }), TypeError);
+  assert.throws(() => new Typesetter("ab", { bogus: 1 }), TypeError);
+  assert.throws(() => new MutableTypesetter({ typeSize: NaN }), RangeError);
+  assert.equal(cores.length, made, "a bad attribute creates nothing");
+
+  const other = new MutableTypesetter({ typeface: face });
+  assert.ok(calls.includes("createMutable 1 defaults 1"));
+  assert.equal(refsOf(face), 3);
+  other.dispose();
+  text.dispose();
+  assert.equal(refsOf(face), 1, "disposing the typesetters lets go of the typeface");
+});
+
+test("a typesetter that Core cannot make is an Error", () => {
+  const original = (globalThis as unknown as { __tehreer: Record<string, unknown> }).__tehreer;
+  (globalThis as unknown as { __tehreer: Record<string, unknown> }).__tehreer = { ...original, TRTypesetterCreate: () => undefined, TRTypesetterCreateMutable: () => undefined };
+  assert.throws(() => new Typesetter("a"), /Could not create a typesetter/);
+  assert.throws(() => new MutableTypesetter(), /Could not create a mutable typesetter/);
+});
+
+test("a mutable typesetter starts empty and takes a string by editing", () => {
+  const text = mutable("ab");
   assert.equal(text.string, "ab");
-  assert.equal(new TMutableText().length, 0);
+  assert.equal(new MutableTypesetter().length, 0);
+  assert.equal(mutable("").length, 0);
 
   calls = [];
   failNext.add("append");
-  assert.throws(() => new TMutableText("x"), /append/);
-  const abandoned = cores.filter((c) => c.kind === "mutable").at(-1);
-  assert.equal(abandoned?.refs, 0, "the text that was made is released");
-  const made = cores.length;
-  assert.throws(() => new TMutableText(1 as unknown as string), TypeError);
-  assert.equal(cores.length, made, "a bad string creates nothing");
+  assert.throws(() => mutable("x"), /Could not append the string/);
+});
+
+test("a copy of a typesetter in an editing batch is an Error, and so is a mutable copy", () => {
+  const text = mutable("abc");
+  text.beginEditing();
+  assert.throws(() => text.copy(), /editing batch/);
+  assert.throws(() => text.mutableCopy(), /editing batch/);
+  text.endEditing();
+  assert.equal(text.copy().string, "abc");
+});
+
+test("boundaries are searched by type and direction, and Core's invalid index is undefined", () => {
+  const text = new Typesetter("abc");
+  calls = [];
+  assert.equal(text.findBoundary(1, 1, 1), 2);
+  assert.equal(text.findBoundary(1, 0, 0), 0);
+  assert.equal(text.findBoundary(3, 2, 1), undefined, "nothing after the end");
+  assert.equal(text.findBoundary(0, 2, 0), undefined, "nothing before the start");
+  assert.equal(text.findBoundary(4, 0, 1), undefined, "an index past the length");
+  assert.deepEqual(calls, ["findBoundary 1 1 1", "findBoundary 1 0 0", "findBoundary 3 2 1", "findBoundary 0 2 0", "findBoundary 4 0 1"]);
+
+  assert.deepEqual(text.getBoundaryRange(1, 1), { startIndex: 1, endIndex: 2 });
+  assert.deepEqual(text.getBoundaryRange(3, 1), { startIndex: 3, endIndex: 3 }, "the end has an empty segment");
+  assert.equal(text.getBoundaryRange(4, 1), undefined);
+});
+
+test("boundary arguments are checked before Core sees them", () => {
+  const text = new Typesetter("abc");
+  calls = [];
+  for (const index of [-1, 1.5, NaN, Infinity, Number.MAX_SAFE_INTEGER + 1]) {
+    assert.throws(() => text.findBoundary(index, 0, 1), RangeError, `findBoundary ${index}`);
+    assert.throws(() => text.getBoundaryRange(index, 0), RangeError, `getBoundaryRange ${index}`);
+  }
+  for (const type of [3, -1, 1.5, NaN, "word"]) {
+    assert.throws(() => text.findBoundary(0, type as number, 1), RangeError, `type ${type}`);
+    assert.throws(() => text.getBoundaryRange(0, type as number), RangeError, `range type ${type}`);
+  }
+  for (const direction of [2, -1, "forward"]) {
+    assert.throws(() => text.findBoundary(0, 0, direction as number), RangeError, `direction ${direction}`);
+  }
+  assert.deepEqual(calls, []);
+});
+
+test("boundaries are not available while the typesetter is in an editing batch", () => {
+  const text = mutable("abc");
+  assert.equal(text.findBoundary(0, 1, 1), 1);
+  text.beginEditing();
+  assert.equal(text.findBoundary(0, 1, 1), undefined);
+  assert.equal(text.getBoundaryRange(0, 1), undefined);
+  text.endEditing();
+  assert.equal(text.getBoundaryRange(0, 1)?.endIndex, 1);
+});
+
+test("the error of the body of a batch wins over one from ending it", () => {
+  const text = mutable("abc");
+  const original = (globalThis as unknown as { __tehreer: Record<string, unknown> }).__tehreer;
+  (globalThis as unknown as { __tehreer: Record<string, unknown> }).__tehreer = {
+    ...original,
+    TRTypesetterEndEditing() {
+      throw new Error("shaping");
+    },
+  };
+  assert.throws(() => text.edit(() => { throw new Error("body"); }), /body/);
+  assert.throws(() => text.edit(() => undefined), /shaping/);
+  assert.throws(() => text.endEditing(), /shaping/);
+});
+
+test("an edit holds a reference of its own, which is back when it returns", () => {
+  const text = mutable("abc");
+  const core = text.nativeHandle.core;
+  const before = core.refs;
+  text.append("d");
+  text.setAttributes(0, 1, { typeSize: 3 });
+  text.removeAttributes(0, 1, "typeSize");
+  text.endEditing();
+  assert.equal(core.refs, before);
+
+  // A failing edit gives it back too.
+  failNext.add("append");
+  assert.throws(() => text.append("e"), /Could not append/);
+  assert.equal(core.refs, before);
+});
+
+test("the defaults of a typesetter that hold a replacement are remembered for the views", () => {
+  const flags = (text: unknown) => text as { mayHaveReplacement?: boolean; hasDefaultReplacement?: boolean; hasReplacements: boolean };
+  const replacement = new Replacement({ computeRoom: () => ({ ascent: 1, descent: 1, extent: 1 }) }, 1);
+  const withDefault = flags(new Typesetter("a", { replacement }));
+  assert.equal(withDefault.hasDefaultReplacement, true);
+  assert.equal(withDefault.hasReplacements, true);
+  assert.equal(flags((withDefault as unknown as TextLike).copy()).hasDefaultReplacement, true, "a copy keeps it");
+
+  const onRange = flags(mutable("ab"));
+  onRange.hasDefaultReplacement = false;
+  (onRange as unknown as MutableLike).setAttributes(0, 1, { replacement });
+  assert.equal(onRange.hasDefaultReplacement, false, "a replacement on a range is not a default");
+  assert.equal(onRange.hasReplacements, true);
+  assert.equal(flags(new Typesetter("a")).hasReplacements, false);
+  replacement.dispose();
 });
 
 test("a copy does not change when its source does, and the other way round", () => {
-  const source = new TMutableText("abc");
+  const source = mutable("abc");
   source.setAttributes(0, 3, { typeSize: 10 });
   const copy = source.copy();
   const again = copy.mutableCopy();
@@ -550,12 +728,12 @@ test("a copy does not change when its source does, and the other way round", () 
   assert.equal(source.string, "abcd");
   assert.equal(source.getAttributeRun(0)?.attributes["typeSize"], 99);
   assert.ok(!(copy as unknown as MutableLike).append, "a copy is immutable");
-  assert.ok(again instanceof TMutableText);
+  assert.ok(again instanceof MutableTypesetter);
   assert.ok(!copy.equals(source));
 });
 
 test("a replacement keeps the attributes of the range that it replaces", () => {
-  const text = new TMutableText("abcd");
+  const text = mutable("abcd");
   text.setAttributes(0, 4, { typeSize: 10 });
   text.replace(1, 3, "XYZ");
   assert.equal(text.string, "aXYZd");
@@ -563,7 +741,7 @@ test("a replacement keeps the attributes of the range that it replaces", () => {
 });
 
 test("a bad attribute changes nothing, even after a good one", () => {
-  const text = new TMutableText("abc");
+  const text = mutable("abc");
   const cases: [string, Attributes, ErrorConstructor | RangeErrorConstructor | TypeErrorConstructor][] = [
     ["unknown name", { typeSize: 3, bogus: 1 }, TypeError],
     ["inherited name", { typeSize: 3, constructor: 1 }, TypeError],
@@ -606,7 +784,7 @@ test("a bad attribute changes nothing, even after a good one", () => {
 });
 
 test("an attribute that Core refuses is an Error, and the temporary features are still disposed", () => {
-  const text = new TMutableText("abc");
+  const text = mutable("abc");
   failNext.add("setAttribute");
   assert.throws(() => text.setAttributes(0, 3, { fontFeatures: [{ tag: 1, value: 1 }] }), /Could not set the attribute: fontFeatures/);
   const features = cores.find((c) => c.kind === "features");
@@ -614,7 +792,7 @@ test("an attribute that Core refuses is an Error, and the temporary features are
 });
 
 test("the text retains typefaces and features, and the caller's wrapper can be disposed after the call", () => {
-  const text = new TMutableText("abc");
+  const text = mutable("abc");
   const face = typeface();
   const given = new FontFeatures([{ tag: 1, value: 1 }]);
 
@@ -636,7 +814,7 @@ test("the text retains typefaces and features, and the caller's wrapper can be d
 });
 
 test("a features list that is given as an array makes one temporary set, and a set that is given is not disposed", () => {
-  const text = new TMutableText("ab");
+  const text = mutable("ab");
   const given = new FontFeatures([{ tag: 1, value: 1 }]);
   calls = [];
   text.setAttributes(0, 2, { fontFeatures: given });
@@ -648,7 +826,7 @@ test("a features list that is given as an array makes one temporary set, and a s
 });
 
 test("reading attributes gives the list back and the references of what was read", () => {
-  const text = new TMutableText("a");
+  const text = mutable("a");
   const face = typeface();
   text.setAttributes(0, 1, { typeface: face });
   const before = refsOf(face);
@@ -662,7 +840,7 @@ test("reading attributes gives the list back and the references of what was read
 });
 
 test("a replacement is stored, read back as a wrapper of its own, and Core keeps it after dispose", () => {
-  const text = new TMutableText("ab");
+  const text = mutable("ab");
   const replacement = new Replacement({ computeRoom: () => ({ ascent: 1, descent: 1, extent: 1 }) }, 1);
   const held = replacement.nativeHandle.core;
   text.setAttributes(0, 2, { replacement });
@@ -684,7 +862,7 @@ test("a replacement is stored, read back as a wrapper of its own, and Core keeps
 
 test("a text remembers that a replacement was ever set, which removing it does not undo (Typesetter.hasReplacements reads it)", () => {
   const flag = (text: unknown) => (text as { mayHaveReplacement?: boolean }).mayHaveReplacement;
-  const text = new TMutableText("ab");
+  const text = mutable("ab");
   assert.notEqual(flag(text), true, "a new text has none");
   text.setAttributes(0, 1, { typeSize: 3 });
   assert.notEqual(flag(text), true, "other attributes do not set it");
@@ -699,7 +877,7 @@ test("a text remembers that a replacement was ever set, which removing it does n
 });
 
 test("an attribute type that the wrapper has no member for is skipped, and its reference is given back", () => {
-  const text = new TMutableText("a");
+  const text = mutable("a");
   const unknown = core("unknown");
   const inner = textOf(text.nativeHandle);
   must(inner.attrs[0]).set(99, unknown);
@@ -711,7 +889,7 @@ test("an attribute type that the wrapper has no member for is skipped, and its r
 });
 
 test("use after dispose throws, and dispose can be repeated", () => {
-  const text = new TMutableText("abc");
+  const text = mutable("abc");
   const copy = text.copy();
   text.dispose();
   text.dispose();
@@ -737,14 +915,14 @@ test("use after dispose throws, and dispose can be repeated", () => {
 
   assert.equal(copy.string, "abc", "a copy lives on");
   const disposedFace = typeface();
-  const live = new TMutableText("a");
+  const live = mutable("a");
   disposedFace.dispose();
   assert.throws(() => live.setAttributes(0, 1, { typeface: disposedFace }), /already disposed/);
   assert.deepEqual(live.getAttributeRun(0), { attributes: {}, length: 1 });
 });
 
 test("user data of 0 and of a token are passed through and read back", () => {
-  const text = new TMutableText("ab");
+  const text = mutable("ab");
   text.setAttributes(0, 1, { userData: 0 });
   text.setAttributes(1, 2, { userData: 7 });
   assert.equal(text.getAttributeRun(0)?.attributes["userData"], 0);

@@ -14,11 +14,11 @@ Status words:
 | manual | Not generated; bound by hand in `cpp/runtime` because the signature has C function pointers, a union or retained callbacks. |
 | excluded | Not bound, with the reason. |
 
-Counts: 320 public functions in 21 headers (`TRSheenBidi.h` has one, `TRTextGetSheenBidiText`). 18 `TR*Release` functions and 2 more are excluded (20); 8 are bound by hand; the other 292 are bound by the generator (the `TR*Retain` functions are internal). Every function has a row. Where several TypeScript members are named, the function serves each of them (a count function serves the list it sizes).
+Counts: 318 public functions in 20 headers (`TRSheenBidi.h` has one, `TRTypesetterGetSheenBidiText`). 17 `TR*Release` functions and 2 more are excluded (19); 9 are bound by hand; the other 290 are bound by the generator (the `TR*Retain` functions are internal). Every function has a row. Where several TypeScript members are named, the function serves each of them (a count function serves the list it sizes).
 
 ## Findings in short
 
-- No public function of Core is missing without a reason. The exclusions are the `Release` functions (a handle releases its single reference), `TRVersionGetString` (declared, never defined) and `TRTextGetSheenBidiText` (needs SheenBidi's experimental text API).
+- No public function of Core is missing without a reason. The exclusions are the `Release` functions (a handle releases its single reference), `TRVersionGetString` (declared, never defined) and `TRTypesetterGetSheenBidiText` (needs SheenBidi's experimental text API).
 - Native-only: the draw callbacks and user data of the renderer and the native data of a glyph image are used by the platform painters, not by JavaScript.
 - Gaps against the siblings are listed in the last section. None is a Core function.
 
@@ -342,31 +342,7 @@ Counts: 320 public functions in 21 headers (`TRSheenBidi.h` has one, `TRTextGetS
 
 | Core function | Status | TypeScript | Notes |
 |---|---|---|---|
-| `TRTextGetSheenBidiText` | excluded | none | Needs SheenBidi's experimental text API (`SB_CONFIG_EXPERIMENTAL_TEXT_API`), which the wrapper does not build. The bidi classes are bound by hand from the classic API instead. |
-
-### TRText.h
-
-| Core function | Status | TypeScript | Notes |
-|---|---|---|---|
-| `TRTextCreate` | bound (constructor) | `new TText(...)` |  |
-| `TRTextCreateCopy` | bound | `TText.copy()` |  |
-| `TRTextCreateMutableCopy` | bound | `TText.mutableCopy()` |  |
-| `TRTextGetEncoding` | bound, unused | none | The text of the wrapper is always UTF-16 (a JavaScript string), so the encoding is a constant (`TRStringEncodingUTF16`). |
-| `TRTextGetLength` | bound | `TText.length` |  |
-| `TRTextGetCodeUnits` | renamed | `TText.getString()` | UTF-16 code units are returned as a string. |
-| `TRTextCopyAttributes` | renamed | `TText.getAttributeRun()` | Returns the attributes with the length they stay the same over. |
-| `TRTextRetain` | bound (internal) | `Holding` (`holding()`) | Reached through `retainHandle`; the wrapper retains a handle while a call uses it. |
-| `TRTextRelease` | excluded | `dispose()` | A handle releases its one reference on `dispose()` or collection; a release from JavaScript would free it twice. |
-| `TRTextCreateMutable` | bound (constructor) | `new TMutableText(...)` |  |
-| `TRTextBeginEditing` | bound | `TMutableText.beginEditing()` |  |
-| `TRTextEndEditing` | bound | `TMutableText.endEditing()` |  |
-| `TRTextAppendCodeUnits` | bound | `TMutableText.append()` |  |
-| `TRTextInsertCodeUnits` | bound | `TMutableText.insert()` |  |
-| `TRTextDeleteCodeUnits` | bound | `TMutableText.delete()` |  |
-| `TRTextSetCodeUnits` | renamed | `TMutableText.setString()` | Takes a string. |
-| `TRTextReplaceCodeUnits` | bound | `TMutableText.replace()` |  |
-| `TRTextSetAttribute` | manual | `TMutableText.setAttributes` | Takes the union `TRAttributeValue`, written by the attribute codec (`cpp/runtime/TextBindings.cpp`). |
-| `TRTextRemoveAttribute` | bound | `TMutableText.removeAttributes()` |  |
+| `TRTypesetterGetSheenBidiText` | excluded | none | Needs SheenBidi's experimental text API (`SB_CONFIG_EXPERIMENTAL_TEXT_API`), which the wrapper does not build. The bidi classes are bound by hand from the classic API instead. |
 
 ### TRTypeface.h
 
@@ -432,14 +408,31 @@ Counts: 320 public functions in 21 headers (`TRSheenBidi.h` has one, `TRTextGetS
 
 | Core function | Status | TypeScript | Notes |
 |---|---|---|---|
-| `TRTypesetterCreate` | manual | `new Typesetter(text, defaultAttributes)` | Takes an array of `TRAttribute`, written by the attribute codec (`cpp/runtime/TextBindings.cpp`). |
-| `TRTypesetterGetCodeUnitCount` | bound | `Typesetter.codeUnitCount` |  |
+| `TRTypesetterCreate` | manual | `new Typesetter(text, defaultAttributes)` | Takes an array of `TRAttribute` (the default attributes), written by the attribute codec (`cpp/runtime/TextBindings.cpp`). The string is always UTF-16. |
+| `TRTypesetterCreateMutable` | manual | `new MutableTypesetter(defaultAttributes)` | Takes an array of `TRAttribute`, like `TRTypesetterCreate`. |
+| `TRTypesetterCreateCopy` | bound | `Typesetter.copy()` | Fails (`Error`) while the source is in an editing batch. |
+| `TRTypesetterCreateMutableCopy` | bound | `Typesetter.mutableCopy()` | Fails (`Error`) while the source is in an editing batch. |
+| `TRTypesetterGetEncoding` | bound, unused | none | The text of the wrapper is always UTF-16 (a JavaScript string), so the encoding is a constant (`TRStringEncodingUTF16`). |
+| `TRTypesetterGetLength` | renamed | `Typesetter.length` |  |
+| `TRTypesetterGetCodeUnits` | renamed | `Typesetter.string`, `Typesetter.getString()` | UTF-16 code units are returned as a string. |
+| `TRTypesetterCopyAttributes` | renamed | `Typesetter.getAttributeRun()` | Returns the attributes with the length they stay the same over. |
+| `TRTypesetterBeginEditing` | bound | `MutableTypesetter.beginEditing()`, `edit()` |  |
+| `TRTypesetterEndEditing` | bound | `MutableTypesetter.endEditing()`, `edit()` |  |
+| `TRTypesetterAppendCodeUnits` | bound | `MutableTypesetter.append()` |  |
+| `TRTypesetterInsertCodeUnits` | bound | `MutableTypesetter.insert()` |  |
+| `TRTypesetterDeleteCodeUnits` | bound | `MutableTypesetter.delete()` |  |
+| `TRTypesetterSetCodeUnits` | renamed | `MutableTypesetter.setString()` | Takes a string. |
+| `TRTypesetterReplaceCodeUnits` | bound | `MutableTypesetter.replace()` |  |
+| `TRTypesetterSetAttribute` | manual | `MutableTypesetter.setAttributes()` | Takes the union `TRAttributeValue`, written by the attribute codec (`cpp/runtime/TextBindings.cpp`). |
+| `TRTypesetterRemoveAttribute` | bound | `MutableTypesetter.removeAttributes()` |  |
 | `TRTypesetterSuggestForwardBreak` | bound | `Typesetter.suggestForwardBreak()` |  |
 | `TRTypesetterSuggestBackwardBreak` | bound | `Typesetter.suggestBackwardBreak()` |  |
 | `TRTypesetterCreateSimpleLine` | bound | `Typesetter.createSimpleLine()` |  |
 | `TRTypesetterCreateTruncationToken` | bound | `Typesetter.createTruncationToken()` |  |
 | `TRTypesetterCreateTruncatedLine` | bound | `Typesetter.createTruncatedLine()` |  |
 | `TRTypesetterCreateJustifiedLine` | bound | `Typesetter.createJustifiedLine()` |  |
+| `TRTypesetterFindBoundary` | bound | `Typesetter.findBoundary()` | `TRInvalidIndex` is `undefined`. |
+| `TRTypesetterGetBoundaryRange` | bound | `Typesetter.getBoundaryRange()` | A range that starts at `TRInvalidIndex` is `undefined`; the range is `{ startIndex, endIndex }`. |
 | `TRTypesetterRetain` | bound (internal) | `Holding` (`holding()`) | Reached through `retainHandle`; the wrapper retains a handle while a call uses it. |
 | `TRTypesetterRelease` | excluded | `dispose()` | A handle releases its one reference on `dispose()` or collection; a release from JavaScript would free it twice. |
 
@@ -464,7 +457,7 @@ The TypeScript API follows Tehreer-Web name for name where the platform allows, 
 | Pooled objects | `Retain` / `Release` | `dispose()` | finalizer | `deinit` | `dispose()` or collection (same as Web) |
 | Variation and color instance | `TRTypefaceCreateWithVariation`, `...WithColors` | `getVariationInstance`, `getColorInstance` | same | `variationInstance(forCoordinates:)`, `colorInstance(forColors:)` | same as Web |
 | Enumerations with callbacks | `...Enumerate...` | arrays | arrays | arrays | arrays (`getSelectionRects`, `getVisualEdges`, `findLines`, `getAvailableTypefaces`, `getAvailableFamilies`) |
-| Text content | code units, encoding | `TText.string`, `getString` | `TText` | `TText` | `TText.string`, `getString`; always UTF-16 |
+| Text content | code units, encoding | `Typesetter.string`, `getString` | `Typesetter.string`, `getString` | `Typesetter` | `Typesetter.string`, `getString`; always UTF-16 |
 | Attributes | `TRAttribute` | `TextAttributes` objects | spans (`TypefaceSpan`, `TypeSizeSpan`, ...) | `NSAttributedString` keys | `TextAttributes` objects (same as Web) |
 | Inline objects | `TRReplacement` | `ReplacementDelegate`, `Replacement` | `ReplacementHolder`, `ViewSpan` | `TextReplacement` | `ReplacementDelegate`, `Replacement` (same as Web) |
 | Drawing target | `TRDrawCallbacks` | `DrawingContext` (canvas, SVG) | `Canvas` | `CGContext` | `DrawingContext` implemented by `Canvas` and `CGContext` painters |
@@ -483,5 +476,5 @@ None of them is a Core function. Each is a decision for the owner, not a bug.
 2. **`toSvg` on `ComposedFrame`, `ComposedLine`, `GlyphRun` (Web), `Path.toPath2D`, `GlyphImage.toRgba`, `FontFile.fromUrl`.** Web-only by nature (SVG output, `Path2D`, `Uint8ClampedArray` for canvas, `fetch`). `Path.toSvgPathData` exists. `FontFile.fromAsset` and `fromPath` replace `fromUrl`.
 3. **`GlyphImage.adopting` / `retaining` (Web) and similar statics.** Here the constructor with the `adopt` token is `@internal`; no public equivalent is needed because JavaScript cannot hold a raw Core pointer.
 4. **SFNT table readers (Android `sfnt/tables`: `head`, `hhea`, `maxp`, `name`, `OS/2`, `post`; Cocoa `SFNT/Tables`).** Neither Web nor this wrapper has them. `Typeface.getTableSize` and `getTableData` return the raw bytes, so an application can parse a table. Core has no table API.
-5. **Four bound functions have no TypeScript caller, by design.** The three `bound, unused` rows (`TRShapingEngineGetTypeface`, `TRShapingEngineGetOpenTypeFeaturesPtr`, `TRShapingEngineGetOpenTypeFeatureCount`) and `TRTextGetEncoding` are deliberate: the getters of `ShapingEngine` return what was set because a Core handle cannot give back the wrapper object.
+5. **Four bound functions have no TypeScript caller, by design.** The three `bound, unused` rows (`TRShapingEngineGetTypeface`, `TRShapingEngineGetOpenTypeFeaturesPtr`, `TRShapingEngineGetOpenTypeFeatureCount`) and `TRTypesetterGetEncoding` are deliberate: the getters of `ShapingEngine` return what was set because a Core handle cannot give back the wrapper object.
 6. **TSDoc of generated enumerations.** The members of `BidiClass`, `GeneralCategory` and `Script` (`src/unicode/enums.ts`) have no per-member comment; the file is written by `scripts/generate-unicode-enums.mjs` and the constants carry their Unicode names. The declarations themselves are documented.

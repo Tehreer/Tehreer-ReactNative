@@ -1,14 +1,14 @@
-import type { TText } from "../layout/TText.js";
+import type { Typesetter } from "../layout/Typesetter.js";
 
-/** A run of an attributed text that has a `userData`, which is what the views treat as a link. */
+/** A run of the text of a typesetter that has a `userData`, which is what the views treat as a link. */
 export interface Link {
   readonly userData: number;
   readonly fromIndex: number;
   readonly toIndex: number;
 }
 
-/** Finds the runs of an attributed text that have a `userData`, as Tehreer-Web does. */
-export function findLinks(text: TText | undefined): Link[] {
+/** Finds the runs of a typesetter that have a `userData`, as Tehreer-Web does. */
+export function findLinks(text: Typesetter | undefined): Link[] {
   const links: Link[] = [];
   if (text === undefined) {
     return links;

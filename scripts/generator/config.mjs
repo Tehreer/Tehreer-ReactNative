@@ -16,7 +16,7 @@
 // declared by a header, and every entry says why, so a stale entry fails the generator.
 
 /** Declared by Core but not implemented, or needing the headers of another library. */
-export const EXCLUDED = new Set(["TRVersionGetString", "TRTextGetSheenBidiText"]);
+export const EXCLUDED = new Set(["TRVersionGetString", "TRTypesetterGetSheenBidiText"]);
 
 /**
  * Functions whose signature is a native concern, not a binding: they carry C function pointers
@@ -31,8 +31,9 @@ export const MANUAL = new Map([
   ["TRGlyphImageGetNativeData", "returns the platform object that the native painter attached"],
   ["TRGlyphImageSetNativeData", "takes a platform object and a C destroy function"],
   ["TRReplacementCreate", "keeps C callbacks and userData after the call, so they need the handler table"],
-  ["TRTextSetAttribute", "takes the union TRAttributeValue, which the attribute codec writes"],
-  ["TRTypesetterCreate", "takes an array of TRAttribute, which the attribute codec writes"],
+  ["TRTypesetterSetAttribute", "takes the union TRAttributeValue, which the attribute codec writes"],
+  ["TRTypesetterCreate", "takes an array of TRAttribute (the default attributes), which the attribute codec writes"],
+  ["TRTypesetterCreateMutable", "takes an array of TRAttribute (the default attributes), which the attribute codec writes"],
 ]);
 
 /**
@@ -91,5 +92,5 @@ export const SCALAR_OUTS = {
   TRGlyphRunGetDecorationColor: ["decorationColor"],
   TRLineLocatorGetLineBox: ["box"],
   TRReplacementComputeRoom: ["room"],
-  TRTextCopyAttributes: ["outLength"],
+  TRTypesetterCopyAttributes: ["outLength"],
 };

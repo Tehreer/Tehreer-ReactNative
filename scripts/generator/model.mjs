@@ -407,7 +407,7 @@ export function buildModel(headers, config) {
 
   /**
    * The count of a buffer is the first count after it. A `void *` buffer, which is text or bytes,
-   * may also have it before, as in `TRTextGetCodeUnits(text, index, length, buffer)`.
+   * may also have it before, as in `TRTypesetterGetCodeUnits(typesetter, index, length, buffer)`.
    */
   function counterOf(params, descriptors, index, pattern, mayPrecede) {
     const isCount = (j) => pattern.test(params[j].name) && descriptors[j].k === "number";
@@ -424,8 +424,8 @@ export function buildModel(headers, config) {
     if (encoding) return `marshal::CodeUnitSize({${encoding.name}})`;
 
     const first = params[0];
-    if (first && !first.type.function && first.type.pointer === 0 && ["TRTextRef", "TRMutableTextRef"].includes(first.type.base)) {
-      return `marshal::CodeUnitSize(TRTextGetEncoding({${first.name}}))`;
+    if (first && !first.type.function && first.type.pointer === 0 && ["TRTypesetterRef", "TRMutableTypesetterRef"].includes(first.type.base)) {
+      return `marshal::CodeUnitSize(TRTypesetterGetEncoding({${first.name}}))`;
     }
     return fail(where, `the size of a code unit is unknown: "${counter}" counts units but the function has no encoding and no text`);
   }

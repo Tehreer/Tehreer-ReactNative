@@ -3,33 +3,28 @@ import type { DrawStyle, StrokeCap, StrokeJoin } from "../graphics/enums.js";
 import type { Typeface } from "../graphics/Typeface.js";
 import { BreakMode, TextAlignment, TruncationPlace } from "../layout/enums.js";
 import type { Typesetter } from "../layout/Typesetter.js";
-import type { TText } from "../layout/TText.js";
 
 /** A color as `#rgb`, `#rrggbb` or `#aarrggbb` text (as `Color.parse()` reads it), or as an `0xAARRGGBB` number. */
 export type ColorValue = string | number;
 
-/** Where the text of a view comes from. A typesetter wins over an attributed text, which wins over a plain string. */
+/** Where the text of a view comes from. A typesetter wins over a plain string. */
 export interface TextSource {
   /**
-   * A typesetter, which is preferred as it avoids making one; it stays owned by the caller, who keeps
-   * it alive while it is shown. It must hold no replacement: the native side cannot call JavaScript,
-   * so one in it would get a room of zero when the view lays the text out. The view refuses such a
-   * typesetter with an `Error` (a text remembers that a replacement was set on it, so this costs
-   * nothing); give a text with replacements as `attributedText`, and the view makes the replacements
-   * itself. `typeface` and `textSize` are not used with it.
+   * A typesetter, which holds the text with its attributes and its own default attributes, so
+   * `typeface` and `textSize` are not used with it. It stays owned by the caller, who keeps it alive
+   * while it is shown. A replacement set on the ranges of its text takes its room from its delegate
+   * when the view is laid out for the first time and again when the width of the view changes a
+   * room, and is drawn from the rectangles that its `draw` fills (the native side cannot call
+   * JavaScript, so nothing else is drawn): the view makes a copy that has the replacements it can
+   * lay out on any thread, and leaves the typesetter as it is. A typesetter whose default
+   * attributes hold a replacement is refused with an `Error`, since Core cannot change defaults.
+   * The view reads it when the property changes identity, and takes a copy of a
+   * `MutableTypesetter` when it reads it: pass `typesetter.copy()` (or the mutable typesetter again
+   * as a new object) to show an edit.
    */
   readonly typesetter?: Typesetter;
   /** Plain text, which is shown in `typeface` at `textSize`. */
   readonly text?: string;
-  /**
-   * Text with attributes. `typeface` and `textSize` are used where it sets none. A replacement in it
-   * takes its room from its delegate when the view is laid out for the first time and again when the
-   * width of the view changes a room, and is drawn from the rectangles that its `draw` fills (the
-   * native side cannot call JavaScript, so nothing else is drawn). The view reads the text when this
-   * property changes identity, so pass a new object (for example `text.copy()`) after editing a
-   * `TMutableText`.
-   */
-  readonly attributedText?: TText;
 }
 
 /** How text is drawn, which the views keep in a renderer. */

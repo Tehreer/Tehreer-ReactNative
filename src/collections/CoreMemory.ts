@@ -13,7 +13,7 @@ export interface MemoryState {
 
 /**
  * Asks Core for the pointer and the count again. Required for an owner that Core lets change (a
- * shaping engine, a mutable text, ...): see {@link CoreMemory}.
+ * shaping engine, a mutable typesetter, ...): see {@link CoreMemory}.
  *
  * @internal
  */

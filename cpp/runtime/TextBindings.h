@@ -5,7 +5,7 @@
 namespace tehreer {
 
 /**
- * Binds `TRTextSetAttribute` and `TRTypesetterCreate`, the functions that the generator leaves out
+ * Binds `TRTypesetterSetAttribute`, `TRTypesetterCreate` and `TRTypesetterCreateMutable`, the functions that the generator leaves out
  * (see `MANUAL` in its config) because they take the union `TRAttributeValue`, which the codec of
  * `TRAttribute` in `StructCodecs.cpp` writes from the `{ type, value }` object.
  */

@@ -132,8 +132,8 @@ enum class Ownership {
 
 /**
  * Describes an object reference type. Handles.h specialises it for every reference type of Core.
- * \`kGroup\` is the same for the types that share one object (\`TRTextRef\` and
- * \`TRMutableTextRef\`), so that a handle is accepted for either. \`kMutable\` is false for a
+ * \`kGroup\` is the same for the types that share one object (\`TRTypesetterRef\` and
+ * \`TRMutableTypesetterRef\`), so that a handle is accepted for either. \`kMutable\` is false for a
  * \`const\` reference type. A handle remembers the \`kMutable\` of the type it was made from, and
  * \`ToHandle<Ref>\` refuses a handle that was made from a \`const\` type when \`Ref::kMutable\`,
  * since Core documents those objects as immutable; a mutable handle is accepted for either type.

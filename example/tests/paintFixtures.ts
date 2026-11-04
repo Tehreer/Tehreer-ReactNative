@@ -8,8 +8,7 @@ import type { ComposedFrame } from '../../src/layout/ComposedFrame';
 import { ReplacementKind } from '../../src/layout/enums';
 import { FrameResolver } from '../../src/layout/FrameResolver';
 import { Replacement } from '../../src/layout/Replacement';
-import { TMutableText } from '../../src/layout/TMutableText';
-import { Typesetter } from '../../src/layout/Typesetter';
+import { MutableTypesetter } from '../../src/layout/MutableTypesetter';
 import { colorFontBytes, fontBytes, nastaliqFontBytes } from './fontData';
 
 // The frames that the painter tests and the visual check draw with the native painters. Fonts are
@@ -76,7 +75,10 @@ function boxDelegate(ascent: number, descent: number, extent: number, color: num
 }
 
 export function buildScene(scene: Scene, faces: Faces, renderScale = 1): BuiltScene {
-  const text = new TMutableText(scene.text);
+  // The attributes are set in one batch, so each paragraph is shaped once.
+  const text = new MutableTypesetter();
+  text.beginEditing();
+  text.append(scene.text);
   text.setAttributes(0, scene.text.length, { typeface: faces[scene.face], typeSize: scene.size });
   for (const [from, to, attributes] of scene.attributes ?? []) {
     text.setAttributes(from, to, attributes);
@@ -88,7 +90,8 @@ export function buildScene(scene: Scene, faces: Faces, renderScale = 1): BuiltSc
     text.setAttributes(from, to, { replacement });
   }
 
-  const typesetter = new Typesetter(text);
+  text.endEditing();
+  const typesetter = text.copy();
   const resolver = new FrameResolver();
   resolver.typesetter = typesetter;
   resolver.frameWidth = scene.width;

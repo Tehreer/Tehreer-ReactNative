@@ -8,7 +8,7 @@ import type * as Library from '../../src/index';
 // one of the two.
 
 type Lib = Pick<typeof Library, 'BreakMode' | 'FrameResolver' | 'LineLocator' | 'Renderer' | 'Replacement'
-  | 'ReplacementKind' | 'TextAlignment' | 'TMutableText' | 'TruncationPlace' | 'Typesetter' | 'VerticalAlignment'>;
+  | 'ReplacementKind' | 'TextAlignment' | 'MutableTypesetter' | 'TruncationPlace' | 'Typesetter' | 'VerticalAlignment'>;
 
 export interface Faces {
   readonly roboto: Library.Typeface;
@@ -115,7 +115,10 @@ function describeLine(line: Library.ComposedLine): unknown {
 
 export function measure(lib: Lib, faces: Faces, scenario: FrameScenario): unknown {
   const face = (name: 'roboto' | 'nastaliq') => faces[name];
-  const text = new lib.TMutableText(scenario.text);
+  // The attributes are set in one batch, so each paragraph is shaped once.
+  const text = new lib.MutableTypesetter();
+  text.beginEditing();
+  text.append(scenario.text);
   text.setAttributes(0, scenario.text.length, { typeface: face(scenario.face), typeSize: scenario.size });
   for (const [from, to, name] of scenario.parts ?? []) {
     text.setAttributes(from, to, { typeface: face(name) });
@@ -132,7 +135,8 @@ export function measure(lib: Lib, faces: Faces, scenario: FrameScenario): unknow
     text.setAttributes(from, to, { replacement });
   }
 
-  const typesetter = new lib.Typesetter(text);
+  text.endEditing();
+  const typesetter = text.copy();
   const resolver = new lib.FrameResolver();
   resolver.typesetter = typesetter;
   resolver.frameWidth = scenario.width;
@@ -193,7 +197,7 @@ export function measureTypesetter(lib: Lib, faces: Faces): unknown {
   const custom = typesetter.createTruncationToken(0, end, lib.TruncationPlace.End, 'bb');
   const short = typesetter.createSimpleLine(0, 7);
   const data: Record<string, unknown> = {
-    count: typesetter.codeUnitCount,
+    count: typesetter.length,
     forward: modes.map((mode) => [20, 60, 1000].map((extent) => typesetter.suggestForwardBreak(0, end, extent, mode))),
     backward: modes.map((mode) => [20, 60, 1000].map((extent) => typesetter.suggestBackwardBreak(0, end, extent, mode))),
     forwardFrom: typesetter.suggestForwardBreak(4, end, 60, lib.BreakMode.Line),

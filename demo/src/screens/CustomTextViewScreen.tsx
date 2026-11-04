@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import { Color, TMutableText, TTextView, TextAlignment, initialize } from 'tehreer-react-native';
+import { Color, MutableTypesetter, TTextView, TextAlignment, initialize } from 'tehreer-react-native';
+import type { Typeface, Typesetter } from 'tehreer-react-native';
 import { QURAN_FONT } from '../fonts/fonts';
 import { useTypeface } from '../hooks/useTypeface';
 import { SURAH, SURAH_TITLE } from '../data/surah';
@@ -18,36 +19,44 @@ const MAX_TEXT_SIZE = 64;
 const DEFAULT_TEXT_SIZE = 36;
 
 interface Surah {
-  readonly text: TMutableText;
+  readonly text: Typesetter;
   readonly ranges: readonly { fromIndex: number; toIndex: number }[];
 }
 
 /**
  * The verses one after another, as the Android demo makes them: a line break after the first verse
- * and two spaces after the others, with the colors of their words applied in order.
+ * and two spaces after the others, with the colors of their words applied in order. The typeface and
+ * the size are the defaults of the typesetter, so it is made again when either changes; the edits are
+ * one batch, so each paragraph is shaped once, and the view gets an immutable copy.
  */
-function makeSurah(): Surah & { dispose(): void } {
+function makeSurah(typeface: Typeface, typeSize: number): Surah & { dispose(): void } {
   initialize();
   const ranges: { fromIndex: number; toIndex: number }[] = [];
-  const text = new TMutableText('');
-  SURAH.forEach((ayah, index) => {
-    const offset = text.length;
-    text.append(ayah.text);
-    ranges.push({ fromIndex: offset, toIndex: offset + ayah.text.length });
-    for (const attribute of ayah.attributes) {
-      text.setAttributes(offset + attribute.start, offset + attribute.end, { foregroundColor: Color.parse(`#${attribute.color}`) });
-    }
-    text.append(index === 0 ? '\n' : '  ');
-  });
-  return { text, ranges, dispose: () => text.dispose() };
+  const editable = new MutableTypesetter({ typeface, typeSize });
+  try {
+    editable.edit((editing) => {
+      SURAH.forEach((ayah, index) => {
+        const offset = editing.length;
+        editing.append(ayah.text);
+        ranges.push({ fromIndex: offset, toIndex: offset + ayah.text.length });
+        for (const attribute of ayah.attributes) {
+          editing.setAttributes(offset + attribute.start, offset + attribute.end, { foregroundColor: Color.parse(`#${attribute.color}`) });
+        }
+        editing.append(index === 0 ? '\n' : '  ');
+      });
+    });
+    const text = editable.copy();
+    return { text, ranges, dispose: () => text.dispose() };
+  } finally {
+    editable.dispose();
+  }
 }
 
 export function CustomTextViewScreen({ onBack }: { onBack: () => void }) {
   const { typeface, error } = useTypeface(QURAN_FONT.id);
-  const surah = useOwned(makeSurah, []);
-  const shown = useOwned(() => surah?.text.copy(), [surah]);
   const [size, setSize] = useState(DEFAULT_TEXT_SIZE);
   const [applied, setApplied] = useState(DEFAULT_TEXT_SIZE);
+  const surah = useOwned(() => (typeface === undefined ? undefined : makeSurah(typeface, applied)), [typeface, applied]);
   const [selected, setSelected] = useState<number | undefined>();
 
   const highlights = useMemo(() => {
@@ -70,9 +79,9 @@ export function CustomTextViewScreen({ onBack }: { onBack: () => void }) {
       </Card>
       <Section style={styles.surah} title={SURAH_TITLE}>
         {error !== undefined && <Message tone="error">{`Could not load the typeface: ${error.message}`}</Message>}
-        {typeface !== undefined && shown !== undefined && (
+        {typeface !== undefined && surah !== undefined && (
           <TTextView
-            attributedText={shown}
+            typesetter={surah.text}
             contentInset={{ top: 4, left: 12, right: 12, bottom: 8 }}
             highlights={highlights}
             isJustificationEnabled
@@ -86,8 +95,6 @@ export function CustomTextViewScreen({ onBack }: { onBack: () => void }) {
             testID="surahView"
             textAlignment={TextAlignment.Center}
             textColor="#111A14"
-            textSize={applied}
-            typeface={typeface}
           />
         )}
       </Section>

@@ -168,51 +168,51 @@ const tests: [string, (b: NativeBindings) => void][] = [
   }],
 
   ['an immutable handle is refused where a mutable one is needed', (b) => {
-    const text = b.TRTextCreate(new Uint16Array([0x61, 0x62, 0x63]), 3, 1) as Handle<'TRText'>;
-    check(b.TRTextGetLength(text) === 3, 'a const reference works for reads');
-    expectThrows(() => b.TRTextBeginEditing(text as unknown as Handle<'TRText'>), /'text' is immutable/);
+    const text = b.TRTypesetterCreate(new Uint16Array([0x61, 0x62, 0x63]), 3, 1, undefined) as Handle<'TRTypesetter'>;
+    check(b.TRTypesetterGetLength(text) === 3, 'a const reference works for reads');
+    expectThrows(() => b.TRTypesetterBeginEditing(text as unknown as Handle<'TRTypesetter'>), /'text' is immutable/);
     b.disposeHandle(text);
   }],
 
   ['a mutable handle is accepted for const and mutable parameters, and shares its group', (b) => {
-    const mutable = b.TRTextCreateMutable(1) as Handle<'TRText'>;
-    check(b.TRTextGetLength(mutable) === 0, 'read through the const type');
-    b.TRTextBeginEditing(mutable);
-    b.TRTextEndEditing(mutable);
+    const mutable = b.TRTypesetterCreateMutable(1, undefined) as Handle<'TRTypesetter'>;
+    check(b.TRTypesetterGetLength(mutable) === 0, 'read through the const type');
+    b.TRTypesetterBeginEditing(mutable);
+    b.TRTypesetterEndEditing(mutable);
 
     // The retain binding takes and returns the const type: the new handle is immutable, but it is the same object.
-    const readOnly = b.TRTextRetain(mutable) as Handle<'TRText'>;
+    const readOnly = b.TRTypesetterRetain(mutable) as Handle<'TRTypesetter'>;
     check(b.handleEquals(mutable, readOnly), 'the mutable and the const handle are one object');
-    expectThrows(() => b.TRTextBeginEditing(readOnly), /immutable/);
+    expectThrows(() => b.TRTypesetterBeginEditing(readOnly), /immutable/);
 
     // A copy is another object.
-    const copy = b.TRTextCreateMutableCopy(mutable) as Handle<'TRText'>;
+    const copy = b.TRTypesetterCreateMutableCopy(mutable) as Handle<'TRTypesetter'>;
     check(!b.handleEquals(mutable, copy), 'a copy is another object');
-    b.TRTextBeginEditing(copy);
-    b.TRTextEndEditing(copy);
+    b.TRTypesetterBeginEditing(copy);
+    b.TRTypesetterEndEditing(copy);
     for (const handle of [mutable, readOnly, copy]) b.disposeHandle(handle);
   }],
 
   ['typed arrays and DataViews are accepted as buffers, other objects are not', (b) => {
     const fake = { buffer: new ArrayBuffer(8), byteOffset: 0, byteLength: 8 };
-    const text = b.TRTextCreate(new Uint16Array(new ArrayBuffer(8), 2, 2), 2, 1) as Handle<'TRText'>;
-    check(b.TRTextGetLength(text) === 2, 'a typed array with an offset');
+    const text = b.TRTypesetterCreate(new Uint16Array(new ArrayBuffer(8), 2, 2), 2, 1, undefined) as Handle<'TRTypesetter'>;
+    check(b.TRTypesetterGetLength(text) === 2, 'a typed array with an offset');
     b.disposeHandle(text);
-    const viewed = b.TRTextCreate(new DataView(new ArrayBuffer(8)), 4, 0) as Handle<'TRText'>;
-    check(b.TRTextGetLength(viewed) === 4, 'a DataView');
+    const viewed = b.TRTypesetterCreate(new DataView(new ArrayBuffer(8)), 4, 0, undefined) as Handle<'TRTypesetter'>;
+    check(b.TRTypesetterGetLength(viewed) === 4, 'a DataView');
     b.disposeHandle(viewed);
-    expectThrows(() => b.TRTextCreate(fake as unknown as ArrayBuffer, 4, 0), /must be an ArrayBuffer or a typed array/);
-    expectThrows(() => b.TRTextCreate(new Proxy(new Uint8Array(4), {}) as unknown as Uint8Array, 4, 0), /must be an ArrayBuffer or a typed array/);
-    expectThrows(() => b.TRTextCreate(new Uint8Array(2), 4, 0), /too small/, 'RangeError');
+    expectThrows(() => b.TRTypesetterCreate(fake as unknown as ArrayBuffer, 4, 0, undefined), /must be an ArrayBuffer or a typed array/);
+    expectThrows(() => b.TRTypesetterCreate(new Proxy(new Uint8Array(4), {}) as unknown as Uint8Array, 4, 0, undefined), /must be an ArrayBuffer or a typed array/);
+    expectThrows(() => b.TRTypesetterCreate(new Uint8Array(2), 4, 0, undefined), /too small/, 'RangeError');
   }],
 
   ['a getter on a view cannot run during the conversion', (b) => {
     const view = new Uint8Array(4);
     let ran = false;
     Object.defineProperty(view, 'buffer', { get() { ran = true; return new ArrayBuffer(0); } });
-    const text = b.TRTextCreate(view, 4, 0) as Handle<'TRText'>;
+    const text = b.TRTypesetterCreate(view, 4, 0, undefined) as Handle<'TRTypesetter'>;
     check(!ran, 'the own getter ran');
-    check(b.TRTextGetLength(text) === 4, 'the real buffer was used');
+    check(b.TRTypesetterGetLength(text) === 4, 'the real buffer was used');
     b.disposeHandle(text);
   }],
 

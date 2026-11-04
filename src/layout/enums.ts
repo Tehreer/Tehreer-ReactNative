@@ -60,3 +60,25 @@ export const ReplacementKind = {
 } as const;
 
 export type ReplacementKind = (typeof ReplacementKind)[keyof typeof ReplacementKind];
+
+/** The kinds of boundaries that a text can be searched for. */
+export const BoundaryType = {
+  /** Between two grapheme clusters. */
+  Grapheme: 0,
+  /** Between two word segments, which are words, spaces or punctuations. */
+  Word: 1,
+  /** Between two paragraphs, which end with their separator. */
+  Paragraph: 2,
+} as const;
+
+export type BoundaryType = (typeof BoundaryType)[keyof typeof BoundaryType];
+
+/** The direction of searching for a boundary. */
+export const BoundaryDirection = {
+  /** The last boundary before an index. */
+  Backward: 0,
+  /** The first boundary after an index. */
+  Forward: 1,
+} as const;
+
+export type BoundaryDirection = (typeof BoundaryDirection)[keyof typeof BoundaryDirection];

@@ -8,7 +8,7 @@ import { toNativeRenderer } from '../../src/views/shared';
 import { FrameResolver } from '../../src/layout/FrameResolver';
 import { Replacement } from '../../src/layout/Replacement';
 import { ReplacementKind } from '../../src/layout/enums';
-import { TMutableText } from '../../src/layout/TMutableText';
+import { MutableTypesetter } from '../../src/layout/MutableTypesetter';
 import { Typesetter } from '../../src/layout/Typesetter';
 import { ViewTypesetter } from '../../src/views/ViewTypesetter';
 import { fontBytes, nastaliqFontBytes } from './fontData';
@@ -76,6 +76,19 @@ function chip(extent: number, log: number[] = []) {
   };
 }
 
+/** A mutable typesetter of `text` in the typeface, with a replacement on its first code unit. A delegate that fails does so here, while Core shapes. */
+function withReplacement(typeface: Typeface, text: string, replacement: Replacement): MutableTypesetter {
+  const made = new MutableTypesetter({ typeface, typeSize: 16 });
+  made.append(text);
+  try {
+    made.setAttributes(0, 1, { replacement });
+  } catch (error) {
+    made.dispose();
+    throw error;
+  }
+  return made;
+}
+
 type Test = [name: string, body: (b: NativeBindings) => void];
 
 const tests: Test[] = [
@@ -84,14 +97,24 @@ const tests: Test[] = [
     const typeface = makeTypeface(b, fontBytes);
     const plain = create({ text: 'hello', typeface, textSize: 16 }, 0);
     check(plain.id > 0 && !plain.hasReplacements, 'plain text has an id and no replacement');
-    const attributed = new TMutableText('abc');
+    const attributed = new MutableTypesetter({ typeface, typeSize: 16 });
+    attributed.append('abc');
     attributed.setAttributes(0, 1, { typeSize: 30 });
-    const second = create({ attributedText: attributed, typeface, textSize: 16 }, 0);
+    const second = create({ typesetter: attributed, textSize: 16 }, 0);
     check(second.id !== plain.id, 'ids differ');
     check(counts(b).typesetters === before.typesetters + 2, 'both are registered');
-    // The typesetter copied the text, so editing the original later changes nothing.
+    // A mutable typesetter is copied (the copy shares its shaping), so editing it later changes nothing.
     attributed.append('d');
-    check(second.typesetter.codeUnitCount === 3, 'the typesetter has the text it was made from');
+    check(second.typesetter.length === 3 && second.typesetter !== attributed, 'the typesetter has the text it was made from');
+
+    // An immutable typesetter of the caller is used as it is, and stays the caller's.
+    const given = attributed.copy();
+    const third = create({ typesetter: given, textSize: 16 }, 0);
+    check(third.typesetter === given && third.id !== second.id, 'a given typesetter is used as it is');
+    third.dispose();
+    check(!given.isDisposed && given.length === 4, 'and not disposed with the view typesetter');
+    given.dispose();
+
     attributed.dispose();
     plain.dispose();
     plain.dispose();
@@ -103,7 +126,7 @@ const tests: Test[] = [
   ['an empty text and a text without a typeface give a typesetter that lays out nothing', (b) => {
     const face = makeTypeface(b, fontBytes);
     const empty = create({ text: '', typeface: face, textSize: 16 }, 0);
-    check(empty.typesetter.codeUnitCount === 0, 'empty text');
+    check(empty.typesetter.length === 0, 'empty text');
     empty.dispose();
     face.dispose();
     check(ViewTypesetter.create({ text: 'x', textSize: 16 }, 0) === undefined, 'a plain text without a typeface shows nothing, as in the other wrappers');
@@ -114,13 +137,17 @@ const tests: Test[] = [
     const typeface = makeTypeface(b, fontBytes);
     const delegate = chip(40);
     const original = new Replacement(delegate, ReplacementKind.Inline);
-    const text = new TMutableText('a￼b');
+    const text = new MutableTypesetter({ typeface, typeSize: 16 });
+    text.append('a￼b');
+    // Core shapes the replacement as it is set, which asks the delegate once with a layout width of 0.
     text.setAttributes(1, 2, { replacement: original });
+    const asked = delegate.log.length;
     const before = counts(b);
 
-    const made = create({ attributedText: text, typeface, textSize: 16 }, 123);
+    const made = create({ typesetter: text, textSize: 16 }, 123);
     check(made.hasReplacements, 'it knows about the replacement');
-    check(delegate.log.length === 1 && delegate.log[0] === 123, `computeRoom is asked once with the layout width, got ${JSON.stringify(delegate.log)}`);
+    check(delegate.log.length === asked + 1 && delegate.log[asked] === 123, `computeRoom is asked once more with the layout width, got ${JSON.stringify(delegate.log)}`);
+    check(text.getAttributeRun(1)?.attributes.replacement !== undefined, 'the typesetter of the caller keeps the replacement of the author');
     check(counts(b).replacements === before.replacements + 1, 'one holder is alive');
     check(!made.roomsDifferAt(200) && delegate.log[delegate.log.length - 1] === 200, 'rooms are compared by asking again');
 
@@ -134,9 +161,8 @@ const tests: Test[] = [
   ['a delegate whose room depends on the width makes roomsDifferAt true', (b) => {
     const typeface = makeTypeface(b, fontBytes);
     const original = new Replacement({ computeRoom: (w) => ({ ascent: 5, descent: 1, extent: w / 2 }) }, ReplacementKind.Block);
-    const text = new TMutableText('￼');
-    text.setAttributes(0, 1, { replacement: original });
-    const made = create({ attributedText: text, typeface, textSize: 16 }, 100);
+    const text = withReplacement(typeface, '￼', original);
+    const made = create({ typesetter: text, textSize: 16 }, 100);
     check(made.roomsDifferAt(300), 'a block that takes half the width differs at another width');
     check(!made.roomsDifferAt(100), 'and not at the same one');
     made.dispose();
@@ -159,9 +185,10 @@ const tests: Test[] = [
       check(other.extent === 40 && other.ascent === 12, `off-thread room ${JSON.stringify(other)}`);
     }
 
-    const text = new TMutableText('ab￼cd');
+    const text = new MutableTypesetter({ typeface, typeSize: 20 });
+    text.append('ab￼cd');
     text.setAttributes(2, 3, { replacement });
-    const typesetter = new Typesetter(text, { typeface, typeSize: 20 });
+    const typesetter = text.copy();
     const resolver = new FrameResolver();
     resolver.typesetter = typesetter;
     resolver.frameWidth = 1000;
@@ -199,21 +226,27 @@ const tests: Test[] = [
       computeRoom: () => ({ ascent: 1, descent: 1, extent: 10 }),
       draw: (context) => context.drawGlyphImage(undefined as never, 0, 0, 1, 1, 0, undefined),
     });
-    const t1 = new TMutableText('￼');
-    t1.setAttributes(0, 1, { replacement: drawsImage });
-    expectThrows(() => ViewTypesetter.create({ attributedText: t1, typeface, textSize: 16 }, 0), 'Error', /fill rectangles only/);
+    const t1 = withReplacement(typeface, '￼', drawsImage);
+    expectThrows(() => ViewTypesetter.create({ typesetter: t1, textSize: 16 }, 0), 'Error', /fill rectangles only/);
 
+    // These fail where Core shapes the replacement, when it is set, so no view typesetter is reached.
     const bad = new Replacement({ computeRoom: () => ({ ascent: -1, descent: 1, extent: 10 }) });
-    const t2 = new TMutableText('￼');
-    t2.setAttributes(0, 1, { replacement: bad });
-    expectThrows(() => ViewTypesetter.create({ attributedText: t2, typeface, textSize: 16 }, 0), 'RangeError');
+    expectThrows(() => withReplacement(typeface, '￼', bad), 'RangeError');
 
     const throwing = new Replacement({ computeRoom: () => { throw new TypeError('delegate failed'); } });
-    const t3 = new TMutableText('￼');
-    t3.setAttributes(0, 1, { replacement: throwing });
-    expectThrows(() => ViewTypesetter.create({ attributedText: t3, typeface, textSize: 16 }, 0), 'TypeError', /delegate failed/);
+    expectThrows(() => withReplacement(typeface, '￼', throwing), 'TypeError', /delegate failed/);
 
-    for (const object of [t1, t2, t3, drawsImage, bad, throwing, typeface]) {
+    // A delegate that fails only for the width of the view fails the view typesetter.
+    const late = new Replacement({ computeRoom: (width) => { if (width > 0) { throw new TypeError('late failure'); } return { ascent: 1, descent: 1, extent: 10 }; } });
+    const t4 = withReplacement(typeface, '￼', late);
+    expectThrows(() => ViewTypesetter.create({ typesetter: t4, textSize: 16 }, 50), 'TypeError', /late failure/);
+
+    // A typesetter whose defaults hold a replacement cannot be replaced by a holder.
+    const inDefaults = new Replacement({ computeRoom: () => ({ ascent: 1, descent: 1, extent: 10 }) });
+    const t5 = new Typesetter('￼', { typeface, typeSize: 16, replacement: inDefaults });
+    expectThrows(() => ViewTypesetter.create({ typesetter: t5, textSize: 16 }, 0), 'Error', /default attributes/);
+
+    for (const object of [t1, t4, t5, drawsImage, bad, throwing, late, inDefaults, typeface]) {
       object.dispose();
     }
     const after = counts(b);
@@ -223,10 +256,11 @@ const tests: Test[] = [
   ['Urdu and mixed text get a typesetter with their own typeface attributes', (b) => {
     const roboto = makeTypeface(b, fontBytes);
     const nastaliq = makeTypeface(b, nastaliqFontBytes);
-    const text = new TMutableText(`abc ${URDU} def`);
+    const text = new MutableTypesetter({ typeface: roboto, typeSize: 16 });
+    text.append(`abc ${URDU} def`);
     text.setAttributes(4, 4 + URDU.length, { typeface: nastaliq, typeSize: 24 });
-    const made = create({ attributedText: text, typeface: roboto, textSize: 16 }, 0);
-    check(made.id > 0 && made.typesetter.codeUnitCount === text.length, 'made');
+    const made = create({ typesetter: text, textSize: 16 }, 0);
+    check(made.id > 0 && made.typesetter.length === text.length, 'made');
     made.dispose();
     text.dispose();
     roboto.dispose();

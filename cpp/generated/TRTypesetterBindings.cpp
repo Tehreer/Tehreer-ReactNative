@@ -28,14 +28,188 @@ namespace tehreer {
 namespace generated {
 namespace {
 
-jsi::Value BindTRTypesetterGetCodeUnitCount(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
-    [[maybe_unused]] constexpr const char *kFunction = "TRTypesetterGetCodeUnitCount";
+jsi::Value BindTRTypesetterCreateCopy(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
+    [[maybe_unused]] constexpr const char *kFunction = "TRTypesetterCreateCopy";
     marshal::BeginCall();
     TRTypesetterRef a_typesetter = marshal::ToHandle<TRTypesetterRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "typesetter", false);
 
-    auto result = TRTypesetterGetCodeUnitCount(a_typesetter);
+    auto result = TRTypesetterCreateCopy(a_typesetter);
+    marshal::RethrowCallbackError(rt, result);
+    return marshal::FromHandle<TRTypesetterRef>(rt, result, marshal::Ownership::Adopt);
+}
+
+jsi::Value BindTRTypesetterCreateMutableCopy(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
+    [[maybe_unused]] constexpr const char *kFunction = "TRTypesetterCreateMutableCopy";
+    marshal::BeginCall();
+    TRTypesetterRef a_typesetter = marshal::ToHandle<TRTypesetterRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "typesetter", false);
+
+    auto result = TRTypesetterCreateMutableCopy(a_typesetter);
+    marshal::RethrowCallbackError(rt, result);
+    return marshal::FromHandle<TRMutableTypesetterRef>(rt, result, marshal::Ownership::Adopt);
+}
+
+jsi::Value BindTRTypesetterGetEncoding(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
+    [[maybe_unused]] constexpr const char *kFunction = "TRTypesetterGetEncoding";
+    marshal::BeginCall();
+    TRTypesetterRef a_typesetter = marshal::ToHandle<TRTypesetterRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "typesetter", false);
+
+    auto result = TRTypesetterGetEncoding(a_typesetter);
+    marshal::RethrowCallbackError(rt);
+    return marshal::FromNumber<TRStringEncoding>(rt, result);
+}
+
+jsi::Value BindTRTypesetterGetLength(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
+    [[maybe_unused]] constexpr const char *kFunction = "TRTypesetterGetLength";
+    marshal::BeginCall();
+    TRTypesetterRef a_typesetter = marshal::ToHandle<TRTypesetterRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "typesetter", false);
+
+    auto result = TRTypesetterGetLength(a_typesetter);
     marshal::RethrowCallbackError(rt);
     return marshal::FromIndex(rt, result);
+}
+
+jsi::Value BindTRTypesetterGetCodeUnits(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
+    [[maybe_unused]] constexpr const char *kFunction = "TRTypesetterGetCodeUnits";
+    marshal::BeginCall();
+    TRUInteger a_index = marshal::ToIndex(rt, marshal::ArgAt(args, count, 1), kFunction, "index");
+    TRUInteger a_length = marshal::ToIndex(rt, marshal::ArgAt(args, count, 2), kFunction, "length");
+    TRTypesetterRef a_typesetter = marshal::ToHandle<TRTypesetterRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "typesetter", false);
+    marshal::MutableBuffer a_buffer = marshal::ToMutableBuffer(rt, marshal::ArgAt(args, count, 3), kFunction, "buffer", true);
+
+    if (marshal::CodeUnitSize(TRTypesetterGetEncoding(a_typesetter)) != 0 && a_buffer.data != nullptr) {
+        marshal::RequireCapacity(rt, kFunction, "buffer", static_cast<size_t>(a_length), marshal::CodeUnitSize(TRTypesetterGetEncoding(a_typesetter)), a_buffer.byteLength);
+    }
+
+    auto result = TRTypesetterGetCodeUnits(a_typesetter, a_index, a_length, a_buffer.data);
+    marshal::RethrowCallbackError(rt);
+    return marshal::FromBoolean(result != 0);
+}
+
+jsi::Value BindTRTypesetterCopyAttributes(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
+    [[maybe_unused]] constexpr const char *kFunction = "TRTypesetterCopyAttributes";
+    marshal::BeginCall();
+    TRUInteger a_index = marshal::ToIndex(rt, marshal::ArgAt(args, count, 1), kFunction, "index");
+    TRUInteger o_outLength = 0;
+    TRTypesetterRef a_typesetter = marshal::ToHandle<TRTypesetterRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "typesetter", false);
+
+    auto result = TRTypesetterCopyAttributes(a_typesetter, a_index, &o_outLength);
+    marshal::RethrowCallbackError(rt, result);
+    jsi::Object object(rt);
+    object.setProperty(rt, "result", marshal::FromHandle<TRAttributeListRef>(rt, result, marshal::Ownership::Adopt));
+    object.setProperty(rt, "outLength", marshal::FromIndex(rt, o_outLength));
+    return jsi::Value(std::move(object));
+}
+
+jsi::Value BindTRTypesetterBeginEditing(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
+    [[maybe_unused]] constexpr const char *kFunction = "TRTypesetterBeginEditing";
+    marshal::BeginCall();
+    TRMutableTypesetterRef a_typesetter = marshal::ToHandle<TRMutableTypesetterRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "typesetter", false);
+
+    TRTypesetterBeginEditing(a_typesetter);
+    marshal::RethrowCallbackError(rt);
+    return jsi::Value::undefined();
+}
+
+jsi::Value BindTRTypesetterEndEditing(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
+    [[maybe_unused]] constexpr const char *kFunction = "TRTypesetterEndEditing";
+    marshal::BeginCall();
+    TRMutableTypesetterRef a_typesetter = marshal::ToHandle<TRMutableTypesetterRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "typesetter", false);
+
+    TRTypesetterEndEditing(a_typesetter);
+    marshal::RethrowCallbackError(rt);
+    return jsi::Value::undefined();
+}
+
+jsi::Value BindTRTypesetterAppendCodeUnits(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
+    [[maybe_unused]] constexpr const char *kFunction = "TRTypesetterAppendCodeUnits";
+    marshal::BeginCall();
+    TRUInteger a_codeUnitCount = marshal::ToIndex(rt, marshal::ArgAt(args, count, 2), kFunction, "codeUnitCount");
+    TRMutableTypesetterRef a_typesetter = marshal::ToHandle<TRMutableTypesetterRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "typesetter", false);
+    marshal::ConstBuffer a_codeUnitBuffer = marshal::ToConstBuffer(rt, marshal::ArgAt(args, count, 1), kFunction, "codeUnitBuffer", true);
+
+    if (marshal::CodeUnitSize(TRTypesetterGetEncoding(a_typesetter)) != 0 && a_codeUnitBuffer.data != nullptr) {
+        marshal::RequireCapacity(rt, kFunction, "codeUnitBuffer", static_cast<size_t>(a_codeUnitCount), marshal::CodeUnitSize(TRTypesetterGetEncoding(a_typesetter)), a_codeUnitBuffer.byteLength);
+    }
+
+    auto result = TRTypesetterAppendCodeUnits(a_typesetter, a_codeUnitBuffer.data, a_codeUnitCount);
+    marshal::RethrowCallbackError(rt);
+    return marshal::FromBoolean(result != 0);
+}
+
+jsi::Value BindTRTypesetterInsertCodeUnits(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
+    [[maybe_unused]] constexpr const char *kFunction = "TRTypesetterInsertCodeUnits";
+    marshal::BeginCall();
+    TRUInteger a_index = marshal::ToIndex(rt, marshal::ArgAt(args, count, 1), kFunction, "index");
+    TRUInteger a_codeUnitCount = marshal::ToIndex(rt, marshal::ArgAt(args, count, 3), kFunction, "codeUnitCount");
+    TRMutableTypesetterRef a_typesetter = marshal::ToHandle<TRMutableTypesetterRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "typesetter", false);
+    marshal::ConstBuffer a_codeUnitBuffer = marshal::ToConstBuffer(rt, marshal::ArgAt(args, count, 2), kFunction, "codeUnitBuffer", true);
+
+    if (marshal::CodeUnitSize(TRTypesetterGetEncoding(a_typesetter)) != 0 && a_codeUnitBuffer.data != nullptr) {
+        marshal::RequireCapacity(rt, kFunction, "codeUnitBuffer", static_cast<size_t>(a_codeUnitCount), marshal::CodeUnitSize(TRTypesetterGetEncoding(a_typesetter)), a_codeUnitBuffer.byteLength);
+    }
+
+    auto result = TRTypesetterInsertCodeUnits(a_typesetter, a_index, a_codeUnitBuffer.data, a_codeUnitCount);
+    marshal::RethrowCallbackError(rt);
+    return marshal::FromBoolean(result != 0);
+}
+
+jsi::Value BindTRTypesetterDeleteCodeUnits(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
+    [[maybe_unused]] constexpr const char *kFunction = "TRTypesetterDeleteCodeUnits";
+    marshal::BeginCall();
+    TRUInteger a_index = marshal::ToIndex(rt, marshal::ArgAt(args, count, 1), kFunction, "index");
+    TRUInteger a_length = marshal::ToIndex(rt, marshal::ArgAt(args, count, 2), kFunction, "length");
+    TRMutableTypesetterRef a_typesetter = marshal::ToHandle<TRMutableTypesetterRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "typesetter", false);
+
+    auto result = TRTypesetterDeleteCodeUnits(a_typesetter, a_index, a_length);
+    marshal::RethrowCallbackError(rt);
+    return marshal::FromBoolean(result != 0);
+}
+
+jsi::Value BindTRTypesetterSetCodeUnits(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
+    [[maybe_unused]] constexpr const char *kFunction = "TRTypesetterSetCodeUnits";
+    marshal::BeginCall();
+    TRUInteger a_codeUnitCount = marshal::ToIndex(rt, marshal::ArgAt(args, count, 2), kFunction, "codeUnitCount");
+    TRMutableTypesetterRef a_typesetter = marshal::ToHandle<TRMutableTypesetterRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "typesetter", false);
+    marshal::ConstBuffer a_codeUnitBuffer = marshal::ToConstBuffer(rt, marshal::ArgAt(args, count, 1), kFunction, "codeUnitBuffer", true);
+
+    if (marshal::CodeUnitSize(TRTypesetterGetEncoding(a_typesetter)) != 0 && a_codeUnitBuffer.data != nullptr) {
+        marshal::RequireCapacity(rt, kFunction, "codeUnitBuffer", static_cast<size_t>(a_codeUnitCount), marshal::CodeUnitSize(TRTypesetterGetEncoding(a_typesetter)), a_codeUnitBuffer.byteLength);
+    }
+
+    auto result = TRTypesetterSetCodeUnits(a_typesetter, a_codeUnitBuffer.data, a_codeUnitCount);
+    marshal::RethrowCallbackError(rt);
+    return marshal::FromBoolean(result != 0);
+}
+
+jsi::Value BindTRTypesetterReplaceCodeUnits(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
+    [[maybe_unused]] constexpr const char *kFunction = "TRTypesetterReplaceCodeUnits";
+    marshal::BeginCall();
+    TRUInteger a_index = marshal::ToIndex(rt, marshal::ArgAt(args, count, 1), kFunction, "index");
+    TRUInteger a_length = marshal::ToIndex(rt, marshal::ArgAt(args, count, 2), kFunction, "length");
+    TRUInteger a_codeUnitCount = marshal::ToIndex(rt, marshal::ArgAt(args, count, 4), kFunction, "codeUnitCount");
+    TRMutableTypesetterRef a_typesetter = marshal::ToHandle<TRMutableTypesetterRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "typesetter", false);
+    marshal::ConstBuffer a_codeUnitBuffer = marshal::ToConstBuffer(rt, marshal::ArgAt(args, count, 3), kFunction, "codeUnitBuffer", true);
+
+    if (marshal::CodeUnitSize(TRTypesetterGetEncoding(a_typesetter)) != 0 && a_codeUnitBuffer.data != nullptr) {
+        marshal::RequireCapacity(rt, kFunction, "codeUnitBuffer", static_cast<size_t>(a_codeUnitCount), marshal::CodeUnitSize(TRTypesetterGetEncoding(a_typesetter)), a_codeUnitBuffer.byteLength);
+    }
+
+    auto result = TRTypesetterReplaceCodeUnits(a_typesetter, a_index, a_length, a_codeUnitBuffer.data, a_codeUnitCount);
+    marshal::RethrowCallbackError(rt);
+    return marshal::FromBoolean(result != 0);
+}
+
+jsi::Value BindTRTypesetterRemoveAttribute(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
+    [[maybe_unused]] constexpr const char *kFunction = "TRTypesetterRemoveAttribute";
+    marshal::BeginCall();
+    TRUInteger a_index = marshal::ToIndex(rt, marshal::ArgAt(args, count, 1), kFunction, "index");
+    TRUInteger a_length = marshal::ToIndex(rt, marshal::ArgAt(args, count, 2), kFunction, "length");
+    TRAttributeType a_attributeType = marshal::ToNumber<TRAttributeType>(rt, marshal::ArgAt(args, count, 3), kFunction, "attributeType");
+    TRMutableTypesetterRef a_typesetter = marshal::ToHandle<TRMutableTypesetterRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "typesetter", false);
+
+    auto result = TRTypesetterRemoveAttribute(a_typesetter, a_index, a_length, a_attributeType);
+    marshal::RethrowCallbackError(rt);
+    return marshal::FromBoolean(result != 0);
 }
 
 jsi::Value BindTRTypesetterSuggestForwardBreak(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
@@ -129,6 +303,31 @@ jsi::Value BindTRTypesetterCreateJustifiedLine(jsi::Runtime &rt, const jsi::Valu
     return marshal::FromHandle<TRComposedLineRef>(rt, result, marshal::Ownership::Adopt);
 }
 
+jsi::Value BindTRTypesetterFindBoundary(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
+    [[maybe_unused]] constexpr const char *kFunction = "TRTypesetterFindBoundary";
+    marshal::BeginCall();
+    TRUInteger a_index = marshal::ToIndex(rt, marshal::ArgAt(args, count, 1), kFunction, "index");
+    TRBoundaryType a_type = marshal::ToNumber<TRBoundaryType>(rt, marshal::ArgAt(args, count, 2), kFunction, "type");
+    TRBoundaryDirection a_direction = marshal::ToNumber<TRBoundaryDirection>(rt, marshal::ArgAt(args, count, 3), kFunction, "direction");
+    TRTypesetterRef a_typesetter = marshal::ToHandle<TRTypesetterRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "typesetter", false);
+
+    auto result = TRTypesetterFindBoundary(a_typesetter, a_index, a_type, a_direction);
+    marshal::RethrowCallbackError(rt);
+    return marshal::FromIndex(rt, result);
+}
+
+jsi::Value BindTRTypesetterGetBoundaryRange(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
+    [[maybe_unused]] constexpr const char *kFunction = "TRTypesetterGetBoundaryRange";
+    marshal::BeginCall();
+    TRUInteger a_index = marshal::ToIndex(rt, marshal::ArgAt(args, count, 1), kFunction, "index");
+    TRBoundaryType a_type = marshal::ToNumber<TRBoundaryType>(rt, marshal::ArgAt(args, count, 2), kFunction, "type");
+    TRTypesetterRef a_typesetter = marshal::ToHandle<TRTypesetterRef>(rt, marshal::ArgAt(args, count, 0), kFunction, "typesetter", false);
+
+    auto result = TRTypesetterGetBoundaryRange(a_typesetter, a_index, a_type);
+    marshal::RethrowCallbackError(rt);
+    return TRRangeToJs(rt, result);
+}
+
 jsi::Value BindTRTypesetterRetain(jsi::Runtime &rt, const jsi::Value &, const jsi::Value *args, size_t count) {
     [[maybe_unused]] constexpr const char *kFunction = "TRTypesetterRetain";
     marshal::BeginCall();
@@ -142,13 +341,28 @@ jsi::Value BindTRTypesetterRetain(jsi::Runtime &rt, const jsi::Value &, const js
 } // namespace
 
 void InstallTRTypesetter(jsi::Runtime &rt, jsi::Object &target) {
-    target.setProperty(rt, "TRTypesetterGetCodeUnitCount", jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "TRTypesetterGetCodeUnitCount"), 1, &BindTRTypesetterGetCodeUnitCount));
+    target.setProperty(rt, "TRTypesetterCreateCopy", jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "TRTypesetterCreateCopy"), 1, &BindTRTypesetterCreateCopy));
+    target.setProperty(rt, "TRTypesetterCreateMutableCopy", jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "TRTypesetterCreateMutableCopy"), 1, &BindTRTypesetterCreateMutableCopy));
+    target.setProperty(rt, "TRTypesetterGetEncoding", jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "TRTypesetterGetEncoding"), 1, &BindTRTypesetterGetEncoding));
+    target.setProperty(rt, "TRTypesetterGetLength", jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "TRTypesetterGetLength"), 1, &BindTRTypesetterGetLength));
+    target.setProperty(rt, "TRTypesetterGetCodeUnits", jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "TRTypesetterGetCodeUnits"), 4, &BindTRTypesetterGetCodeUnits));
+    target.setProperty(rt, "TRTypesetterCopyAttributes", jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "TRTypesetterCopyAttributes"), 2, &BindTRTypesetterCopyAttributes));
+    target.setProperty(rt, "TRTypesetterBeginEditing", jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "TRTypesetterBeginEditing"), 1, &BindTRTypesetterBeginEditing));
+    target.setProperty(rt, "TRTypesetterEndEditing", jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "TRTypesetterEndEditing"), 1, &BindTRTypesetterEndEditing));
+    target.setProperty(rt, "TRTypesetterAppendCodeUnits", jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "TRTypesetterAppendCodeUnits"), 3, &BindTRTypesetterAppendCodeUnits));
+    target.setProperty(rt, "TRTypesetterInsertCodeUnits", jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "TRTypesetterInsertCodeUnits"), 4, &BindTRTypesetterInsertCodeUnits));
+    target.setProperty(rt, "TRTypesetterDeleteCodeUnits", jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "TRTypesetterDeleteCodeUnits"), 3, &BindTRTypesetterDeleteCodeUnits));
+    target.setProperty(rt, "TRTypesetterSetCodeUnits", jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "TRTypesetterSetCodeUnits"), 3, &BindTRTypesetterSetCodeUnits));
+    target.setProperty(rt, "TRTypesetterReplaceCodeUnits", jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "TRTypesetterReplaceCodeUnits"), 5, &BindTRTypesetterReplaceCodeUnits));
+    target.setProperty(rt, "TRTypesetterRemoveAttribute", jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "TRTypesetterRemoveAttribute"), 4, &BindTRTypesetterRemoveAttribute));
     target.setProperty(rt, "TRTypesetterSuggestForwardBreak", jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "TRTypesetterSuggestForwardBreak"), 5, &BindTRTypesetterSuggestForwardBreak));
     target.setProperty(rt, "TRTypesetterSuggestBackwardBreak", jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "TRTypesetterSuggestBackwardBreak"), 5, &BindTRTypesetterSuggestBackwardBreak));
     target.setProperty(rt, "TRTypesetterCreateSimpleLine", jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "TRTypesetterCreateSimpleLine"), 4, &BindTRTypesetterCreateSimpleLine));
     target.setProperty(rt, "TRTypesetterCreateTruncationToken", jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "TRTypesetterCreateTruncationToken"), 7, &BindTRTypesetterCreateTruncationToken));
     target.setProperty(rt, "TRTypesetterCreateTruncatedLine", jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "TRTypesetterCreateTruncatedLine"), 7, &BindTRTypesetterCreateTruncatedLine));
     target.setProperty(rt, "TRTypesetterCreateJustifiedLine", jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "TRTypesetterCreateJustifiedLine"), 5, &BindTRTypesetterCreateJustifiedLine));
+    target.setProperty(rt, "TRTypesetterFindBoundary", jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "TRTypesetterFindBoundary"), 4, &BindTRTypesetterFindBoundary));
+    target.setProperty(rt, "TRTypesetterGetBoundaryRange", jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "TRTypesetterGetBoundaryRange"), 3, &BindTRTypesetterGetBoundaryRange));
     target.setProperty(rt, "TRTypesetterRetain", jsi::Function::createFromHostFunction(rt, jsi::PropNameID::forAscii(rt, "TRTypesetterRetain"), 1, &BindTRTypesetterRetain));
 }
 

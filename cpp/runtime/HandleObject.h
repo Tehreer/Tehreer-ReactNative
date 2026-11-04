@@ -31,7 +31,7 @@ public:
     void *ref() const { return _ref; }
     bool isDisposed() const { return _ref == nullptr; }
 
-    /** The name shared by the reference types of one object, such as `TRText` for both text types. */
+    /** The name shared by the reference types of one object, such as `TRTypesetter` for both typesetter types. */
     const char *group() const { return _group; }
     /** Whether the type the handle was made from allows changing the object. */
     bool isMutable() const { return _isMutable; }
